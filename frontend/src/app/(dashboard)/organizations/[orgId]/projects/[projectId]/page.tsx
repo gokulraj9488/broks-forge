@@ -1,25 +1,36 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, FolderKanban } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { TabsBar } from "@/components/ui/tabs-bar";
 import { StatusBadge } from "@/components/common/badges";
+import { AgentsPanel } from "@/components/agents/agents-panel";
 import { ApiKeysPanel } from "@/components/api-keys/api-keys-panel";
 import { useProject } from "@/lib/hooks/use-projects";
 import { useOrganization } from "@/lib/hooks/use-organizations";
 import { formatDate } from "@/lib/utils";
+
+type Tab = "agents" | "api-keys";
+
+const TABS = [
+  { key: "agents" as const, label: "Agents" },
+  { key: "api-keys" as const, label: "API Keys" },
+];
 
 export default function ProjectDetailPage() {
   const params = useParams<{ orgId: string; projectId: string }>();
   const { orgId, projectId } = params;
   const { data: organization } = useOrganization(orgId);
   const { data: project, isLoading, isError } = useProject(orgId, projectId);
+  const [tab, setTab] = useState<Tab>("agents");
 
   const canManage =
     organization?.currentUserRole === "OWNER" || organization?.currentUserRole === "ADMIN";
+  const isMember = !!organization?.currentUserRole;
 
   if (isLoading) {
     return (
@@ -70,9 +81,16 @@ export default function ProjectDetailPage() {
         <p className="max-w-2xl text-sm text-muted-foreground">{project.description}</p>
       )}
 
-      <Separator />
+      <TabsBar tabs={TABS} value={tab} onChange={setTab} />
 
-      <ApiKeysPanel organizationId={orgId} projectId={projectId} canManage={!!canManage} />
+      <div>
+        {tab === "agents" && (
+          <AgentsPanel organizationId={orgId} projectId={projectId} canManage={isMember} />
+        )}
+        {tab === "api-keys" && (
+          <ApiKeysPanel organizationId={orgId} projectId={projectId} canManage={!!canManage} />
+        )}
+      </div>
     </div>
   );
 }

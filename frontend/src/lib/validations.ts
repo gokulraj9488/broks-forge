@@ -98,3 +98,106 @@ export const apiKeySchema = z.object({
   ),
 });
 export type ApiKeyValues = z.infer<typeof apiKeySchema>;
+
+// ---------------------------------------------------------------------------
+// Agent Registry (Phase 2)
+// ---------------------------------------------------------------------------
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:") && !url.username && !!url.host;
+  } catch {
+    return false;
+  }
+}
+
+export const agentSchema = z.object({
+  name: z.string().min(2, "At least 2 characters").max(120),
+  slug,
+  description: z.string().max(1000).optional(),
+  endpointUrl: z
+    .string()
+    .min(1, "Endpoint URL is required")
+    .max(2048)
+    .refine(isHttpUrl, "Must be a valid http(s) URL without embedded credentials"),
+  visibility: z.enum(["PRIVATE", "ORGANIZATION", "PUBLIC"]),
+  framework: z.enum([
+    "SPRING_AI",
+    "LANGGRAPH",
+    "LANGCHAIN",
+    "CREWAI",
+    "AUTOGEN",
+    "PYDANTIC_AI",
+    "SEMANTIC_KERNEL",
+    "LLAMA_INDEX",
+    "CUSTOM_REST",
+    "OTHER",
+  ]),
+  language: z.enum(["JAVA", "PYTHON", "NODE", "TYPESCRIPT", "GO", "RUST", "CSHARP", "OTHER"]),
+  authType: z.enum(["NONE", "API_KEY", "BEARER_TOKEN", "BASIC_AUTH", "CUSTOM_HEADER"]),
+  streaming: z.boolean().optional(),
+  memory: z.boolean().optional(),
+  rag: z.boolean().optional(),
+  toolCalling: z.boolean().optional(),
+  structuredOutput: z.boolean().optional(),
+  reasoning: z.boolean().optional(),
+  multiAgent: z.boolean().optional(),
+  tags: z.string().max(500).optional(),
+});
+export type AgentValues = z.infer<typeof agentSchema>;
+
+export const agentVersionSchema = z.object({
+  versionNumber: z
+    .string()
+    .min(1, "Version number is required")
+    .regex(/^[A-Za-z0-9][A-Za-z0-9._+-]{0,63}$/, "Letters, digits and . _ + - only"),
+  model: z.string().min(1, "Model is required").max(128),
+  provider: z.enum([
+    "OPENAI",
+    "ANTHROPIC",
+    "AZURE_OPENAI",
+    "AWS_BEDROCK",
+    "GOOGLE_VERTEX",
+    "GOOGLE_GEMINI",
+    "COHERE",
+    "MISTRAL",
+    "META_LLAMA",
+    "OLLAMA",
+    "HUGGINGFACE",
+    "CUSTOM",
+    "OTHER",
+  ]),
+  frameworkVersion: z.string().max(64).optional(),
+  gitCommitSha: z
+    .string()
+    .regex(/^[0-9a-fA-F]{7,64}$/, "7-64 hex characters")
+    .optional()
+    .or(z.literal("")),
+  promptVersion: z.string().max(64).optional(),
+  environment: z.enum(["DEVELOPMENT", "STAGING", "PRODUCTION"]),
+  releaseNotes: z.string().max(2000).optional(),
+  rollbackReady: z.boolean().optional(),
+  activate: z.boolean().optional(),
+});
+export type AgentVersionValues = z.infer<typeof agentVersionSchema>;
+
+export const setCredentialSchema = z
+  .object({
+    authType: z.enum(["NONE", "API_KEY", "BEARER_TOKEN", "BASIC_AUTH", "CUSTOM_HEADER"]),
+    secret: z.string().max(4096).optional(),
+    username: z.string().max(256).optional(),
+    headerName: z.string().max(128).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.authType === "NONE") return;
+    if (!data.secret) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["secret"], message: "A secret is required" });
+    }
+    if (data.authType === "BASIC_AUTH" && !data.username) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["username"], message: "Username is required" });
+    }
+    if (data.authType === "CUSTOM_HEADER" && !data.headerName) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["headerName"], message: "Header name is required" });
+    }
+  });
+export type SetCredentialValues = z.infer<typeof setCredentialSchema>;

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, FolderKanban, LayoutGrid, Settings } from "lucide-react";
+import { Bot, Building2, FolderKanban, LayoutGrid, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
   { href: "/organizations", label: "Organizations", icon: Building2 },
   { href: "/projects", label: "Projects", icon: FolderKanban },
+  { href: "/agents", label: "Agents", icon: Bot },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

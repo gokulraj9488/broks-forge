@@ -34,3 +34,10 @@ broksforge:
     jwt:
       # Development-only fallback secret (Base64, 384 bits). DO NOT use in production.
       secret: ${BROKSFORGE_SECURITY_JWT_SECRET:ZGV2LW9ubHktc2VjcmV0LWNoYW5nZS1tZS1icm9rcy1mb3JnZS1qd3Qtc2lnbmluZy1rZXktMTIzNDU2Nzg5MA==}
+    encryption:
+      # Development-only AES-256 key (Base64, exactly 32 bytes). DO NOT use in production.
+      secret: ${BROKSFORGE_SECURITY_ENCRYPTION_KEY:ZGV2LW9ubHktZW5jcnlwdGlvbi1rZXktMzJieXRlcyE=}
+  agent:
+    health:
+      # Local agents typically run on localhost, so allow private targets in dev.
+      allow-private-targets: ${BROKSFORGE_AGENT_HEALTH_ALLOW_PRIVATE_TARGETS:true}
