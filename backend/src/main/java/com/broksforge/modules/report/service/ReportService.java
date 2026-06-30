@@ -166,7 +166,7 @@ public class ReportService {
         check.findings().forEach((key, value) -> {
             if (value instanceof Map<?, ?> finding) {
                 rows.add(List.of(
-                        str(finding.getOrDefault("label", key)),
+                        str(finding.containsKey("label") ? finding.get("label") : key),
                         str(finding.get("baseline")),
                         str(finding.get("candidate")),
                         str(finding.get("deltaPct")),

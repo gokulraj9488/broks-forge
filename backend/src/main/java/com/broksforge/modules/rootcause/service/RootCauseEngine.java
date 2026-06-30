@@ -239,7 +239,7 @@ public class RootCauseEngine {
     // ----------------------------------------------------------------------
 
     private RootCauseFinding regressionFinding(String key, Map<?, ?> finding) {
-        String label = String.valueOf(finding.getOrDefault("label", key));
+        String label = String.valueOf(finding.containsKey("label") ? finding.get("label") : key);
         Double deltaPct = asDouble(finding.get("deltaPct"));
         String delta = deltaPct == null ? "by an unclear margin" : "by %.1f%%".formatted(Math.abs(deltaPct));
         String knowledgeKey = switch (key) {
