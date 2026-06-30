@@ -1,0 +1,17 @@
+# ===========================================================================
+# Brok's Forge - Docker profile
+# ---------------------------------------------------------------------------
+# Used when the API runs inside Docker Compose. All connection details and
+# secrets are injected as environment variables by docker-compose.yml.
+# ===========================================================================
+
+logging:
+  level:
+    root: INFO
+    com.broksforge: INFO
+    org.springframework.security: WARN
+
+management:
+  endpoint:
+    health:
+      show-details: never

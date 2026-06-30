@@ -1,0 +1,127 @@
+# ===========================================================================
+# Brok's Forge - Docker Compose
+# ---------------------------------------------------------------------------
+# Start the full stack with:
+#   docker compose up --build
+#
+# Services:
+#   - postgres : PostgreSQL 16 database
+#   - redis    : Redis 7 cache / token store
+#   - backend  : Spring Boot 3 API (Java 21)
+#   - frontend : Next.js 15 web app
+# ===========================================================================
+
+name: broks-forge
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: broksforge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-broksforge}
+      POSTGRES_USER: ${POSTGRES_USER:-broksforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-broksforge}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-broksforge} -d ${POSTGRES_DB:-broksforge}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - broksforge-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: broksforge-redis
+    restart: unless-stopped
+    command: >
+      sh -c '
+        if [ -n "$$REDIS_PASSWORD" ]; then
+          redis-server --requirepass "$$REDIS_PASSWORD" --appendonly yes;
+        else
+          redis-server --appendonly yes;
+        fi
+      '
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - broksforge-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: broksforge-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-broksforge}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-broksforge}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-broksforge}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      BROKSFORGE_SECURITY_JWT_SECRET: ${JWT_SECRET}
+      BROKSFORGE_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION_MS: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:-900000}
+      BROKSFORGE_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION_MS: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:-2592000000}
+      BROKSFORGE_SECURITY_JWT_ISSUER: ${JWT_ISSUER:-broks-forge}
+      BROKSFORGE_SECURITY_CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      BROKSFORGE_APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost:3000}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - broksforge-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+    container_name: broksforge-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    networks:
+      - broksforge-net
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  broksforge-net:
+    driver: bridge

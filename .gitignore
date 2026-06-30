@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------
+# Brok's Forge - root .gitignore
+# ---------------------------------------------------------------------------
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+
+# ---------------------------------------------------------------------------
+# Java / Maven (backend)
+# ---------------------------------------------------------------------------
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/!**/src/main/**/target/
+backend/!**/src/test/**/target/
+*.class
+*.log
+hs_err_pid*
+
+# ---------------------------------------------------------------------------
+# Node / Next.js (frontend)
+# ---------------------------------------------------------------------------
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.turbo/
+frontend/coverage/
+frontend/next-env.d.ts
+frontend/*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ---------------------------------------------------------------------------
+# Docker
+# ---------------------------------------------------------------------------
+docker/data/
+postgres-data/
+redis-data/

@@ -1,0 +1,36 @@
+# ===========================================================================
+# Brok's Forge - Development profile
+# ---------------------------------------------------------------------------
+# Convenience defaults for running the API locally with `mvn spring-boot:run`.
+# The JWT secret below is a DEVELOPMENT-ONLY value. Production environments
+# MUST override BROKSFORGE_SECURITY_JWT_SECRET with a strong random secret.
+# ===========================================================================
+
+spring:
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+logging:
+  level:
+    root: INFO
+    com.broksforge: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,beans,mappings
+  endpoint:
+    health:
+      show-details: always
+
+broksforge:
+  security:
+    jwt:
+      # Development-only fallback secret (Base64, 384 bits). DO NOT use in production.
+      secret: ${BROKSFORGE_SECURITY_JWT_SECRET:ZGV2LW9ubHktc2VjcmV0LWNoYW5nZS1tZS1icm9rcy1mb3JnZS1qd3Qtc2lnbmluZy1rZXktMTIzNDU2Nzg5MA==}
