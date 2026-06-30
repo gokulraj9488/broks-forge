@@ -31,6 +31,10 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
+          # Batch bulk inserts (dataset items, evaluation runs/results) for throughput.
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
         format_sql: false
         # Map java.time.Instant to "timestamp with time zone" so schema
         # validation matches the Flyway-managed TIMESTAMPTZ columns.
@@ -69,12 +73,32 @@ server:
 management:
   endpoints:
     web:
+      base-path: /actuator
       exposure:
-        include: health,info,metrics
+        # Prometheus endpoint is exposed but still ADMIN-guarded by SecurityConfig
+        # (scrapers authenticate, or run on a private management network).
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: when-authorized
       probes:
+        enabled: true
+      # Kubernetes-style probes: liveness = process up; readiness = can serve
+      # traffic (includes the database). A DB outage makes the pod NOT ready
+      # (drained) without killing it.
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState, db
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
         enabled: true
   info:
     env:
@@ -84,7 +108,7 @@ info:
   app:
     name: Brok's Forge
     description: The Engineering Platform for AI Agents.
-    version: 0.1.0
+    version: 1.0.0
 
 springdoc:
   api-docs:
@@ -145,6 +169,36 @@ broksforge:
       history-window-days: ${BROKSFORGE_AGENT_HEALTH_HISTORY_WINDOW_DAYS:30}
       # Number of recent checks returned in the health summary
       recent-limit: ${BROKSFORGE_AGENT_HEALTH_RECENT_LIMIT:20}
+  # ---------------------------------------------------------------------------
+  # Model invocation (Phase 3) — outbound calls to agent endpoints / providers
+  # ---------------------------------------------------------------------------
+  model:
+    # Connect/read timeout for outbound model calls (agent endpoints).
+    timeout-ms: ${BROKSFORGE_MODEL_TIMEOUT_MS:30000}
+    # SSRF guard for model calls: false in production, true in dev for local agents.
+    allow-private-targets: ${BROKSFORGE_MODEL_ALLOW_PRIVATE_TARGETS:false}
+    # Defensive cap on stored output length per invocation.
+    max-output-chars: ${BROKSFORGE_MODEL_MAX_OUTPUT_CHARS:100000}
+  # ---------------------------------------------------------------------------
+  # Evaluation (Phase 3)
+  # ---------------------------------------------------------------------------
+  evaluation:
+    # Largest dataset a single synchronous job may run (async workers are future work).
+    max-items-per-job: ${BROKSFORGE_EVALUATION_MAX_ITEMS_PER_JOB:500}
+  # ---------------------------------------------------------------------------
+  # AI Engineering Advisor (Phase 4) — heuristic thresholds for recommendations
+  # ---------------------------------------------------------------------------
+  advisor:
+    # A prompt template longer than this (characters) is flagged as bloated.
+    prompt-max-chars: ${BROKSFORGE_ADVISOR_PROMPT_MAX_CHARS:8000}
+    # A template declaring more variables than this is flagged as complex.
+    prompt-max-variables: ${BROKSFORGE_ADVISOR_PROMPT_MAX_VARIABLES:12}
+    # Average run latency above this (ms) is flagged as a latency concern.
+    latency-spike-ms: ${BROKSFORGE_ADVISOR_LATENCY_SPIKE_MS:12000}
+    # Minimum comparable jobs before model/cost comparisons are emitted.
+    min-samples-for-comparison: ${BROKSFORGE_ADVISOR_MIN_SAMPLES_FOR_COMPARISON:3}
+    # Maximum failed runs the root-cause engine samples per job.
+    failure-sample-size: ${BROKSFORGE_ADVISOR_FAILURE_SAMPLE_SIZE:50}
 
 # ---------------------------------------------------------------------------
 # Logging — include correlation/request IDs from MDC for traceability

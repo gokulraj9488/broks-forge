@@ -1,0 +1,64 @@
+name: Feature request
+description: Suggest a new capability or improvement for Brok's Forge.
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Brok's Forge. Please check the
+        [Roadmap](https://github.com/your-org/broks-forge/blob/main/docs/ROADMAP.md)
+        first — your idea may already be planned.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checklist
+      options:
+        - label: I have searched existing issues and the roadmap, and this is not a duplicate.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What engineering problem does this solve? Who is affected and how?
+      placeholder: "As an AI engineer, I want ... so that ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the capability you'd like. How should it behave?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you considered and why you discarded them.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Backend (Spring Boot API)
+        - Frontend (Next.js web app)
+        - Evaluation / benchmark / regression
+        - Advisor / root-cause / debugger
+        - Observability / tracing
+        - SDK / CLI
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Mockups, links, references, or anything else that helps.

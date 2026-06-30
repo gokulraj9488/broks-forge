@@ -41,3 +41,6 @@ broksforge:
     health:
       # Local agents typically run on localhost, so allow private targets in dev.
       allow-private-targets: ${BROKSFORGE_AGENT_HEALTH_ALLOW_PRIVATE_TARGETS:true}
+  model:
+    # Evaluation targets local agents on localhost during development.
+    allow-private-targets: ${BROKSFORGE_MODEL_ALLOW_PRIVATE_TARGETS:true}

@@ -6,7 +6,8 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm install
+# Reproducible install from the committed lockfile (fails if it is out of sync).
+RUN npm ci
 
 # --------------------------- Build -----------------------------------------
 FROM node:20-alpine AS build

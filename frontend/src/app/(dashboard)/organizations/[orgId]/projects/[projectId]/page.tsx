@@ -10,14 +10,20 @@ import { TabsBar } from "@/components/ui/tabs-bar";
 import { StatusBadge } from "@/components/common/badges";
 import { AgentsPanel } from "@/components/agents/agents-panel";
 import { ApiKeysPanel } from "@/components/api-keys/api-keys-panel";
+import { DatasetsPanel } from "@/components/datasets/datasets-panel";
+import { PromptsPanel } from "@/components/prompts/prompts-panel";
+import { JobsPanel } from "@/components/evaluations/jobs-panel";
 import { useProject } from "@/lib/hooks/use-projects";
 import { useOrganization } from "@/lib/hooks/use-organizations";
 import { formatDate } from "@/lib/utils";
 
-type Tab = "agents" | "api-keys";
+type Tab = "agents" | "datasets" | "prompts" | "evaluations" | "api-keys";
 
 const TABS = [
   { key: "agents" as const, label: "Agents" },
+  { key: "datasets" as const, label: "Datasets" },
+  { key: "prompts" as const, label: "Prompts" },
+  { key: "evaluations" as const, label: "Evaluations" },
   { key: "api-keys" as const, label: "API Keys" },
 ];
 
@@ -86,6 +92,15 @@ export default function ProjectDetailPage() {
       <div>
         {tab === "agents" && (
           <AgentsPanel organizationId={orgId} projectId={projectId} canManage={isMember} />
+        )}
+        {tab === "datasets" && (
+          <DatasetsPanel organizationId={orgId} projectId={projectId} canManage={isMember} />
+        )}
+        {tab === "prompts" && (
+          <PromptsPanel organizationId={orgId} projectId={projectId} canManage={isMember} />
+        )}
+        {tab === "evaluations" && (
+          <JobsPanel organizationId={orgId} projectId={projectId} canManage={isMember} />
         )}
         {tab === "api-keys" && (
           <ApiKeysPanel organizationId={orgId} projectId={projectId} canManage={!!canManage} />

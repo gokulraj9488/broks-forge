@@ -13,7 +13,7 @@
 
     <groupId>com.broksforge</groupId>
     <artifactId>broks-forge-api</artifactId>
-    <version>0.1.0</version>
+    <version>1.0.0</version>
     <name>Brok's Forge API</name>
     <description>The Engineering Platform for AI Agents - backend API.</description>
 
@@ -92,6 +92,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- Prometheus metrics registry: exposes /actuator/prometheus for scraping
+             (Grafana-ready). Version is managed by the Spring Boot BOM. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- ===================== Spring AI (dependency only) ===================== -->

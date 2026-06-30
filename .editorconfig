@@ -1,0 +1,47 @@
+# ===========================================================================
+# Brok's Forge - EditorConfig (https://editorconfig.org)
+# Consistent formatting across editors, OSes and contributors.
+# ===========================================================================
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Java backend — 4-space indent, 120-col soft limit
+[*.java]
+indent_size = 4
+max_line_length = 120
+
+# Maven / XML
+[*.{xml,pom}]
+indent_size = 4
+
+# Web / config
+[*.{ts,tsx,js,jsx,json,yml,yaml,css,scss,html}]
+indent_size = 2
+
+# Markdown — keep trailing whitespace (hard line breaks) and don't reflow
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# SQL migrations
+[*.sql]
+indent_size = 4
+
+# Shell scripts
+[*.sh]
+end_of_line = lf
+
+# Windows batch / PowerShell keep CRLF
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
+
+# Makefiles require tabs
+[Makefile]
+indent_style = tab

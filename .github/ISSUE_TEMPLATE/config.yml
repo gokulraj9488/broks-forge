@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & discussion
+    url: https://github.com/your-org/broks-forge/discussions
+    about: Ask questions, share ideas, and discuss usage with the community.
+  - name: Documentation
+    url: https://github.com/your-org/broks-forge/tree/main/docs
+    about: Architecture, contributing, testing, security, and engineering guides.
+  - name: Report a security vulnerability
+    url: https://github.com/your-org/broks-forge/security/policy
+    about: Please report vulnerabilities privately via GitHub Security Advisories — never in a public issue.

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Bot, ExternalLink } from "lucide-react";
+import { ArrowLeft, Bot, ExternalLink, Lightbulb } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,20 +14,54 @@ import { VersionsPanel } from "@/components/agents/versions-panel";
 import { HealthPanel } from "@/components/agents/health-panel";
 import { CredentialsPanel } from "@/components/agents/credentials-panel";
 import { AgentSettingsPanel } from "@/components/agents/agent-settings-panel";
+import { AdvisoryReport } from "@/components/advisor/advisory-report";
 import { useAgent } from "@/lib/hooks/use-agents";
+import { useAgentAdvisory } from "@/lib/hooks/use-advisor";
 import { useOrganization } from "@/lib/hooks/use-organizations";
 import { FRAMEWORK_OPTIONS, type AgentResponse } from "@/lib/api/agents";
 import { formatDateTime } from "@/lib/utils";
 
-type Tab = "overview" | "versions" | "health" | "credentials" | "settings";
+type Tab = "overview" | "versions" | "advisor" | "health" | "credentials" | "settings";
 
 const TABS = [
   { key: "overview" as const, label: "Overview" },
   { key: "versions" as const, label: "Versions" },
+  { key: "advisor" as const, label: "Advisor" },
   { key: "health" as const, label: "Health" },
   { key: "credentials" as const, label: "Credentials" },
   { key: "settings" as const, label: "Settings" },
 ];
+
+function AgentAdvisor({
+  organizationId,
+  projectId,
+  agentId,
+}: {
+  organizationId: string;
+  projectId: string;
+  agentId: string;
+}) {
+  const { data, isLoading, isError } = useAgentAdvisory(organizationId, projectId, agentId);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-64" />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-40 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <EmptyState icon={Lightbulb} title="Couldn't load advisory" description="Please try again." />
+    );
+  }
+
+  return <AdvisoryReport report={data} />;
+}
 
 const FRAMEWORK_LABELS = Object.fromEntries(FRAMEWORK_OPTIONS.map((o) => [o.value, o.label]));
 
@@ -182,6 +216,9 @@ export default function AgentDetailPage() {
             agentId={agentId}
             canManage={canManage}
           />
+        )}
+        {tab === "advisor" && (
+          <AgentAdvisor organizationId={orgId} projectId={projectId} agentId={agentId} />
         )}
         {tab === "health" && (
           <HealthPanel

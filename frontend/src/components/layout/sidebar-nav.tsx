@@ -2,7 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bot, Building2, FolderKanban, LayoutGrid, Settings } from "lucide-react";
+import {
+  BarChart3,
+  Bot,
+  Building2,
+  Database,
+  FileText,
+  FlaskConical,
+  FolderKanban,
+  Gauge,
+  LayoutGrid,
+  Lightbulb,
+  Network,
+  Settings,
+  Trophy,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -10,6 +24,14 @@ const NAV_ITEMS = [
   { href: "/organizations", label: "Organizations", icon: Building2 },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/agents", label: "Agents", icon: Bot },
+  { href: "/datasets", label: "Datasets", icon: Database },
+  { href: "/prompts", label: "Prompts", icon: FileText },
+  { href: "/evaluations", label: "Evaluations", icon: FlaskConical },
+  { href: "/benchmarks", label: "Benchmarks", icon: Trophy },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/insights", label: "Insights", icon: Gauge },
+  { href: "/advisor", label: "Advisor", icon: Lightbulb },
+  { href: "/knowledge", label: "Knowledge", icon: Network },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

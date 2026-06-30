@@ -10,6 +10,14 @@ logging:
     root: INFO
     com.broksforge: INFO
     org.springframework.security: WARN
+  # Production structured logging (Spring Boot 3.4 native). Emits one JSON object
+  # per line in Elastic Common Schema, so log aggregators (Loki/ELK/Datadog) can
+  # parse it directly. MDC values (correlationId, requestId) appear as fields.
+  # Override BROKSFORGE_LOG_STRUCTURED_FORMAT=logstash for a Logstash layout, or
+  # set it empty to fall back to the human-readable console pattern.
+  structured:
+    format:
+      console: ${BROKSFORGE_LOG_STRUCTURED_FORMAT:ecs}
 
 management:
   endpoint:

@@ -10,6 +10,17 @@ decision changes, add a new ADR that supersedes the old one rather than editing 
 | [0002](0002-agent-as-central-entity.md) | Agent as the central platform entity | Accepted |
 | [0003](0003-credential-encryption-vs-hashing.md) | Encrypt agent credentials instead of hashing | Accepted |
 | [0004](0004-ssrf-protection-for-agent-endpoints.md) | SSRF protection for outbound agent calls | Accepted |
+| [0005](0005-evaluation-job-as-top-level-aggregate.md) | Evaluation Job as the top-level aggregate | Accepted |
+| [0006](0006-provider-agnostic-model-invocation.md) | Provider-agnostic model invocation | Accepted |
+| [0007](0007-immutable-versioned-datasets.md) | Immutable, versioned datasets | Accepted |
+| [0008](0008-prompt-templating-and-versioning.md) | Prompt templating and versioning | Accepted |
+| [0009](0009-reporting-and-export-architecture.md) | Reporting and export architecture | Accepted |
+| [0010](0010-observability-and-opentelemetry-readiness.md) | Observability and OpenTelemetry readiness | Accepted |
+| [0011](0011-ai-engineering-advisor.md) | AI Engineering Advisor and the on-read recommendation model | Accepted |
+| [0012](0012-root-cause-analysis-engine.md) | Root-cause analysis engine | Accepted |
+| [0013](0013-engineering-knowledge-graph.md) | Engineering Knowledge Graph | Accepted |
+| [0014](0014-ai-debugger-and-tracing-seam.md) | AI Debugger execution timeline and the tracing seam | Accepted |
+| [0015](0015-production-observability-metrics-and-structured-logging.md) | Production observability — Prometheus metrics and structured logging | Accepted |
 
 ## Format
 

@@ -1,0 +1,51 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+# Cancel superseded runs on the same ref to save runner time.
+concurrency:
+  group: backend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege: this job only needs to read the repository.
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build & Verify (Java 21)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # ubuntu-latest ships Maven and Docker; Testcontainers (PostgreSQL) uses the
+      # preinstalled Docker daemon. The repository has no Maven wrapper by design.
+      - name: Build, test & verify
+        run: mvn -B -ntp -f backend/pom.xml clean verify
+
+      - name: Upload application JAR
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: broks-forge-api-jar
+          path: backend/target/broks-forge-api.jar
+          if-no-files-found: error
+          retention-days: 14

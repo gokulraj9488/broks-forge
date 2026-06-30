@@ -1,0 +1,98 @@
+name: Bug report
+description: Report a defect in Brok's Forge so we can reproduce and fix it.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report.
+
+        **Do not report security vulnerabilities here.** Please follow our
+        [Security Policy](https://github.com/your-org/broks-forge/security/policy)
+        and report privately via GitHub Security Advisories instead.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: This is not a security vulnerability (those are reported privately — see above).
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce the behavior?
+      placeholder: |
+        1. Start the stack with `docker compose up`
+        2. Call `POST /api/v1/...`
+        3. Observe the error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened? Include the stable `ErrorCode` if one was returned.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which part of the platform is affected?
+      options:
+        - Backend (Spring Boot API)
+        - Frontend (Next.js web app)
+        - Database / migrations (Flyway)
+        - Docker / Compose / deployment
+        - Documentation
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or output
+      description: |
+        Paste any relevant log output. This is automatically formatted as code.
+        **Never paste secrets, JWTs, API keys, or credentials.**
+      render: shell
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Versions and platform details.
+      placeholder: |
+        - Brok's Forge version / tag: v1.0.0
+        - OS: Ubuntu 24.04
+        - Java: temurin-21
+        - Node: 20.x
+        - Docker: 27.x
+        - Browser (if frontend): Chrome 126
+    validations:
+      required: true

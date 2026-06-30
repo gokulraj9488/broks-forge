@@ -1,0 +1,39 @@
+name: Question
+description: Ask a question about using or developing Brok's Forge.
+title: "[Question]: "
+labels: ["question", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For open-ended help and discussion, consider
+        [GitHub Discussions](https://github.com/your-org/broks-forge/discussions)
+        — it's often the faster route. Use this form for a concrete question that
+        may need a maintainer's answer.
+
+        Please also check the [documentation](https://github.com/your-org/broks-forge/tree/main/docs)
+        and [SUPPORT.md](https://github.com/your-org/broks-forge/blob/main/SUPPORT.md) first.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checklist
+      options:
+        - label: I have searched existing issues, discussions, and the docs.
+          required: true
+        - label: This is not a security report (those go through the private Security Policy).
+          required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What would you like to know?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to accomplish? What have you already tried?

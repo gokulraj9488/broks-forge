@@ -1,0 +1,61 @@
+-- ===========================================================================
+-- V25: Engineering Knowledge Graph - edges (Phase 4, ADR 0013)
+-- ---------------------------------------------------------------------------
+-- Directed, typed relationships between knowledge nodes (e.g. a failure mode
+-- MITIGATED_BY a recommendation). Seeded to connect the canonical patterns
+-- from V24 into a navigable graph. weight is the seam future learning uses to
+-- reinforce edges.
+-- ===========================================================================
+
+CREATE TABLE knowledge_edges (
+    id             UUID        NOT NULL DEFAULT gen_random_uuid(),
+    version        BIGINT      NOT NULL DEFAULT 0,
+    created_at     TIMESTAMPTZ NOT NULL,
+    updated_at     TIMESTAMPTZ NOT NULL,
+    created_by     UUID,
+    updated_by     UUID,
+    source_node_id UUID        NOT NULL,
+    target_node_id UUID        NOT NULL,
+    relation       VARCHAR(32) NOT NULL,
+    weight         INTEGER     NOT NULL DEFAULT 1,
+    CONSTRAINT pk_knowledge_edges PRIMARY KEY (id),
+    CONSTRAINT fk_knowledge_edges_source FOREIGN KEY (source_node_id)
+        REFERENCES knowledge_nodes (id) ON DELETE CASCADE,
+    CONSTRAINT fk_knowledge_edges_target FOREIGN KEY (target_node_id)
+        REFERENCES knowledge_nodes (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_knowledge_edges_source ON knowledge_edges (source_node_id);
+CREATE INDEX idx_knowledge_edges_target ON knowledge_edges (target_node_id);
+
+-- ---------------------------------------------------------------------------
+-- Seed edges. Node ids match the deterministic UUIDs seeded in V24:
+--   01 EMPTY_OUTPUT  02 HTTP_ERROR  03 TIMEOUT  04 JSON_PARSE_FAILURE
+--   05 EXACT_MATCH_MISS  06 HIGH_LATENCY  07 COST_SPIKE  08 TOKEN_BLOAT
+--   09 PROMPT_BLOAT  10 PROMPT_CONTRADICTION  11 PROMPT_INJECTION_RISK
+--   12 RAG_LOW_SIMILARITY  13 RAG_CHUNK_OVERSIZED  14 MODEL_OVERKILL
+--   15 MISSING_RETRY  16 MISSING_HEALTHCHECK  17 ADD_RETRIES
+--   18 TIGHTEN_PROMPT  19 SWITCH_CHEAPER_MODEL  20 TUNE_RETRIEVAL
+-- ---------------------------------------------------------------------------
+INSERT INTO knowledge_edges (id, created_at, updated_at, source_node_id, target_node_id, relation, weight)
+VALUES
+    ('00000000-0000-4000-b000-000000000001', now(), now(), '00000000-0000-4000-a000-000000000015', '00000000-0000-4000-a000-000000000003', 'LEADS_TO', 2),
+    ('00000000-0000-4000-b000-000000000002', now(), now(), '00000000-0000-4000-a000-000000000015', '00000000-0000-4000-a000-000000000017', 'MITIGATED_BY', 3),
+    ('00000000-0000-4000-b000-000000000003', now(), now(), '00000000-0000-4000-a000-000000000003', '00000000-0000-4000-a000-000000000017', 'MITIGATED_BY', 3),
+    ('00000000-0000-4000-b000-000000000004', now(), now(), '00000000-0000-4000-a000-000000000002', '00000000-0000-4000-a000-000000000017', 'MITIGATED_BY', 2),
+    ('00000000-0000-4000-b000-000000000005', now(), now(), '00000000-0000-4000-a000-000000000016', '00000000-0000-4000-a000-000000000003', 'RELATED_TO', 1),
+    ('00000000-0000-4000-b000-000000000006', now(), now(), '00000000-0000-4000-a000-000000000009', '00000000-0000-4000-a000-000000000018', 'MITIGATED_BY', 3),
+    ('00000000-0000-4000-b000-000000000007', now(), now(), '00000000-0000-4000-a000-000000000008', '00000000-0000-4000-a000-000000000018', 'MITIGATED_BY', 2),
+    ('00000000-0000-4000-b000-000000000008', now(), now(), '00000000-0000-4000-a000-000000000010', '00000000-0000-4000-a000-000000000005', 'CAUSES', 2),
+    ('00000000-0000-4000-b000-000000000009', now(), now(), '00000000-0000-4000-a000-000000000010', '00000000-0000-4000-a000-000000000018', 'MITIGATED_BY', 2),
+    ('00000000-0000-4000-b000-000000000010', now(), now(), '00000000-0000-4000-a000-000000000011', '00000000-0000-4000-a000-000000000018', 'MITIGATED_BY', 3),
+    ('00000000-0000-4000-b000-000000000011', now(), now(), '00000000-0000-4000-a000-000000000004', '00000000-0000-4000-a000-000000000018', 'MITIGATED_BY', 2),
+    ('00000000-0000-4000-b000-000000000012', now(), now(), '00000000-0000-4000-a000-000000000007', '00000000-0000-4000-a000-000000000019', 'MITIGATED_BY', 3),
+    ('00000000-0000-4000-b000-000000000013', now(), now(), '00000000-0000-4000-a000-000000000014', '00000000-0000-4000-a000-000000000007', 'LEADS_TO', 2),
+    ('00000000-0000-4000-b000-000000000014', now(), now(), '00000000-0000-4000-a000-000000000014', '00000000-0000-4000-a000-000000000019', 'MITIGATED_BY', 3),
+    ('00000000-0000-4000-b000-000000000015', now(), now(), '00000000-0000-4000-a000-000000000008', '00000000-0000-4000-a000-000000000007', 'LEADS_TO', 2),
+    ('00000000-0000-4000-b000-000000000016', now(), now(), '00000000-0000-4000-a000-000000000012', '00000000-0000-4000-a000-000000000020', 'MITIGATED_BY', 3),
+    ('00000000-0000-4000-b000-000000000017', now(), now(), '00000000-0000-4000-a000-000000000013', '00000000-0000-4000-a000-000000000012', 'CAUSES', 2),
+    ('00000000-0000-4000-b000-000000000018', now(), now(), '00000000-0000-4000-a000-000000000013', '00000000-0000-4000-a000-000000000020', 'MITIGATED_BY', 2),
+    ('00000000-0000-4000-b000-000000000019', now(), now(), '00000000-0000-4000-a000-000000000006', '00000000-0000-4000-a000-000000000014', 'RELATED_TO', 1),
+    ('00000000-0000-4000-b000-000000000020', now(), now(), '00000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000000002', 'RELATED_TO', 1);

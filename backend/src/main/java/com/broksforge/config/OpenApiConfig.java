@@ -33,9 +33,11 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Brok's Forge API")
-                        .description("The Engineering Platform for AI Agents. "
-                                + "Authentication, organizations, projects and API keys.")
-                        .version("0.1.0")
+                        .description("The Engineering Platform for AI Agents. Multi-tenant agent registry, "
+                                + "datasets, prompts, provider-agnostic evaluation, benchmarking, regression "
+                                + "detection, analytics, reporting, and the AI Engineering Advisor "
+                                + "(recommendations, root-cause analysis, AI debugger, knowledge graph).")
+                        .version("1.0.0")
                         .contact(new Contact().name("Brok's Forge").email("support@broksforge.dev"))
                         .license(new License().name("Apache-2.0").url("https://www.apache.org/licenses/LICENSE-2.0")))
                 .servers(List.of(new Server().url("http://localhost:" + port).description("Local")))

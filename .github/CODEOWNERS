@@ -1,0 +1,32 @@
+# ===========================================================================
+# CODEOWNERS — Brok's Forge
+# ---------------------------------------------------------------------------
+# Order matters: the LAST matching pattern takes precedence. The default owner
+# is listed first; more specific paths override it below.
+#
+# Replace `@your-org/maintainers` and any other `your-org` references with the
+# real GitHub team/handle before making the repository public.
+# ===========================================================================
+
+# Default owner for everything in the repository.
+*                           @your-org/maintainers
+
+# ----------------------------- Backend -------------------------------------
+/backend/                   @your-org/maintainers
+/backend/**/security/       @your-org/maintainers
+
+# ----------------------------- Frontend ------------------------------------
+/frontend/                  @your-org/maintainers
+
+# ----------------------------- Documentation -------------------------------
+/docs/                      @your-org/maintainers
+
+# ----------------------------- CI / release infra --------------------------
+/.github/                   @your-org/maintainers
+/docker-compose.yml         @your-org/maintainers
+
+# ----------------------------- Community health ----------------------------
+/LICENSE                    @your-org/maintainers
+/NOTICE                     @your-org/maintainers
+/SECURITY.md                @your-org/maintainers
+/CODE_OF_CONDUCT.md         @your-org/maintainers

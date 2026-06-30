@@ -1,0 +1,49 @@
+# ===========================================================================
+# Brok's Forge - .gitattributes
+# Normalise line endings so a Windows checkout and a Linux CI runner / Docker
+# build see identical bytes. Source is LF; Windows-only scripts stay CRLF.
+# ===========================================================================
+
+# Auto-detect text and normalise to LF in the repo
+* text=auto eol=lf
+
+# Explicitly LF for all source / config
+*.java     text eol=lf
+*.kt       text eol=lf
+*.xml      text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.sql      text eol=lf
+*.properties text eol=lf
+*.ts       text eol=lf
+*.tsx      text eol=lf
+*.js       text eol=lf
+*.jsx      text eol=lf
+*.json     text eol=lf
+*.css      text eol=lf
+*.scss     text eol=lf
+*.html     text eol=lf
+*.md       text eol=lf
+*.sh       text eol=lf
+Dockerfile text eol=lf
+.env.example text eol=lf
+
+# Windows-native scripts keep CRLF
+*.bat      text eol=crlf
+*.cmd      text eol=crlf
+*.ps1      text eol=crlf
+
+# Binary assets (never normalise / diff)
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.svg      text eol=lf
+*.ico      binary
+*.pdf      binary
+*.jar      binary
+*.woff     binary
+*.woff2    binary
+
+# Lockfiles: keep but collapse in diffs/reviews
+package-lock.json linguist-generated=true -diff

@@ -8,6 +8,9 @@ public enum LlmProvider {
 
     OPENAI,
     ANTHROPIC,
+    GROQ,
+    OPENROUTER,
+    DEEPSEEK,
     AZURE_OPENAI,
     AWS_BEDROCK,
     GOOGLE_VERTEX,

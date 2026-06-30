@@ -2,8 +2,15 @@ target/
 *.iml
 .idea/
 .vscode/
+.settings/
+*.class
 *.log
+hs_err_pid*
 .git/
 .gitignore
+# Local env / secrets — never bake into the image
+.env
+.env.*
+*.env
 README.md
 HELP.md
