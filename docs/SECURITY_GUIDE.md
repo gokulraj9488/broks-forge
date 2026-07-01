@@ -387,7 +387,7 @@ These are **accepted, understood** trade-offs today, with a concrete path forwar
 |--------------------|------|----------------------------------|
 | Encryption key lives in **process env** | Anyone with key + DB recovers secrets | Move to **KMS** with envelope encryption + per-tenant data keys + HSM-backed master; least-privilege; **rotate** (ciphertext already carries `keyVersion`) — see [ADR-0003](./adr/0003-credential-encryption-vs-hashing.md) |
 | `OutboundUrlGuard` does **not** fully stop **DNS rebinding** (public IP at check time, private at connect time) | SSRF via TOCTOU | **Pin the resolved IP** for the connection, or route outbound agent traffic through an **egress proxy/allowlist** — see [ADR-0004](./adr/0004-ssrf-protection-for-agent-endpoints.md) |
-| **No rate limiting** yet (`RATE_LIMITED` `ErrorCode` reserved) | Abuse / brute force / DoS | Add per-principal + per-IP limits (e.g. Redis token bucket) at the edge and on auth + outbound paths |
+| **Rate limiting covers the auth endpoints** (Redis fixed-window, per client IP; register/login/verify/forgot/reset/resend) — not yet the whole API | Abuse/DoS on non-auth endpoints; distributed abuse across many IPs | Extend to per-principal + per-endpoint budgets and an edge/API-gateway limiter; add outbound-call limits (see [ADR 0016](./adr/0016-pluggable-email-transport.md) for the auth-endpoint limiter) |
 | **Synchronous** evaluation executor holds resources during outbound calls | Resource exhaustion under load | Move to **async workers / queue**; never hold a DB transaction across a network call (see `PERFORMANCE_GUIDE.md`) |
 | Key material held in **process memory** | Memory disclosure | Minimize lifetime; envelope encryption so the long-lived master never leaves the KMS |
 

@@ -1,17 +1,25 @@
 package com.broksforge.modules.auth.email;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 /**
- * Development/CI e-mail transport that records messages in the application log
- * instead of dispatching them. Replace by providing another {@link EmailService}
- * bean (the {@code @ConditionalOnMissingBean} guard makes this one back off).
+ * Development / CI e-mail transport that records messages in the application log
+ * instead of dispatching them: zero configuration, no SMTP, no provider account,
+ * fully offline. It logs the verification and password-reset links (clickable URLs)
+ * to the backend console so the flow is fully exercisable without any e-mail
+ * infrastructure.
+ *
+ * <p>Active on every profile <em>except</em> {@code prod} ({@code @Profile("!prod")}).
+ * The production profile activates {@link SmtpEmailService} instead — exactly one
+ * {@link EmailService} bean exists per profile, and
+ * {@link com.broksforge.modules.auth.service.AuthService} depends only on the
+ * abstraction and never knows which transport is active (see ADR 0016).</p>
  */
 @Slf4j
 @Service
-@ConditionalOnMissingBean(EmailService.class)
+@Profile("!prod")
 public class LoggingEmailService implements EmailService {
 
     @Override

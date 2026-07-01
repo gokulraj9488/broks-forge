@@ -20,7 +20,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <SidebarNav onNavigate={onNavigate} />
       <div className="border-t border-border p-4">
         <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Brok&apos;s Forge · v0.1.0
+          Brok&apos;s Forge · v1.0.0
           <br />
           The Engineering Platform for AI Agents.
         </p>

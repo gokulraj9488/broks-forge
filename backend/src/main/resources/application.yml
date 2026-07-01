@@ -126,6 +126,14 @@ springdoc:
 broksforge:
   app:
     public-url: ${BROKSFORGE_APP_PUBLIC_URL:http://localhost:3000}
+  # ---------------------------------------------------------------------------
+  # Transactional e-mail (branding only). SMTP host/port/credentials are Spring's
+  # own spring.mail.* and are configured in the prod profile (application-prod.yml).
+  # Development/CI use the console LoggingEmailService and need none of this.
+  # ---------------------------------------------------------------------------
+  mail:
+    from-address: ${BROKSFORGE_MAIL_FROM_ADDRESS:no-reply@broksforge.dev}
+    from-name: "${BROKSFORGE_MAIL_FROM_NAME:Brok's Forge}"
   security:
     jwt:
       # No default: production deployments MUST provide a strong secret.
@@ -155,6 +163,13 @@ broksforge:
       secret: ${BROKSFORGE_SECURITY_ENCRYPTION_KEY}
       # Active key version, stamped onto ciphertext to support key rotation.
       key-version: ${BROKSFORGE_SECURITY_ENCRYPTION_KEY_VERSION:1}
+    rate-limit:
+      # Fixed-window, per-client-IP limit on the sensitive auth endpoints
+      # (register, login, verify-email, forgot/reset-password, resend-verification).
+      # Redis-backed so it holds across replicas; fails open if Redis is unavailable.
+      enabled: ${BROKSFORGE_SECURITY_RATE_LIMIT_ENABLED:true}
+      limit: ${BROKSFORGE_SECURITY_RATE_LIMIT_LIMIT:20}
+      window-seconds: ${BROKSFORGE_SECURITY_RATE_LIMIT_WINDOW_SECONDS:60}
   # ---------------------------------------------------------------------------
   # Agent Registry (Phase 2)
   # ---------------------------------------------------------------------------

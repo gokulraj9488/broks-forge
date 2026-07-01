@@ -379,6 +379,10 @@ All secrets are read from the environment — nothing is hardcoded. See [`.env.e
 | `ADVISOR_LATENCY_SPIKE_MS` | *(Phase 4, optional)* Avg latency (ms) above which the advisor flags a latency concern | `12000` |
 | `ADVISOR_MIN_SAMPLES_FOR_COMPARISON` | *(Phase 4, optional)* Min comparable jobs before model/cost advice is emitted | `3` |
 | `ADVISOR_FAILURE_SAMPLE_SIZE` | *(Phase 4, optional)* Max failed runs the root-cause engine samples per job | `50` |
+| `BROKSFORGE_SECURITY_RATE_LIMIT_ENABLED` | Redis-backed per-IP rate limiting on auth endpoints | `true` |
+| `BROKSFORGE_SECURITY_RATE_LIMIT_LIMIT` / `_WINDOW_SECONDS` | Requests allowed per window / window length | `20` / `60` |
+| `SPRING_MAIL_HOST` / `_PORT` / `_USERNAME` / `_PASSWORD` | **Prod only** (`SPRING_PROFILES_ACTIVE=prod`). SMTP server for real e-mail. Dev uses the console transport | *(none)* / `587` |
+| `BROKSFORGE_MAIL_FROM_ADDRESS` / `_FROM_NAME` | *(Prod)* From identity for outbound e-mail | `no-reply@broksforge.dev` / `Brok's Forge` |
 | `JWT_ACCESS_TOKEN_EXPIRATION_MS` | Access-token lifetime | `900000` (15 min) |
 | `JWT_REFRESH_TOKEN_EXPIRATION_MS` | Refresh-token lifetime | `2592000000` (30 d) |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins | `http://localhost:3000` |

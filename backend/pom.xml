@@ -101,6 +101,15 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- ===================== Mail (production SMTP transport) ===================== -->
+        <!-- Provides JavaMailSender. Auto-configures a mail sender only when
+             spring.mail.host is set (production), so development/CI without SMTP
+             is unaffected and uses the console LoggingEmailService instead. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- ===================== Spring AI (dependency only) ===================== -->
         <dependency>
             <groupId>org.springframework.ai</groupId>

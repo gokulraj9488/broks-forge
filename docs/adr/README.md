@@ -21,6 +21,7 @@ decision changes, add a new ADR that supersedes the old one rather than editing 
 | [0013](0013-engineering-knowledge-graph.md) | Engineering Knowledge Graph | Accepted |
 | [0014](0014-ai-debugger-and-tracing-seam.md) | AI Debugger execution timeline and the tracing seam | Accepted |
 | [0015](0015-production-observability-metrics-and-structured-logging.md) | Production observability — Prometheus metrics and structured logging | Accepted |
+| [0016](0016-pluggable-email-transport.md) | Pluggable e-mail transport (console for dev, SMTP for production) | Accepted |
 
 ## Format
 

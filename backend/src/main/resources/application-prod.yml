@@ -1,0 +1,41 @@
+# ===========================================================================
+# Brok's Forge - Production profile   (SPRING_PROFILES_ACTIVE=prod)
+# ---------------------------------------------------------------------------
+# Activates the real SMTP e-mail transport (SmtpEmailService) and hardened
+# logging. Every SMTP connection detail and credential is read from the
+# environment — nothing is hardcoded. Set at minimum: SPRING_MAIL_HOST,
+# SPRING_MAIL_USERNAME, SPRING_MAIL_PASSWORD (and BROKSFORGE_MAIL_FROM_ADDRESS).
+# Without SPRING_MAIL_HOST the app fails fast — production must configure SMTP.
+# ===========================================================================
+
+spring:
+  mail:
+    host: ${SPRING_MAIL_HOST}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+        connecttimeout: 5000
+        timeout: 5000
+        writetimeout: 5000
+
+# Production structured (ECS JSON) logging with correlation/request IDs as fields.
+logging:
+  level:
+    root: INFO
+    com.broksforge: INFO
+    org.springframework.security: WARN
+  structured:
+    format:
+      console: ${BROKSFORGE_LOG_STRUCTURED_FORMAT:ecs}
+
+# Never expose health component details publicly in production.
+management:
+  endpoint:
+    health:
+      show-details: never
