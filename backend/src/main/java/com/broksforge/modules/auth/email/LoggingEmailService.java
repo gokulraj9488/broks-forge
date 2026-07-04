@@ -16,6 +16,18 @@ import org.springframework.stereotype.Service;
  * {@link EmailService} bean exists per profile, and
  * {@link com.broksforge.modules.auth.service.AuthService} depends only on the
  * abstraction and never knows which transport is active (see ADR 0016).</p>
+ *
+ * <p>The {@code docker} profile deliberately enables Spring Boot's native ECS JSON
+ * structured console logging (see {@code application-docker.yml}) so the stack
+ * demonstrates production-grade log aggregation locally. That is correct behaviour
+ * for real application logs, but it is hostile to a link a human needs to click:
+ * the whole message is flattened into one JSON string, escaping every {@code /} to
+ * {@code \/} and collapsing newlines. Rather than weaken structured logging (which
+ * would remove a deliberately demonstrated capability) this class also writes the
+ * bare link straight to {@link System#out}, bypassing Logback/the active encoder
+ * entirely, so local development always has one clean, unescaped, clickable URL —
+ * regardless of which console log format is active. This class never runs in
+ * {@code prod} ({@code @Profile("!prod")}), so production output is unaffected.</p>
  */
 @Slf4j
 @Service
@@ -35,6 +47,7 @@ public class LoggingEmailService implements EmailService {
                 This link expires in 24 hours.
                 ================================================================
                 """, recipientName, toEmail, verificationLink);
+        printClickableLink("Verify e-mail", toEmail, verificationLink);
     }
 
     @Override
@@ -51,6 +64,7 @@ public class LoggingEmailService implements EmailService {
                 this message.
                 ================================================================
                 """, recipientName, toEmail, resetLink);
+        printClickableLink("Reset password", toEmail, resetLink);
     }
 
     @Override
@@ -65,5 +79,13 @@ public class LoggingEmailService implements EmailService {
                 this wasn't you, contact support immediately.
                 ================================================================
                 """, recipientName, toEmail);
+    }
+
+    /**
+     * Writes a plain, unescaped copy of a clickable link to stdout, independent of
+     * the active Logback console encoder (plain pattern or ECS/Logstash JSON).
+     */
+    private void printClickableLink(String action, String toEmail, String link) {
+        System.out.printf(">>> [dev-mail] %s for %s: %s%n", action, toEmail, link);
     }
 }

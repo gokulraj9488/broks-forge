@@ -170,7 +170,8 @@ framework- and provider-agnostic and strictly multi-tenant.
 | `0.1.0` | P1 | Foundation (auth, user, organization, project, API key) | `V1`..`V5` | Released |
 | `0.2.0` | P2 | Agent Registry (versions, credentials, health, tags) | `V6`..`V10` | Released |
 | `0.3.0` | P3 | Intelligence Layer (dataset, prompt, model, evaluation, benchmark, regression, analytics, report, search, dashboard) | `V11`..`V23` | Released |
-| `0.4.0` | P4 | AI Engineering Advisor (advisor, root-cause, knowledge graph, AI debugger, tracing seam) | `V24`..`V25` | In progress |
+| `0.4.0` | P4 | AI Engineering Advisor (advisor, root-cause, knowledge graph, AI debugger, tracing seam) | `V24`..`V25` | Released |
+| `1.0.0` | GA | Production hardening & 1.0.0 release — Prometheus metrics, ECS structured logging, Kubernetes health probes, Redis-backed auth rate limiting, pluggable e-mail transport (ADR 0016) | — | Released |
 
 ---
 

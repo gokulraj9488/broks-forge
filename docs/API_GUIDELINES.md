@@ -83,13 +83,13 @@ public class EvaluationJobController { ... }
 | `403` | Forbidden — authenticated but not allowed (RBAC / cross-tenant access)               |
 | `404` | Not Found — resource doesn't exist or isn't visible to the caller's tenant           |
 | `409` | Conflict — uniqueness violation (slug taken), optimistic-lock conflict               |
-| `422` | Unprocessable Entity — bean-validation failures on a syntactically valid body        |
 | `429` | Too Many Requests — rate limit exceeded; includes `Retry-After`                      |
 | `500` | Internal Server Error — unexpected server fault; generic message, details logged      |
 
 > Validation policy: a body that is **syntactically invalid** (not parseable, wrong JSON types) is
-> `400`. A body that parses but **fails `jakarta.validation` constraints** is `422`. See
-> [`ERROR_HANDLING_GUIDE.md`](./ERROR_HANDLING_GUIDE.md) for the exact mapping.
+> `400`/`MALFORMED_REQUEST`. A body that parses but **fails `jakarta.validation` constraints** is also
+> `400`, with code `VALIDATION_ERROR` and a populated `errors[]` array — Brok's Forge does not use
+> `422`. See [`ERROR_HANDLING_GUIDE.md`](./ERROR_HANDLING_GUIDE.md) for the exact mapping.
 
 We do **not** "hide" a `404` as `403` or vice versa: cross-tenant access to a resource that exists but
 belongs to another org returns `404` (the resource does not exist *for you*), enforced by the
@@ -236,7 +236,7 @@ Idempotency-Key: 6f1c0b9e-7d2a-4c8e-9b11-2f0a5d3e4c7a
   (`@NotBlank`, `@Size`, `@NotNull`, `@Pattern`, and custom constraints like `@ValidEndpointUrl`).
 - Request records **omit server-controlled fields** (`organizationId`, `ownerId`, `status`, `slug`) to
   prevent mass-assignment; those come from the path or are set by the service.
-- Constraint violations produce a structured `422` with a per-field `errors[]` array (see below).
+- Constraint violations produce a structured `400`/`VALIDATION_ERROR` with a per-field `errors[]` array (see below).
 - Path/query binding errors (e.g. a non-UUID `{jobId}`) produce `400`.
 
 ```java
@@ -315,19 +315,19 @@ Location: /api/v1/organizations/8c.../projects/3a.../evaluation-jobs/01J9X4QK2M0
 
 All errors use the shared `ApiError` body produced by the `GlobalExceptionHandler`. The full schema,
 the `ErrorCode` → `HttpStatus` mapping, and per-exception handling live in
-[`ERROR_HANDLING_GUIDE.md`](./ERROR_HANDLING_GUIDE.md). Representative `422` validation error:
+[`ERROR_HANDLING_GUIDE.md`](./ERROR_HANDLING_GUIDE.md). Representative `400` validation error:
 
 ```json
 {
   "timestamp": "2026-07-01T09:20:11Z",
-  "status": 422,
-  "error": "Unprocessable Entity",
-  "code": "VALIDATION_FAILED",
+  "status": 400,
+  "error": "Bad Request",
+  "code": "VALIDATION_ERROR",
   "message": "Request validation failed",
   "path": "/api/v1/organizations/8c.../projects/3a.../evaluation-jobs",
   "errors": [
-    { "field": "name", "message": "must not be blank" },
-    { "field": "profileId", "message": "must not be null" }
+    { "field": "name", "rejectedValue": "", "message": "must not be blank" },
+    { "field": "profileId", "rejectedValue": null, "message": "must not be null" }
   ]
 }
 ```

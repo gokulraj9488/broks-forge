@@ -52,6 +52,12 @@ spring:
       port: ${SPRING_DATA_REDIS_PORT:6379}
       password: ${SPRING_DATA_REDIS_PASSWORD:}
       timeout: 2000ms
+    web:
+      pageable:
+        # Enforce the documented page-size cap (docs/API_GUIDELINES.md) so a client
+        # cannot request unbounded pages; Spring's own default cap (2000) is too high.
+        max-page-size: 100
+        default-page-size: 20
 
   jackson:
     default-property-inclusion: non_null

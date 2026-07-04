@@ -173,7 +173,7 @@ broks-forge/
 ├── docker-compose.yml          # postgres · redis · backend · frontend
 ├── .env.example                # copy to .env
 ├── docs/                       # MASTER_ARCHITECTURE, ENGINEERING_HANDBOOK, PROJECT_RULES, ROADMAP,
-│   └── adr/                     #   CODING/SECURITY/TESTING/PERFORMANCE/API/ERROR guides + ADRs (0001–0014)
+│   └── adr/                     #   CODING/SECURITY/TESTING/PERFORMANCE/API/ERROR guides + ADRs (0001–0016)
 │
 ├── backend/                    # Spring Boot 3 / Java 21
 │   ├── Dockerfile
@@ -598,6 +598,7 @@ After `docker compose up --build`, confirm each capability:
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | **API exits immediately on startup** with a message about a missing JWT/encryption secret | `JWT_SECRET` or `ENCRYPTION_KEY` is unset — the app **fails fast** by design | Set both in `.env` (Base64). Generate with `openssl rand -base64 48` (JWT) and `openssl rand -base64 32` (encryption; must decode to **exactly 32 bytes**). |
+| **`APPLICATION FAILED TO START` — *"Parameter N of constructor in AuthService required a bean of type ...EmailService that could not be found"*** | You are running a **stale backend image** built before the current source. `docker compose up -d` reuses the existing image; `docker compose down -v` does **not** rebuild it | Rebuild the image from current source: `docker compose up -d --build backend` (or `--build` for the whole stack). Confirm with `docker compose logs backend \| grep "Started BroksForgeApplication"`. |
 | **`Bind for 0.0.0.0:8080 failed: port is already allocated`** (or 3000 / 5432 / 6379) | A host port is taken by another process or a previous stack | Stop the other process, or change the host port in `.env` (`BACKEND_PORT`, `FRONTEND_PORT`, `POSTGRES_PORT`, `REDIS_PORT`). |
 | **API won't boot after a schema change**: *Flyway validation failed / migration checksum mismatch* | A Flyway migration was edited, or a **dirty volume** holds an older/partial schema | Migrations are **append-only** — never edit an applied one. For a local reset, wipe the volume: `docker compose down -v` then `docker compose up --build` (this **deletes all data**). |
 | **Agent health check or evaluation against `localhost` is rejected** | The **SSRF guard** (`OutboundUrlGuard`) blocks private / loopback / metadata targets by default | For local testing only, set `AGENT_HEALTH_ALLOW_PRIVATE_TARGETS=true` and/or `MODEL_ALLOW_PRIVATE_TARGETS=true` in `.env`. **Keep both `false` in production.** |
