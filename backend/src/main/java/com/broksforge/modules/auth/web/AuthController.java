@@ -6,6 +6,7 @@ import com.broksforge.common.web.RequestUtils;
 import com.broksforge.modules.auth.service.AuthService;
 import com.broksforge.modules.auth.web.dto.AuthResponse;
 import com.broksforge.modules.auth.web.dto.ChangePasswordRequest;
+import com.broksforge.modules.auth.web.dto.ConfirmPasswordChangeRequest;
 import com.broksforge.modules.auth.web.dto.ForgotPasswordRequest;
 import com.broksforge.modules.auth.web.dto.LoginRequest;
 import com.broksforge.modules.auth.web.dto.RefreshTokenRequest;
@@ -109,16 +110,34 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    @Operation(summary = "Change password", security = @SecurityRequirement(name = "bearerAuth"),
-            description = "Changes the authenticated user's password and revokes all existing sessions.")
+    @Operation(summary = "Request a password change", security = @SecurityRequirement(name = "bearerAuth"),
+            description = "Verifies the current password, then e-mails a one-time confirmation link. "
+                    + "The password only changes once the link is confirmed via "
+                    + "POST /api/v1/auth/confirm-password-change.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Password changed"),
+            @ApiResponse(responseCode = "200", description = "Confirmation link sent"),
             @ApiResponse(responseCode = "401", description = "Not authenticated or wrong current password",
                     content = @Content(schema = @Schema(implementation = ApiError.class)))
     })
     public ResponseEntity<MessageResponse> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         UUID userId = SecurityUtils.requireCurrentUserId();
-        authService.changePassword(userId, request.currentPassword(), request.newPassword());
+        authService.requestPasswordChange(userId, request.currentPassword());
+        return ResponseEntity.ok(MessageResponse.of(
+                "Check your email — we sent a link to confirm your password change. It expires in 15 minutes."));
+    }
+
+    @PostMapping("/confirm-password-change")
+    @Operation(summary = "Confirm a password change using the emailed token",
+            description = "Applies the new password and revokes every existing session; "
+                    + "the user must sign in again.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Password changed"),
+            @ApiResponse(responseCode = "401", description = "Invalid or expired token",
+                    content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    public ResponseEntity<MessageResponse> confirmPasswordChange(
+            @Valid @RequestBody ConfirmPasswordChangeRequest request) {
+        authService.confirmPasswordChange(request.token(), request.newPassword());
         return ResponseEntity.ok(MessageResponse.of("Password changed successfully. Please sign in again."));
     }
 

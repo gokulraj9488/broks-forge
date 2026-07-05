@@ -56,6 +56,12 @@ public class SmtpEmailService implements EmailService {
     }
 
     @Override
+    public void sendPasswordChangeVerification(String toEmail, String recipientName, String confirmLink) {
+        send(toEmail, content.passwordChangeVerification(recipientName, confirmLink));
+        audit("password-change-verification", toEmail);
+    }
+
+    @Override
     public void sendPasswordChangedNotification(String toEmail, String recipientName) {
         send(toEmail, content.passwordChanged(recipientName));
         audit("password-changed", toEmail);

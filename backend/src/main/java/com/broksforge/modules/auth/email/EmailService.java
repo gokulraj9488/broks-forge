@@ -15,5 +15,7 @@ public interface EmailService {
 
     void sendPasswordReset(String toEmail, String recipientName, String resetLink);
 
+    void sendPasswordChangeVerification(String toEmail, String recipientName, String confirmLink);
+
     void sendPasswordChangedNotification(String toEmail, String recipientName);
 }

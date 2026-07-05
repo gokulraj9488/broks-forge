@@ -15,7 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateEvaluationProfile } from "@/lib/hooks/use-evaluation-profiles";
 import { getApiErrorMessage } from "@/lib/api/client";
@@ -171,13 +177,18 @@ export function CreateProfileDialog({
                     <Field label="Type">
                       <Select
                         value={metric.type}
-                        onChange={(e) => updateMetric(i, { type: e.target.value as MetricType })}
+                        onValueChange={(v) => updateMetric(i, { type: v as MetricType })}
                       >
-                        {METRIC_TYPE_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
+                        <SelectTrigger aria-label="Metric type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {METRIC_TYPE_OPTIONS.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     </Field>
                     <Field label="Label" hint="Optional">

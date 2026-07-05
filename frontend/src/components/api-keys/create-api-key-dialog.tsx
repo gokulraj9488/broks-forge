@@ -94,7 +94,7 @@ export function CreateApiKeyDialog({
                 </Button>
               </div>
               <p className="flex items-start gap-2 text-xs text-muted-foreground">
-                <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" />
                 Store this in a secret manager. Anyone with this key can access the project.
               </p>
             </div>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Play } from "lucide-react";
@@ -19,7 +19,13 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCreateEvaluationJob } from "@/lib/hooks/use-evaluation-jobs";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { useDatasets } from "@/lib/hooks/use-datasets";
@@ -40,6 +46,10 @@ const schema = z.object({
 });
 
 type Values = z.infer<typeof schema>;
+
+// Radix Select forbids value=""; map the "none" options through this sentinel
+// so the form state (and the submitted payload) still uses "".
+const NONE = "none";
 
 export function CreateJobDialog({
   organizationId,
@@ -66,10 +76,18 @@ export function CreateJobDialog({
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { autoRun: true },
+    defaultValues: {
+      agentId: "",
+      datasetId: "",
+      promptId: "",
+      profileId: "",
+      provider: "",
+      autoRun: true,
+    },
   });
 
   const onSubmit = (values: Values) => {
@@ -128,58 +146,116 @@ export function CreateJobDialog({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Agent" htmlFor="ej-agent" error={errors.agentId?.message} required>
-                <Select id="ej-agent" defaultValue="" {...register("agentId")}>
-                  <option value="" disabled>
-                    Select an agent
-                  </option>
-                  {agents.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </Select>
+                <Controller
+                  control={control}
+                  name="agentId"
+                  render={({ field }) => (
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                      <SelectTrigger id="ej-agent" onBlur={field.onBlur}>
+                        <SelectValue placeholder="Select an agent" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {agents.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </Field>
               <Field label="Dataset" htmlFor="ej-dataset" error={errors.datasetId?.message} required>
-                <Select id="ej-dataset" defaultValue="" {...register("datasetId")}>
-                  <option value="" disabled>
-                    Select a dataset
-                  </option>
-                  {datasets.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </Select>
+                <Controller
+                  control={control}
+                  name="datasetId"
+                  render={({ field }) => (
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                      <SelectTrigger id="ej-dataset" onBlur={field.onBlur}>
+                        <SelectValue placeholder="Select a dataset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {datasets.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </Field>
               <Field label="Prompt" htmlFor="ej-prompt" error={errors.promptId?.message} hint="Optional">
-                <Select id="ej-prompt" defaultValue="" {...register("promptId")}>
-                  <option value="">No prompt</option>
-                  {prompts.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </Select>
+                <Controller
+                  control={control}
+                  name="promptId"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value === "" ? NONE : field.value}
+                      onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
+                    >
+                      <SelectTrigger id="ej-prompt" onBlur={field.onBlur}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>No prompt</SelectItem>
+                        {prompts.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </Field>
               <Field label="Profile" htmlFor="ej-profile" error={errors.profileId?.message} hint="Scoring metrics">
-                <Select id="ej-profile" defaultValue="" {...register("profileId")}>
-                  <option value="">No profile</option>
-                  {profiles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </Select>
+                <Controller
+                  control={control}
+                  name="profileId"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value === "" ? NONE : field.value}
+                      onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
+                    >
+                      <SelectTrigger id="ej-profile" onBlur={field.onBlur}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>No profile</SelectItem>
+                        {profiles.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </Field>
               <Field label="Provider" htmlFor="ej-provider" error={errors.provider?.message} hint="Optional override">
-                <Select id="ej-provider" defaultValue="" {...register("provider")}>
-                  <option value="">Agent default</option>
-                  {PROVIDER_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </Select>
+                <Controller
+                  control={control}
+                  name="provider"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value === "" ? NONE : field.value}
+                      onValueChange={(v) => field.onChange(v === NONE ? "" : v)}
+                    >
+                      <SelectTrigger id="ej-provider" onBlur={field.onBlur}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>Agent default</SelectItem>
+                        {PROVIDER_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </Field>
               <Field label="Model" htmlFor="ej-model" error={errors.model?.message} hint="Optional override">
                 <Input id="ej-model" placeholder="claude-opus-4-8" {...register("model")} />

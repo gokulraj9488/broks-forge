@@ -5,7 +5,13 @@ import Link from "next/link";
 import { Database, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +24,8 @@ import { formatNumber } from "@/lib/format";
 import type { DatasetStatus, DatasetVisibility } from "@/lib/api/datasets";
 
 const PAGE_SIZE = 12;
+
+const ALL = "all";
 
 export function DatasetsPanel({
   organizationId,
@@ -66,23 +74,31 @@ export function DatasetsPanel({
 
       <div className="flex flex-wrap gap-2">
         <Select
-          value={visibility}
-          onChange={(e) => reset(setVisibility)(e.target.value as DatasetVisibility | "")}
-          className="h-8 w-auto text-xs"
+          value={visibility === "" ? ALL : visibility}
+          onValueChange={(v) => reset(setVisibility)(v === ALL ? "" : (v as DatasetVisibility))}
         >
-          <option value="">All visibility</option>
-          <option value="PRIVATE">Private</option>
-          <option value="ORGANIZATION">Organization</option>
-          <option value="PUBLIC">Public</option>
+          <SelectTrigger className="h-8 w-auto min-w-[8rem] text-xs" aria-label="Filter by visibility">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All visibility</SelectItem>
+            <SelectItem value="PRIVATE">Private</SelectItem>
+            <SelectItem value="ORGANIZATION">Organization</SelectItem>
+            <SelectItem value="PUBLIC">Public</SelectItem>
+          </SelectContent>
         </Select>
         <Select
-          value={status}
-          onChange={(e) => reset(setStatus)(e.target.value as DatasetStatus | "")}
-          className="h-8 w-auto text-xs"
+          value={status === "" ? ALL : status}
+          onValueChange={(v) => reset(setStatus)(v === ALL ? "" : (v as DatasetStatus))}
         >
-          <option value="">All statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="ARCHIVED">Archived</option>
+          <SelectTrigger className="h-8 w-auto min-w-[8rem] text-xs" aria-label="Filter by status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All statuses</SelectItem>
+            <SelectItem value="ACTIVE">Active</SelectItem>
+            <SelectItem value="ARCHIVED">Archived</SelectItem>
+          </SelectContent>
         </Select>
       </div>
 

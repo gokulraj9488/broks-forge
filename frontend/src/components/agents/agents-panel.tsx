@@ -5,7 +5,13 @@ import Link from "next/link";
 import { Bot, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +28,7 @@ import {
 } from "@/lib/api/agents";
 
 const PAGE_SIZE = 12;
+const ALL = "all";
 const FRAMEWORK_LABELS = Object.fromEntries(FRAMEWORK_OPTIONS.map((o) => [o.value, o.label]));
 
 export function AgentsPanel({
@@ -72,37 +79,53 @@ export function AgentsPanel({
 
       <div className="flex flex-wrap gap-2">
         <Select
-          value={framework}
-          onChange={(e) => resetPageAnd(setFramework)(e.target.value as AgentFramework | "")}
-          className="h-8 w-auto text-xs"
+          value={framework === "" ? ALL : framework}
+          onValueChange={(v) => resetPageAnd(setFramework)(v === ALL ? "" : (v as AgentFramework))}
         >
-          <option value="">All frameworks</option>
-          {FRAMEWORK_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
+          <SelectTrigger className="h-8 w-auto min-w-[8rem] text-xs" aria-label="Filter by framework">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All frameworks</SelectItem>
+            {FRAMEWORK_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
         <Select
-          value={healthStatus}
-          onChange={(e) => resetPageAnd(setHealthStatus)(e.target.value as AgentHealthStatus | "")}
-          className="h-8 w-auto text-xs"
+          value={healthStatus === "" ? ALL : healthStatus}
+          onValueChange={(v) =>
+            resetPageAnd(setHealthStatus)(v === ALL ? "" : (v as AgentHealthStatus))
+          }
         >
-          <option value="">All health</option>
-          {HEALTH_STATUS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
+          <SelectTrigger className="h-8 w-auto min-w-[8rem] text-xs" aria-label="Filter by health">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All health</SelectItem>
+            {HEALTH_STATUS_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
         <Select
-          value={status}
-          onChange={(e) => resetPageAnd(setStatus)(e.target.value as AgentLifecycleStatus | "")}
-          className="h-8 w-auto text-xs"
+          value={status === "" ? ALL : status}
+          onValueChange={(v) =>
+            resetPageAnd(setStatus)(v === ALL ? "" : (v as AgentLifecycleStatus))
+          }
         >
-          <option value="">All statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="ARCHIVED">Archived</option>
+          <SelectTrigger className="h-8 w-auto min-w-[8rem] text-xs" aria-label="Filter by status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All statuses</SelectItem>
+            <SelectItem value="ACTIVE">Active</SelectItem>
+            <SelectItem value="ARCHIVED">Archived</SelectItem>
+          </SelectContent>
         </Select>
       </div>
 

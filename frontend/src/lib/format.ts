@@ -74,14 +74,22 @@ export function formatDelta(value: number | null | undefined, fractionDigits = 1
 export type Severity = "INFO" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type Confidence = "LOW" | "MEDIUM" | "HIGH";
 
-type BadgeVariant = "default" | "secondary" | "outline" | "success" | "destructive" | "muted";
+type BadgeVariant =
+  | "default"
+  | "secondary"
+  | "outline"
+  | "success"
+  | "warning"
+  | "destructive"
+  | "muted";
 
 /** Map a severity to a Badge variant. Unknown values fall back to muted. */
 export function severityBadgeVariant(severity: string | null | undefined): BadgeVariant {
   switch (severity) {
     case "CRITICAL":
-    case "HIGH":
       return "destructive";
+    case "HIGH":
+      return "warning";
     case "MEDIUM":
       return "default";
     case "LOW":

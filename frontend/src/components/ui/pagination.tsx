@@ -20,7 +20,7 @@ export function Pagination({ page, totalPages, totalElements, onPageChange }: Pa
     );
   }
   return (
-    <div className="flex items-center justify-between gap-3">
+    <nav aria-label="Pagination" className="flex items-center justify-between gap-3">
       <p className="text-xs text-muted-foreground">
         Page {page + 1} of {totalPages} · {totalElements} result{totalElements === 1 ? "" : "s"}
       </p>
@@ -44,6 +44,6 @@ export function Pagination({ page, totalPages, totalElements, onPageChange }: Pa
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-    </div>
+    </nav>
   );
 }

@@ -162,6 +162,8 @@ broksforge:
       email-verification-expiration-ms: ${BROKSFORGE_SECURITY_TOKENS_EMAIL_VERIFICATION_EXPIRATION_MS:86400000}
       # Password reset link lifetime (default 1 hour)
       password-reset-expiration-ms: ${BROKSFORGE_SECURITY_TOKENS_PASSWORD_RESET_EXPIRATION_MS:3600000}
+      # Password change confirmation link lifetime (default 15 minutes)
+      password-change-expiration-ms: ${BROKSFORGE_SECURITY_TOKENS_PASSWORD_CHANGE_EXPIRATION_MS:900000}
     encryption:
       # AES-256-GCM key for encrypting agent credentials at rest.
       # No default: production deployments MUST provide a Base64 32-byte key.

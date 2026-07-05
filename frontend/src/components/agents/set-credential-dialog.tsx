@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +17,14 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { PasswordInput } from "@/components/ui/password-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useSetCredential } from "@/lib/hooks/use-agents";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { AUTH_TYPE_OPTIONS } from "@/lib/api/agents";
@@ -36,6 +43,7 @@ export function SetCredentialDialog({
   const setCredential = useSetCredential(organizationId, projectId, agentId);
   const {
     register,
+    control,
     handleSubmit,
     reset,
     watch,
@@ -86,13 +94,24 @@ export function SetCredentialDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <Field label="Authentication type" htmlFor="cred-type" error={errors.authType?.message} required>
-            <Select id="cred-type" {...register("authType")}>
-              {AUTH_TYPE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </Select>
+            <Controller
+              control={control}
+              name="authType"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="cred-type" onBlur={field.onBlur}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AUTH_TYPE_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </Field>
 
           {needsHeaderName && (
@@ -120,7 +139,7 @@ export function SetCredentialDialog({
               error={errors.secret?.message}
               required
             >
-              <Input id="cred-secret" type="password" autoComplete="off" {...register("secret")} />
+              <PasswordInput id="cred-secret" autoComplete="off" {...register("secret")} />
             </Field>
           )}
 

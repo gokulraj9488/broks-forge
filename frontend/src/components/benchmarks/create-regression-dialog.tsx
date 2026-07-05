@@ -15,7 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCreateRegressionCheck } from "@/lib/hooks/use-regression";
 import { useEvaluationJobs } from "@/lib/hooks/use-evaluation-jobs";
 import { getApiErrorMessage } from "@/lib/api/client";
@@ -108,27 +114,31 @@ export function CreateRegressionDialog({
             <Input id="rc-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="v2 vs v1 nightly" />
           </Field>
           <Field label="Baseline evaluation" htmlFor="rc-baseline" required>
-            <Select id="rc-baseline" value={baselineJobId} onChange={(e) => setBaselineJobId(e.target.value)}>
-              <option value="" disabled>
-                Select baseline
-              </option>
-              {jobs.map((j) => (
-                <option key={j.id} value={j.id}>
-                  {j.name}
-                </option>
-              ))}
+            <Select value={baselineJobId === "" ? undefined : baselineJobId} onValueChange={setBaselineJobId}>
+              <SelectTrigger id="rc-baseline">
+                <SelectValue placeholder="Select baseline" />
+              </SelectTrigger>
+              <SelectContent>
+                {jobs.map((j) => (
+                  <SelectItem key={j.id} value={j.id}>
+                    {j.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </Field>
           <Field label="Candidate evaluation" htmlFor="rc-candidate" required>
-            <Select id="rc-candidate" value={candidateJobId} onChange={(e) => setCandidateJobId(e.target.value)}>
-              <option value="" disabled>
-                Select candidate
-              </option>
-              {jobs.map((j) => (
-                <option key={j.id} value={j.id}>
-                  {j.name}
-                </option>
-              ))}
+            <Select value={candidateJobId === "" ? undefined : candidateJobId} onValueChange={setCandidateJobId}>
+              <SelectTrigger id="rc-candidate">
+                <SelectValue placeholder="Select candidate" />
+              </SelectTrigger>
+              <SelectContent>
+                {jobs.map((j) => (
+                  <SelectItem key={j.id} value={j.id}>
+                    {j.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </Field>
           <Field label="Tolerance %" htmlFor="rc-tol" hint="Allowed regression before flagging">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Upload } from "lucide-react";
@@ -18,7 +18,13 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateDatasetVersion } from "@/lib/hooks/use-datasets";
 import { getApiErrorMessage } from "@/lib/api/client";
@@ -52,6 +58,7 @@ export function UploadVersionDialog({
   const create = useCreateDatasetVersion(organizationId, projectId, datasetId);
   const {
     register,
+    control,
     handleSubmit,
     reset,
     watch,
@@ -101,13 +108,24 @@ export function UploadVersionDialog({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Format" htmlFor="dv-format" error={errors.format?.message} required>
-              <Select id="dv-format" {...register("format")}>
-                {DATASET_FORMAT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </Select>
+              <Controller
+                control={control}
+                name="format"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="dv-format" onBlur={field.onBlur}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DATASET_FORMAT_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </Field>
             <Field label="Input field" htmlFor="dv-input" error={errors.inputField?.message} hint="Optional">
               <Input id="dv-input" placeholder="input" {...register("inputField")} />

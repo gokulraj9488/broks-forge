@@ -5,7 +5,13 @@ import Link from "next/link";
 import { FileText, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +23,7 @@ import { formatDate } from "@/lib/utils";
 import type { PromptStatus } from "@/lib/api/prompts";
 
 const PAGE_SIZE = 12;
+const ALL = "all";
 
 export function PromptsPanel({
   organizationId,
@@ -63,13 +70,17 @@ export function PromptsPanel({
 
       <div className="flex flex-wrap gap-2">
         <Select
-          value={status}
-          onChange={(e) => reset(setStatus)(e.target.value as PromptStatus | "")}
-          className="h-8 w-auto text-xs"
+          value={status === "" ? ALL : status}
+          onValueChange={(v) => reset(setStatus)(v === ALL ? "" : (v as PromptStatus))}
         >
-          <option value="">All statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="ARCHIVED">Archived</option>
+          <SelectTrigger className="h-8 w-auto min-w-[8rem] text-xs" aria-label="Filter by status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All statuses</SelectItem>
+            <SelectItem value="ACTIVE">Active</SelectItem>
+            <SelectItem value="ARCHIVED">Archived</SelectItem>
+          </SelectContent>
         </Select>
       </div>
 

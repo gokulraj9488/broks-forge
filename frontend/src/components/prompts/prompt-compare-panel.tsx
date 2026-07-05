@@ -5,7 +5,13 @@ import { ArrowRight, GitCompare, Minus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePromptCompare, usePromptVersions } from "@/lib/hooks/use-prompts";
 
@@ -64,30 +70,44 @@ export function PromptComparePanel({
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">From</span>
           <Select
-            value={from ?? ""}
-            onChange={(e) => setFrom(Number(e.target.value))}
-            className="h-8 w-auto text-xs"
+            value={from != null ? String(from) : ""}
+            onValueChange={(v) => setFrom(Number(v))}
           >
-            {versions.map((v) => (
-              <option key={v.id} value={v.versionNumber}>
-                v{v.versionNumber}
-              </option>
-            ))}
+            <SelectTrigger
+              className="h-8 w-auto min-w-[8rem] text-xs"
+              aria-label="From version"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {versions.map((v) => (
+                <SelectItem key={v.id} value={String(v.versionNumber)}>
+                  v{v.versionNumber}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground" />
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">To</span>
           <Select
-            value={to ?? ""}
-            onChange={(e) => setTo(Number(e.target.value))}
-            className="h-8 w-auto text-xs"
+            value={to != null ? String(to) : ""}
+            onValueChange={(v) => setTo(Number(v))}
           >
-            {versions.map((v) => (
-              <option key={v.id} value={v.versionNumber}>
-                v{v.versionNumber}
-              </option>
-            ))}
+            <SelectTrigger
+              className="h-8 w-auto min-w-[8rem] text-xs"
+              aria-label="To version"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {versions.map((v) => (
+                <SelectItem key={v.id} value={String(v.versionNumber)}>
+                  v{v.versionNumber}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
       </div>

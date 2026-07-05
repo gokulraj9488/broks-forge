@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bot, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
@@ -70,36 +76,43 @@ export default function AgentsPage() {
               <span className="text-sm text-muted-foreground">Organization</span>
               <Select
                 value={orgId}
-                onChange={(e) => {
-                  setOrgId(e.target.value);
+                onValueChange={(v) => {
+                  setOrgId(v);
                   setProjectId("");
                 }}
-                className="h-9 w-auto min-w-[12rem]"
               >
-                {organizations.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name}
-                  </option>
-                ))}
+                <SelectTrigger className="h-9 w-auto min-w-[12rem]" aria-label="Organization">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Project</span>
               <Select
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                className="h-9 w-auto min-w-[12rem]"
-                disabled={projects.length === 0}
+                value={projectId || undefined}
+                onValueChange={(v) => setProjectId(v)}
               >
-                {projects.length === 0 ? (
-                  <option value="">No projects</option>
-                ) : (
-                  projects.map((project) => (
-                    <option key={project.id} value={project.id}>
+                <SelectTrigger
+                  className="h-9 w-auto min-w-[12rem]"
+                  disabled={projects.length === 0}
+                  aria-label="Project"
+                >
+                  <SelectValue placeholder="No projects" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
                       {project.name}
-                    </option>
-                  ))
-                )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
           </div>

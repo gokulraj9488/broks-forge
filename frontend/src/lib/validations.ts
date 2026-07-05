@@ -46,17 +46,16 @@ export const resetPasswordSchema = z
   });
 export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
-export const changePasswordSchema = z
-  .object({
-    currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: strongPassword,
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
+// Step 1 of the verified password change: only the current password is needed;
+// the new password is chosen on the emailed confirmation page.
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+});
 export type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
+
+// Step 2 (emailed link) shares the reset-password shape: new + confirm.
+export const confirmPasswordChangeSchema = resetPasswordSchema;
+export type ConfirmPasswordChangeValues = ResetPasswordValues;
 
 export const profileSchema = z.object({
   firstName: z.string().max(100).optional(),

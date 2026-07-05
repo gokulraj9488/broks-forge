@@ -50,7 +50,7 @@ export function Sparkline({
 
   const line = points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`).join(" ");
   const area = `${line} L${width},${height} L0,${height} Z`;
-  const stroke = tone === "success" ? "hsl(var(--success))" : "hsl(var(--primary))";
+  const stroke = tone === "success" ? "hsl(var(--success))" : "hsl(var(--chart-1))";
 
   return (
     <svg
@@ -105,8 +105,8 @@ export function HBarChart({
             <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
               <div
                 className={cn(
-                  "h-full rounded-full transition-all",
-                  d.highlight ? "bg-primary" : "bg-primary/50",
+                  "h-full rounded-full transition-[width] duration-300 ease-out",
+                  d.highlight ? "bg-chart-1" : "bg-chart-1/50",
                 )}
                 style={{ width: `${pct}%` }}
               />

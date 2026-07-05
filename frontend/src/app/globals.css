@@ -2,73 +2,107 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Brok's Forge palette:
+ *   sage     #99B898  hsl(118 18% 66%)
+ *   peach    #FECEAB  hsl(25 98% 83%)
+ *   coral    #FF847C  hsl(4 100% 74%)
+ *   danger   #E84A5F  hsl(352 77% 60%)
+ *   charcoal #2A363B  hsl(198 17% 20%)
+ *
+ * The exact swatches are used where contrast allows (fills, dark-mode primary,
+ * selection, accents); text-sized uses ride the same hue at a lightness that
+ * clears WCAG AA against the mode's background.
+ */
 @layer base {
   :root {
+    color-scheme: light;
+
     --background: 0 0% 100%;
-    --foreground: 240 10% 4%;
+    --foreground: 198 17% 20%; /* charcoal #2A363B */
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 4%;
+    --card-foreground: 198 17% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 4%;
+    --popover-foreground: 198 17% 20%;
 
-    --primary: 250 84% 60%;
+    --primary: 118 20% 38%; /* deep sage — #99B898 darkened for AA on white */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 6% 10%;
+    --secondary: 25 98% 83%; /* peach #FECEAB */
+    --secondary-foreground: 198 17% 20%;
 
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
+    --muted: 110 12% 95%;
+    --muted-foreground: 200 8% 42%;
 
-    --accent: 240 5% 96%;
-    --accent-foreground: 240 6% 10%;
+    --accent: 25 70% 92%; /* soft peach hover wash */
+    --accent-foreground: 198 17% 20%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 352 77% 51%; /* danger #E84A5F deepened for AA text on white */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 45%;
+    --success: 130 35% 34%;
     --success-foreground: 0 0% 100%;
 
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 250 84% 60%;
+    --warning: 32 85% 36%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 120 8% 88%;
+    --input: 120 8% 85%;
+    --ring: 118 20% 38%;
+
+    --chart-1: 118 18% 56%; /* sage */
+    --chart-2: 25 90% 70%; /* peach */
+    --chart-3: 4 90% 66%; /* coral */
+    --chart-4: 352 70% 55%; /* danger */
+    --chart-5: 200 20% 45%; /* slate charcoal */
 
     --radius: 0.625rem;
   }
 
   .dark {
-    --background: 240 10% 4%;
-    --foreground: 0 0% 98%;
+    color-scheme: dark;
 
-    --card: 240 9% 7%;
-    --card-foreground: 0 0% 98%;
+    --background: 198 18% 12%; /* deep charcoal, one step below #2A363B */
+    --foreground: 40 20% 96%;
 
-    --popover: 240 9% 7%;
-    --popover-foreground: 0 0% 98%;
+    --card: 198 17% 17%;
+    --card-foreground: 40 20% 96%;
 
-    --primary: 250 90% 66%;
-    --primary-foreground: 0 0% 100%;
+    --popover: 198 17% 15%;
+    --popover-foreground: 40 20% 96%;
 
-    --secondary: 240 5% 13%;
-    --secondary-foreground: 0 0% 98%;
+    --primary: 118 18% 66%; /* sage #99B898 exact */
+    --primary-foreground: 198 18% 12%;
 
-    --muted: 240 5% 13%;
-    --muted-foreground: 240 5% 60%;
+    --secondary: 24 22% 25%; /* peach-tinted surface */
+    --secondary-foreground: 25 98% 83%; /* peach #FECEAB exact */
 
-    --accent: 240 5% 15%;
-    --accent-foreground: 0 0% 98%;
+    --muted: 198 14% 22%;
+    --muted-foreground: 200 12% 68%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
+    --accent: 198 15% 26%; /* lightened charcoal hover wash */
+    --accent-foreground: 40 20% 96%;
 
-    --success: 142 69% 45%;
-    --success-foreground: 0 0% 100%;
+    --destructive: 352 85% 70%; /* danger lifted for AA text on charcoal */
+    --destructive-foreground: 198 18% 12%;
 
-    --border: 240 5% 16%;
-    --input: 240 5% 16%;
-    --ring: 250 90% 66%;
+    --success: 130 28% 62%;
+    --success-foreground: 198 18% 12%;
+
+    --warning: 35 80% 66%;
+    --warning-foreground: 198 18% 12%;
+
+    --border: 198 12% 26%;
+    --input: 198 12% 30%;
+    --ring: 118 18% 66%;
+
+    --chart-1: 118 18% 66%; /* sage #99B898 exact */
+    --chart-2: 25 98% 83%; /* peach #FECEAB exact */
+    --chart-3: 4 100% 74%; /* coral #FF847C exact */
+    --chart-4: 352 77% 60%; /* danger #E84A5F exact */
+    --chart-5: 200 25% 65%; /* slate charcoal */
   }
 }
 
@@ -82,14 +116,21 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
+  /* Coral text selection — same brand accent in both themes. */
+  ::selection {
+    background: hsl(4 100% 74% / 0.4);
+    color: inherit;
+  }
+
   /* Subtle grid / glow backdrop reminiscent of Linear & Vercel marketing UIs */
   .auth-backdrop {
     background-color: hsl(var(--background));
     background-image:
-      radial-gradient(60rem 60rem at 50% -20%, hsl(var(--primary) / 0.18), transparent 60%),
+      radial-gradient(60rem 60rem at 50% -20%, hsl(118 18% 66% / 0.22), transparent 60%),
+      radial-gradient(40rem 30rem at 85% 10%, hsl(4 100% 74% / 0.08), transparent 60%),
       linear-gradient(to right, hsl(var(--border) / 0.4) 1px, transparent 1px),
       linear-gradient(to bottom, hsl(var(--border) / 0.4) 1px, transparent 1px);
-    background-size: 100% 100%, 3rem 3rem, 3rem 3rem;
+    background-size: 100% 100%, 100% 100%, 3rem 3rem, 3rem 3rem;
   }
 
   ::-webkit-scrollbar {

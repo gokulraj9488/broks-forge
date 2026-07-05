@@ -68,6 +68,24 @@ public class LoggingEmailService implements EmailService {
     }
 
     @Override
+    public void sendPasswordChangeVerification(String toEmail, String recipientName, String confirmLink) {
+        log.info("""
+
+                ===================== EMAIL (password change) ==================
+                To:      {} <{}>
+                Subject: Confirm your Brok's Forge password change
+                ----------------------------------------------------------------
+                We received a request to change your password. Confirm it and
+                choose your new password using this link:
+                {}
+                This link expires in 15 minutes. If you did not request this,
+                ignore this message.
+                ================================================================
+                """, recipientName, toEmail, confirmLink);
+        printClickableLink("Confirm password change", toEmail, confirmLink);
+    }
+
+    @Override
     public void sendPasswordChangedNotification(String toEmail, String recipientName) {
         log.info("""
 

@@ -2,8 +2,21 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider, useTheme } from "next-themes";
 import { Toaster } from "sonner";
+
+/** Toasts must follow the active theme, so useTheme is read inside ThemeProvider. */
+function ThemedToaster() {
+  const { resolvedTheme } = useTheme();
+  return (
+    <Toaster
+      richColors
+      position="bottom-right"
+      theme={resolvedTheme === "light" ? "light" : "dark"}
+      closeButton
+    />
+  );
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -28,7 +41,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         {children}
-        <Toaster richColors position="bottom-right" theme="dark" closeButton />
+        <ThemedToaster />
       </ThemeProvider>
     </QueryClientProvider>
   );

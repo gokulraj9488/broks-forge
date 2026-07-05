@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { GitBranch } from "lucide-react";
@@ -18,11 +18,19 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreatePromptVersion } from "@/lib/hooks/use-prompts";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { PROVIDER_OPTIONS, type LlmProvider } from "@/lib/api/agents";
+
+const UNSPECIFIED = "unspecified";
 
 const schema = z.object({
   template: z.string().min(1, "Template is required"),
@@ -49,10 +57,11 @@ export function CreatePromptVersionDialog({
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { activate: true },
+    defaultValues: { activate: true, provider: "" },
   });
 
   const onSubmit = (values: Values) => {
@@ -101,14 +110,28 @@ export function CreatePromptVersionDialog({
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Provider" htmlFor="pv-provider" error={errors.provider?.message} hint="Optional">
-              <Select id="pv-provider" defaultValue="" {...register("provider")}>
-                <option value="">Unspecified</option>
-                {PROVIDER_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </Select>
+              <Controller
+                control={control}
+                name="provider"
+                render={({ field }) => (
+                  <Select
+                    value={field.value === "" ? UNSPECIFIED : field.value}
+                    onValueChange={(v) => field.onChange(v === UNSPECIFIED ? "" : v)}
+                  >
+                    <SelectTrigger id="pv-provider" onBlur={field.onBlur}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={UNSPECIFIED}>Unspecified</SelectItem>
+                      {PROVIDER_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </Field>
             <Field label="Model" htmlFor="pv-model" error={errors.model?.message} hint="Optional">
               <Input id="pv-model" placeholder="claude-opus-4-8" {...register("model")} />

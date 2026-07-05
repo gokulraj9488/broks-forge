@@ -26,7 +26,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    // next-themes stamps the theme class before first paint (suppressHydrationWarning
+    // covers the attribute swap); hardcoding "dark" here would flash dark for
+    // light-theme users on every load.
+    <html lang="en" suppressHydrationWarning>
       <body className={cn(inter.variable, jetbrainsMono.variable, "font-sans")}>
         <Providers>{children}</Providers>
       </body>
