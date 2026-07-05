@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 export function Logo({ className, showWordmark = true }: { className?: string; showWordmark?: boolean }) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-500 shadow-sm">
-        <Hammer className="h-4 w-4 text-white" />
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-chart-3 shadow-sm">
+        <Hammer className="h-4 w-4 text-primary-foreground" />
       </div>
       {showWordmark && (
         <div className="flex flex-col leading-none">

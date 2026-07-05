@@ -10,7 +10,13 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SeverityBadge } from "@/components/common/severity";
@@ -22,6 +28,9 @@ import type {
   KnowledgeNodeResponse,
   KnowledgeNodeType,
 } from "@/lib/api/knowledge";
+
+// Radix selects forbid empty-string item values; map "" state to this sentinel.
+const ALL = "all";
 
 const NODE_TYPE_OPTIONS: { value: KnowledgeNodeType; label: string }[] = [
   { value: "FAILURE_MODE", label: "Failure mode" },
@@ -63,38 +72,52 @@ export function KnowledgePanel() {
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Type</span>
           <Select
-            value={type}
-            onChange={(e) => {
-              setType(e.target.value as "" | KnowledgeNodeType);
+            value={type === "" ? ALL : type}
+            onValueChange={(v) => {
+              setType(v === ALL ? "" : (v as KnowledgeNodeType));
               setExpanded(null);
             }}
-            className="h-9 w-auto min-w-[12rem]"
           >
-            <option value="">All types</option>
-            {NODE_TYPE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
+            <SelectTrigger
+              className="h-9 w-auto min-w-[12rem]"
+              aria-label="Filter by node type"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All types</SelectItem>
+              {NODE_TYPE_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Category</span>
           <Select
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
+            value={category === "" ? ALL : category}
+            onValueChange={(v) => {
+              setCategory(v === ALL ? "" : v);
               setExpanded(null);
             }}
-            className="h-9 w-auto min-w-[12rem]"
-            disabled={categories.length === 0}
           >
-            <option value="">All categories</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {humanize(c)}
-              </option>
-            ))}
+            <SelectTrigger
+              className="h-9 w-auto min-w-[12rem]"
+              aria-label="Filter by category"
+              disabled={categories.length === 0}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All categories</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {humanize(c)}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
       </div>

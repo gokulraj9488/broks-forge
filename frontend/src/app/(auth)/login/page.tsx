@@ -1,20 +1,26 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { FullPageSpinner } from "@/components/ui/spinner";
 import { useLogin } from "@/lib/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { loginSchema, type LoginValues } from "@/lib/validations";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionExpired = searchParams.get("reason") === "session-expired";
   const login = useLogin();
   const {
     register,
@@ -39,6 +45,15 @@ export default function LoginPage() {
         <CardDescription>Welcome back. Enter your credentials to continue.</CardDescription>
       </CardHeader>
       <CardContent>
+        {sessionExpired && (
+          <div
+            role="status"
+            className="mb-4 flex items-start gap-2.5 rounded-md border border-border bg-muted/60 px-3 py-2.5 text-xs text-muted-foreground animate-in fade-in-0 slide-in-from-top-1 duration-200"
+          >
+            <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>Your session expired due to inactivity. Please sign in again.</span>
+          </div>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <Field label="Email" htmlFor="email" error={errors.email?.message} required>
             <Input
@@ -50,9 +65,8 @@ export default function LoginPage() {
             />
           </Field>
           <Field label="Password" htmlFor="password" error={errors.password?.message} required>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               placeholder="••••••••"
               autoComplete="current-password"
               {...register("password")}
@@ -78,5 +92,13 @@ export default function LoginPage() {
         </p>
       </CardContent>
     </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<FullPageSpinner />}>
+      <LoginForm />
+    </Suspense>
   );
 }

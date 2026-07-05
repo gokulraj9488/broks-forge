@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Activity, CircleDollarSign, Gauge, Hash, Target } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/common/stat-card";
@@ -54,16 +54,17 @@ export function AnalyticsPanel({
     <div className="space-y-5">
       <div className="flex items-center justify-end gap-2">
         <span className="text-sm text-muted-foreground">Window</span>
-        <Select
-          value={windowDays}
-          onChange={(e) => setWindowDays(Number(e.target.value))}
-          className="h-8 w-auto text-xs"
-        >
-          {WINDOW_OPTIONS.map((w) => (
-            <option key={w} value={w}>
-              Last {w} days
-            </option>
-          ))}
+        <Select value={String(windowDays)} onValueChange={(v) => setWindowDays(Number(v))}>
+          <SelectTrigger className="h-8 w-auto min-w-[8rem] text-xs" aria-label="Analytics window">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {WINDOW_OPTIONS.map((w) => (
+              <SelectItem key={w} value={String(w)}>
+                Last {w} days
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       </div>
 

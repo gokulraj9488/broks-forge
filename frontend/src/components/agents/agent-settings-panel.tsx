@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   useArchiveAgent,
@@ -61,6 +67,7 @@ export function AgentSettingsPanel({
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isDirty },
   } = useForm<AgentValues>({
@@ -165,40 +172,84 @@ export function AgentSettingsPanel({
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Framework" htmlFor="set-framework">
-                <Select id="set-framework" disabled={!editable} {...register("framework")}>
-                  {FRAMEWORK_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </Select>
+                <Controller
+                  control={control}
+                  name="framework"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="set-framework" disabled={!editable} onBlur={field.onBlur}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FRAMEWORK_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </Field>
               <Field label="Language" htmlFor="set-language">
-                <Select id="set-language" disabled={!editable} {...register("language")}>
-                  {LANGUAGE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </Select>
+                <Controller
+                  control={control}
+                  name="language"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="set-language" disabled={!editable} onBlur={field.onBlur}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LANGUAGE_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </Field>
               <Field label="Visibility" htmlFor="set-visibility">
-                <Select id="set-visibility" disabled={!editable} {...register("visibility")}>
-                  {VISIBILITY_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </Select>
+                <Controller
+                  control={control}
+                  name="visibility"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="set-visibility" disabled={!editable} onBlur={field.onBlur}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {VISIBILITY_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </Field>
               <Field label="Authentication" htmlFor="set-auth">
-                <Select id="set-auth" disabled={!editable} {...register("authType")}>
-                  {AUTH_TYPE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </Select>
+                <Controller
+                  control={control}
+                  name="authType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="set-auth" disabled={!editable} onBlur={field.onBlur}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AUTH_TYPE_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </Field>
             </div>
             <Field label="Capabilities">

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useArchiveDataset, useDeleteDataset, useUpdateDataset } from "@/lib/hooks/use-datasets";
 import { getApiErrorMessage } from "@/lib/api/client";
@@ -50,6 +50,7 @@ export function DatasetSettingsPanel({
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isDirty },
   } = useForm<Values>({
@@ -122,13 +123,24 @@ export function DatasetSettingsPanel({
               <Textarea id="set-ds-desc" disabled={!editable} {...register("description")} />
             </Field>
             <Field label="Visibility" htmlFor="set-ds-vis">
-              <Select id="set-ds-vis" disabled={!editable} {...register("visibility")}>
-                {DATASET_VISIBILITY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </Select>
+              <Controller
+                control={control}
+                name="visibility"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="set-ds-vis" disabled={!editable} onBlur={field.onBlur}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DATASET_VISIBILITY_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </Field>
             <Field label="Tags" htmlFor="set-ds-tags" error={errors.tags?.message} hint="Comma-separated">
               <Input id="set-ds-tags" disabled={!editable} {...register("tags")} />

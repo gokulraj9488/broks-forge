@@ -86,11 +86,22 @@ export function RunsPanel({
                 return (
                   <Fragment key={run.id}>
                     <tr
-                      className="cursor-pointer hover:bg-muted/40"
+                      className="cursor-pointer transition-colors hover:bg-muted/40"
                       onClick={() => setExpanded(open ? null : run.id)}
                     >
                       <td className="px-3 py-2.5 text-muted-foreground">
-                        {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        <button
+                          type="button"
+                          aria-expanded={open}
+                          aria-label={open ? "Collapse run details" : "Expand run details"}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setExpanded(open ? null : run.id);
+                          }}
+                          className="flex h-6 w-6 items-center justify-center rounded-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                        </button>
                       </td>
                       <td className="px-2 py-2.5 font-mono text-xs text-muted-foreground">{run.sequence}</td>
                       <td className="px-3 py-2.5">

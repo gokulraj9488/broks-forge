@@ -8,10 +8,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * @param emailVerificationExpirationMs lifetime of e-mail verification links
  * @param passwordResetExpirationMs     lifetime of password reset links
+ * @param passwordChangeExpirationMs    lifetime of password change confirmation links
  */
 @ConfigurationProperties(prefix = "broksforge.security.tokens")
 public record AuthTokenProperties(
         long emailVerificationExpirationMs,
-        long passwordResetExpirationMs
+        long passwordResetExpirationMs,
+        long passwordChangeExpirationMs
 ) {
 }

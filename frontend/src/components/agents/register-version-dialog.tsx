@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GitBranch } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useRegisterVersion } from "@/lib/hooks/use-agents";
 import { getApiErrorMessage } from "@/lib/api/client";
@@ -37,6 +37,7 @@ export function RegisterVersionDialog({
   const register_ = useRegisterVersion(organizationId, projectId, agentId);
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -92,22 +93,44 @@ export function RegisterVersionDialog({
               <Input id="v-model" placeholder="claude-opus-4-8" {...register("model")} />
             </Field>
             <Field label="Provider" htmlFor="v-provider" error={errors.provider?.message} required>
-              <Select id="v-provider" {...register("provider")}>
-                {PROVIDER_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </Select>
+              <Controller
+                control={control}
+                name="provider"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="v-provider" onBlur={field.onBlur}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROVIDER_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </Field>
             <Field label="Environment" htmlFor="v-env" error={errors.environment?.message} required>
-              <Select id="v-env" {...register("environment")}>
-                {ENVIRONMENT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </Select>
+              <Controller
+                control={control}
+                name="environment"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="v-env" onBlur={field.onBlur}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ENVIRONMENT_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </Field>
             <Field label="Framework version" htmlFor="v-fw" error={errors.frameworkVersion?.message}>
               <Input id="v-fw" placeholder="1.0.0" {...register("frameworkVersion")} />

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/use-auth";
+import { useIdleTimeout } from "@/lib/hooks/use-idle-timeout";
 import { FullPageSpinner } from "@/components/ui/spinner";
 
 /**
@@ -12,6 +13,10 @@ import { FullPageSpinner } from "@/components/ui/spinner";
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { isAuthenticated, hydrated } = useAuth();
+
+  // Auto sign-out after a configurable period of inactivity; only armed while
+  // an authenticated view is mounted.
+  useIdleTimeout(hydrated && isAuthenticated);
 
   useEffect(() => {
     if (hydrated && !isAuthenticated) {

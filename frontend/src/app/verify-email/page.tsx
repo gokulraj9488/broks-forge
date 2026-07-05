@@ -16,11 +16,26 @@ type Status = "pending" | "success" | "error";
 
 function VerifyEmailInner() {
   const searchParams = useSearchParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const token = searchParams.get("token") ?? "";
   const [status, setStatus] = useState<Status>("pending");
   const [message, setMessage] = useState("Verifying your email…");
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
   const ran = useRef(false);
+
+  const handleResend = async () => {
+    if (!user?.email) return;
+    setResending(true);
+    try {
+      await authApi.resendVerification(user.email);
+      setResent(true);
+    } catch (error) {
+      setMessage(getApiErrorMessage(error, "Unable to resend the verification email."));
+    } finally {
+      setResending(false);
+    }
+  };
 
   useEffect(() => {
     if (ran.current) return;
@@ -45,7 +60,7 @@ function VerifyEmailInner() {
 
   return (
     <Card className="border-border/60 shadow-xl">
-      <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+      <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
         {status === "pending" && <Spinner className="h-6 w-6" />}
         {status === "success" && (
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
@@ -58,10 +73,24 @@ function VerifyEmailInner() {
           </div>
         )}
         <p className="text-sm text-muted-foreground">{message}</p>
+        {status === "error" && isAuthenticated && (
+          <p className="text-xs text-muted-foreground">
+            {resent
+              ? "A fresh verification link is on its way — check your inbox."
+              : "Links expire after 24 hours; we can send you a fresh one."}
+          </p>
+        )}
         {status !== "pending" && (
-          <Button asChild className="mt-2">
-            <Link href={isAuthenticated ? "/dashboard" : "/login"}>Continue</Link>
-          </Button>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+            {status === "error" && isAuthenticated && !resent && (
+              <Button variant="outline" loading={resending} onClick={handleResend}>
+                Resend verification email
+              </Button>
+            )}
+            <Button asChild>
+              <Link href={isAuthenticated ? "/dashboard" : "/login"}>Continue</Link>
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>

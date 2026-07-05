@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { RoleBadge } from "@/components/common/badges";
@@ -114,14 +120,19 @@ export function MembersPanel({
                     {canManage && !isOwner ? (
                       <Select
                         value={member.role}
-                        onChange={(e) =>
-                          handleRoleChange(member, e.target.value as OrganizationRole)
-                        }
-                        className="h-8 w-28 text-xs"
-                        disabled={updateRole.isPending}
+                        onValueChange={(v) => handleRoleChange(member, v as OrganizationRole)}
                       >
-                        <option value="MEMBER">Member</option>
-                        <option value="ADMIN">Admin</option>
+                        <SelectTrigger
+                          className="h-8 w-28 text-xs"
+                          disabled={updateRole.isPending}
+                          aria-label={`Change role for ${member.fullName || member.email}`}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MEMBER">Member</SelectItem>
+                          <SelectItem value="ADMIN">Admin</SelectItem>
+                        </SelectContent>
                       </Select>
                     ) : (
                       <RoleBadge role={member.role} />

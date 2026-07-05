@@ -87,12 +87,14 @@ export function useUpdateProfile() {
 
 export function useChangePassword() {
   return useMutation({
-    mutationFn: ({
-      currentPassword,
-      newPassword,
-    }: {
-      currentPassword: string;
-      newPassword: string;
-    }) => authApi.changePassword(currentPassword, newPassword),
+    mutationFn: ({ currentPassword }: { currentPassword: string }) =>
+      authApi.changePassword(currentPassword),
+  });
+}
+
+export function useConfirmPasswordChange() {
+  return useMutation({
+    mutationFn: ({ token, newPassword }: { token: string; newPassword: string }) =>
+      authApi.confirmPasswordChange(token, newPassword),
   });
 }

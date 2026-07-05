@@ -16,7 +16,13 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateBenchmark } from "@/lib/hooks/use-benchmarks";
 import { useEvaluationJobs } from "@/lib/hooks/use-evaluation-jobs";
@@ -127,21 +133,31 @@ export function CreateBenchmarkDialog({
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Type" htmlFor="bm-type" required>
-              <Select id="bm-type" value={type} onChange={(e) => setType(e.target.value as BenchmarkType)}>
-                {BENCHMARK_TYPE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
+              <Select value={type} onValueChange={(v) => setType(v as BenchmarkType)}>
+                <SelectTrigger id="bm-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {BENCHMARK_TYPE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </Field>
             <Field label="Ranking metric" htmlFor="bm-metric">
-              <Select id="bm-metric" value={metricKey} onChange={(e) => setMetricKey(e.target.value)}>
-                {METRIC_KEY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
+              <Select value={metricKey} onValueChange={setMetricKey}>
+                <SelectTrigger id="bm-metric">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {METRIC_KEY_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </Field>
           </div>

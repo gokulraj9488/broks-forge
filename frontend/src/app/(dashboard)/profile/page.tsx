@@ -91,7 +91,7 @@ export default function ProfilePage() {
               <p className="text-sm text-muted-foreground">{user.email}</p>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {user.roles.map((role) => (
-                  <Badge key={role} variant="outline" className="text-[10px]">
+                  <Badge key={role} variant="outline">
                     {role}
                   </Badge>
                 ))}
@@ -101,10 +101,10 @@ export default function ProfilePage() {
         </Card>
 
         {!user.emailVerified && (
-          <Card className="border-amber-500/30 bg-amber-500/5">
+          <Card className="border-warning/30 bg-warning/5">
             <CardContent className="flex flex-col items-start justify-between gap-3 p-4 sm:flex-row sm:items-center">
               <div className="flex items-start gap-2 text-sm">
-                <MailWarning className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                <MailWarning className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                 <span className="text-muted-foreground">
                   Your email isn&apos;t verified yet. Check your inbox or resend the link.
                 </span>
@@ -125,14 +125,18 @@ export default function ProfilePage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="First name" htmlFor="firstName" error={errors.firstName?.message}>
-                  <Input id="firstName" {...register("firstName")} />
+                  <Input id="firstName" autoComplete="given-name" {...register("firstName")} />
                 </Field>
                 <Field label="Last name" htmlFor="lastName" error={errors.lastName?.message}>
-                  <Input id="lastName" {...register("lastName")} />
+                  <Input id="lastName" autoComplete="family-name" {...register("lastName")} />
                 </Field>
               </div>
-              <Field label="Email" hint="Email changes require re-verification and are coming soon.">
-                <Input value={user.email} disabled readOnly />
+              <Field
+                label="Email"
+                htmlFor="profile-email"
+                hint="Email changes require re-verification and are coming soon."
+              >
+                <Input id="profile-email" value={user.email} readOnly />
               </Field>
               <p className="text-xs text-muted-foreground">
                 Last sign in: {formatDateTime(user.lastLoginAt)}

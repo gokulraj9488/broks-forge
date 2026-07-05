@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { Rows3 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from "@/components/ui/pagination";
@@ -70,17 +76,21 @@ export function DatasetItemsPanel({
         <span className="text-sm text-muted-foreground">Version</span>
         <Select
           value={versionId}
-          onChange={(e) => {
-            setVersionId(e.target.value);
+          onValueChange={(v) => {
+            setVersionId(v);
             setPage(0);
           }}
-          className="h-8 w-auto text-xs"
         >
-          {versions.map((v) => (
-            <option key={v.id} value={v.id}>
-              v{v.versionNumber} · {v.itemCount} items
-            </option>
-          ))}
+          <SelectTrigger className="h-8 w-auto min-w-[8rem] text-xs" aria-label="Dataset version">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {versions.map((v) => (
+              <SelectItem key={v.id} value={v.id}>
+                v{v.versionNumber} · {v.itemCount} items
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       </div>
 

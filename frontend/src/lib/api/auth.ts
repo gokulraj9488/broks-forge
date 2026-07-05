@@ -18,9 +18,18 @@ export const authApi = {
   logout: (refreshToken: string) =>
     apiClient.post<MessageResponse>("/api/v1/auth/logout", { refreshToken }).then((r) => r.data),
 
-  changePassword: (currentPassword: string, newPassword: string) =>
+  // Step 1 of the verified password change: checks the current password and
+  // emails a one-time confirmation link. Nothing changes until step 2.
+  changePassword: (currentPassword: string) =>
     apiClient
-      .post<MessageResponse>("/api/v1/auth/change-password", { currentPassword, newPassword })
+      .post<MessageResponse>("/api/v1/auth/change-password", { currentPassword })
+      .then((r) => r.data),
+
+  // Step 2: consumes the emailed token, applies the new password and revokes
+  // every session server-side.
+  confirmPasswordChange: (token: string, newPassword: string) =>
+    apiClient
+      .post<MessageResponse>("/api/v1/auth/confirm-password-change", { token, newPassword })
       .then((r) => r.data),
 
   forgotPassword: (email: string) =>

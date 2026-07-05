@@ -44,8 +44,17 @@ export function MeterBar({
         ? "bg-destructive"
         : "bg-primary";
   return (
-    <div className={cn("h-2 w-full overflow-hidden rounded-full bg-muted", className)}>
-      <div className={cn("h-full rounded-full transition-all", toneClass)} style={{ width: `${pct}%` }} />
+    <div
+      role="progressbar"
+      aria-valuenow={Math.round(pct)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      className={cn("h-2 w-full overflow-hidden rounded-full bg-muted", className)}
+    >
+      <div
+        className={cn("h-full rounded-full transition-[width] duration-300 ease-out", toneClass)}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }

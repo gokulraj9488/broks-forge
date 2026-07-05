@@ -6,10 +6,12 @@ import com.broksforge.common.util.SecureTokens;
 import com.broksforge.config.properties.AppProperties;
 import com.broksforge.config.properties.AuthTokenProperties;
 import com.broksforge.modules.auth.domain.EmailVerificationToken;
+import com.broksforge.modules.auth.domain.PasswordChangeToken;
 import com.broksforge.modules.auth.domain.PasswordResetToken;
 import com.broksforge.modules.auth.domain.RefreshToken;
 import com.broksforge.modules.auth.email.EmailService;
 import com.broksforge.modules.auth.repository.EmailVerificationTokenRepository;
+import com.broksforge.modules.auth.repository.PasswordChangeTokenRepository;
 import com.broksforge.modules.auth.repository.PasswordResetTokenRepository;
 import com.broksforge.modules.auth.web.dto.AuthResponse;
 import com.broksforge.modules.user.domain.Role;
@@ -44,6 +46,7 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final PasswordChangeTokenRepository passwordChangeTokenRepository;
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
     private final UserMapper userMapper;
@@ -55,6 +58,7 @@ public class AuthService {
                        RefreshTokenService refreshTokenService,
                        EmailVerificationTokenRepository emailVerificationTokenRepository,
                        PasswordResetTokenRepository passwordResetTokenRepository,
+                       PasswordChangeTokenRepository passwordChangeTokenRepository,
                        EmailService emailService,
                        AuthenticationManager authenticationManager,
                        UserMapper userMapper,
@@ -65,6 +69,7 @@ public class AuthService {
         this.refreshTokenService = refreshTokenService;
         this.emailVerificationTokenRepository = emailVerificationTokenRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.passwordChangeTokenRepository = passwordChangeTokenRepository;
         this.emailService = emailService;
         this.authenticationManager = authenticationManager;
         this.userMapper = userMapper;
@@ -130,19 +135,53 @@ public class AuthService {
     }
 
     // ----------------------------------------------------------------------
-    // Password change (authenticated)
+    // Password change (authenticated, e-mail verified)
     // ----------------------------------------------------------------------
 
+    /**
+     * Step 1 of the verified password-change flow: re-authenticates the caller
+     * with their current password, then e-mails a one-time confirmation link.
+     * Nothing changes until the link is confirmed.
+     */
     @Transactional
-    public void changePassword(UUID userId, String currentPassword, String newPassword) {
+    public void requestPasswordChange(UUID userId, String currentPassword) {
         User user = userService.getActiveByIdOrThrow(userId);
         if (!userService.checkPassword(user, currentPassword)) {
             throw new UnauthorizedException(ErrorCode.INVALID_CREDENTIALS, "Current password is incorrect");
         }
-        userService.setPassword(userId, newPassword);
-        // Invalidate every existing session: the user must sign in again everywhere.
-        refreshTokenService.revokeAllForUser(userId);
+
+        passwordChangeTokenRepository.invalidateAllForUser(userId, Instant.now());
+        String rawToken = SecureTokens.generateToken();
+        PasswordChangeToken token = new PasswordChangeToken();
+        token.setUserId(userId);
+        token.setTokenHash(SecureTokens.sha256Hex(rawToken));
+        token.setExpiresAt(Instant.now().plusMillis(authTokenProperties.passwordChangeExpirationMs()));
+        passwordChangeTokenRepository.save(token);
+
+        String link = buildLink("/change-password", rawToken);
+        emailService.sendPasswordChangeVerification(user.getEmail(), user.fullName(), link);
+        log.info("Password change requested for user {}", userId);
+    }
+
+    /**
+     * Step 2: consumes the emailed token, applies the new password and revokes
+     * every session so the user must sign in again everywhere.
+     */
+    @Transactional
+    public void confirmPasswordChange(String rawToken, String newPassword) {
+        PasswordChangeToken token = passwordChangeTokenRepository
+                .findByTokenHash(SecureTokens.sha256Hex(rawToken))
+                .filter(PasswordChangeToken::isUsable)
+                .orElseThrow(() -> new UnauthorizedException(ErrorCode.TOKEN_INVALID,
+                        "Password change token is invalid or expired"));
+
+        token.markUsed();
+        userService.setPassword(token.getUserId(), newPassword);
+        refreshTokenService.revokeAllForUser(token.getUserId());
+
+        User user = userService.getActiveByIdOrThrow(token.getUserId());
         emailService.sendPasswordChangedNotification(user.getEmail(), user.fullName());
+        log.info("Password change confirmed for user {}", token.getUserId());
     }
 
     // ----------------------------------------------------------------------

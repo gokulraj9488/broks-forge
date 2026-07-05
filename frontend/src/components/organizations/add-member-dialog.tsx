@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +17,13 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAddMember } from "@/lib/hooks/use-organizations";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { addMemberSchema, type AddMemberValues } from "@/lib/validations";
@@ -29,6 +35,7 @@ export function AddMemberDialog({ organizationId }: { organizationId: string }) 
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<AddMemberValues>({
     resolver: zodResolver(addMemberSchema),
@@ -66,10 +73,21 @@ export function AddMemberDialog({ organizationId }: { organizationId: string }) 
             <Input id="member-email" type="email" placeholder="teammate@example.com" {...register("email")} />
           </Field>
           <Field label="Role" htmlFor="member-role" error={errors.role?.message} required>
-            <Select id="member-role" {...register("role")}>
-              <option value="MEMBER">Member</option>
-              <option value="ADMIN">Admin</option>
-            </Select>
+            <Controller
+              control={control}
+              name="role"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="member-role" onBlur={field.onBlur}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MEMBER">Member</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </Field>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>

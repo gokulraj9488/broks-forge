@@ -26,11 +26,7 @@ type Tone = {
 
 const STAGE_TONE: Record<TimelineStageStatus, Tone> = {
   OK: { dot: "bg-success border-success", label: "text-success", dashed: false },
-  WARN: {
-    dot: "bg-amber-500 border-amber-500",
-    label: "text-amber-600 dark:text-amber-400",
-    dashed: false,
-  },
+  WARN: { dot: "bg-warning border-warning", label: "text-warning", dashed: false },
   ERROR: { dot: "bg-destructive border-destructive", label: "text-destructive", dashed: false },
   SKIPPED: { dot: "bg-muted border-border", label: "text-muted-foreground", dashed: true },
   NOT_INSTRUMENTED: {

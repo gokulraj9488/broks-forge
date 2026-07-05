@@ -5,7 +5,7 @@ import Link from "next/link";
 import { FlaskConical, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/ui/pagination";
@@ -18,6 +18,8 @@ import { formatNumber } from "@/lib/format";
 import { JOB_STATUS_OPTIONS, type EvaluationJobStatus } from "@/lib/api/evaluation-jobs";
 
 const PAGE_SIZE = 12;
+
+const ALL_STATUSES = "all";
 
 export function JobsPanel({
   organizationId,
@@ -64,16 +66,20 @@ export function JobsPanel({
 
       <div className="flex flex-wrap gap-2">
         <Select
-          value={status}
-          onChange={(e) => reset(setStatus)(e.target.value as EvaluationJobStatus | "")}
-          className="h-8 w-auto text-xs"
+          value={status === "" ? ALL_STATUSES : status}
+          onValueChange={(v) => reset(setStatus)(v === ALL_STATUSES ? "" : (v as EvaluationJobStatus))}
         >
-          <option value="">All statuses</option>
-          {JOB_STATUS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
+          <SelectTrigger className="h-8 w-auto min-w-[8rem] text-xs" aria-label="Filter by status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_STATUSES}>All statuses</SelectItem>
+            {JOB_STATUS_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       </div>
 

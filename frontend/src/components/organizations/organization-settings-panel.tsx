@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useDeleteOrganization, useUpdateOrganization } from "@/lib/hooks/use-organizations";
 import { getApiErrorMessage } from "@/lib/api/client";
@@ -40,6 +40,7 @@ export function OrganizationSettingsPanel({
 
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors, isDirty },
   } = useForm<SettingsValues>({
@@ -93,10 +94,21 @@ export function OrganizationSettingsPanel({
               <Textarea id="settings-description" disabled={!canEdit} {...register("description")} />
             </Field>
             <Field label="Status" htmlFor="settings-status" error={errors.status?.message}>
-              <Select id="settings-status" disabled={!canEdit} {...register("status")}>
-                <option value="ACTIVE">Active</option>
-                <option value="ARCHIVED">Archived</option>
-              </Select>
+              <Controller
+                control={control}
+                name="status"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="settings-status" disabled={!canEdit} onBlur={field.onBlur}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="ARCHIVED">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </Field>
             {canEdit && (
               <div className="flex justify-end">

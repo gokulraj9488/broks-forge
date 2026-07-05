@@ -16,11 +16,13 @@ import org.springframework.web.util.HtmlUtils;
 @Component
 public class EmailContentFactory {
 
+    // Brand palette (see frontend/src/app/globals.css): sage primary on charcoal ink.
     private static final String BRAND = "Brok's Forge";
-    private static final String PRIMARY = "#4f46e5";
-    private static final String INK = "#0f172a";
+    private static final String PRIMARY = "#99B898";
+    private static final String PRIMARY_TEXT = "#2A363B";
+    private static final String INK = "#2A363B";
     private static final String MUTED = "#64748b";
-    private static final String BG = "#f1f5f9";
+    private static final String BG = "#f2f4f1";
 
     public EmailMessage verification(String recipientName, String link) {
         String subject = "Verify your " + BRAND + " account";
@@ -52,6 +54,24 @@ public class EmailContentFactory {
         String text = greetingText(recipientName)
                 + "We received a request to reset your " + BRAND + " password. Use this link:\n\n"
                 + link + "\n\nThis link expires in 1 hour. If you did not request a reset, ignore this e-mail.\n\n"
+                + "— " + BRAND;
+        return new EmailMessage(subject, html, text);
+    }
+
+    public EmailMessage passwordChangeVerification(String recipientName, String link) {
+        String subject = "Confirm your " + BRAND + " password change";
+        String html = layout("Confirm your password change",
+                greeting(recipientName)
+                        + paragraph("We received a request to change your " + esc(BRAND) + " password. "
+                        + "To continue, confirm the change using the button below and choose your new password.")
+                        + button("Confirm password change", link)
+                        + fallback(link)
+                        + paragraph(muted("This link expires in 15 minutes. If you did not request this change, "
+                        + "ignore this e-mail — your password will not change.")));
+        String text = greetingText(recipientName)
+                + "We received a request to change your " + BRAND + " password. Confirm it here:\n\n"
+                + link + "\n\nThis link expires in 15 minutes. If you did not request this change, ignore "
+                + "this e-mail.\n\n"
                 + "— " + BRAND;
         return new EmailMessage(subject, html, text);
     }
@@ -118,7 +138,7 @@ public class EmailContentFactory {
         String href = esc(url);
         return "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:8px 0 20px;\">"
                 + "<tr><td style=\"border-radius:8px;background:" + PRIMARY + ";\">"
-                + "<a href=\"" + href + "\" style=\"display:inline-block;padding:12px 22px;color:#ffffff;"
+                + "<a href=\"" + href + "\" style=\"display:inline-block;padding:12px 22px;color:" + PRIMARY_TEXT + ";"
                 + "text-decoration:none;font-weight:600;font-size:15px;border-radius:8px;\">" + esc(label) + "</a>"
                 + "</td></tr></table>";
     }

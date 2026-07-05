@@ -4,6 +4,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { touchActivity } from "@/lib/session-activity";
 import type { ApiError, AuthResponse } from "@/lib/api/types";
 
 export const API_BASE_URL =
@@ -22,6 +23,8 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = useAuthStore.getState().accessToken;
   if (token) {
     config.headers.set("Authorization", `Bearer ${token}`);
+    // Any authenticated API call counts as user activity for the idle timeout.
+    touchActivity();
   }
   return config;
 });
@@ -73,7 +76,8 @@ apiClient.interceptors.response.use(
         return apiClient(original);
       }
       if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-        window.location.href = "/login";
+        // Both tokens are gone/expired — explain why on the login page.
+        window.location.href = "/login?reason=session-expired";
       }
     }
     return Promise.reject(error);

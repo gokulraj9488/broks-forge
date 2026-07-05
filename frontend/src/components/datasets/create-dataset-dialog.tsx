@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus } from "lucide-react";
@@ -19,7 +19,13 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateDataset } from "@/lib/hooks/use-datasets";
 import { getApiErrorMessage } from "@/lib/api/client";
@@ -52,6 +58,7 @@ export function CreateDatasetDialog({
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(schema),
@@ -112,13 +119,24 @@ export function CreateDatasetDialog({
             <Textarea id="ds-desc" placeholder="What is this dataset for?" {...register("description")} />
           </Field>
           <Field label="Visibility" htmlFor="ds-vis" error={errors.visibility?.message} required>
-            <Select id="ds-vis" {...register("visibility")}>
-              {DATASET_VISIBILITY_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </Select>
+            <Controller
+              control={control}
+              name="visibility"
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="ds-vis" onBlur={field.onBlur}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DATASET_VISIBILITY_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </Field>
           <Field label="Tags" htmlFor="ds-tags" error={errors.tags?.message} hint="Comma-separated">
             <Input id="ds-tags" placeholder="qa, golden, tier-1" {...register("tags")} />

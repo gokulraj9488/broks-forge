@@ -14,6 +14,9 @@ FROM node:20-alpine AS build
 WORKDIR /app
 ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+# Idle-session timeout in minutes, baked at build time (0 disables).
+ARG NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES=30
+ENV NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES=$NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

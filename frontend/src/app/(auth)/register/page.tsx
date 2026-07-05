@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useRegister } from "@/lib/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { registerSchema, type RegisterValues } from "@/lib/validations";
@@ -40,7 +41,7 @@ export default function RegisterPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="First name" htmlFor="firstName" error={errors.firstName?.message}>
               <Input id="firstName" placeholder="Ada" autoComplete="given-name" {...register("firstName")} />
             </Field>
@@ -64,9 +65,8 @@ export default function RegisterPage() {
             hint="At least 8 characters, with upper, lower and a digit."
             required
           >
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               placeholder="••••••••"
               autoComplete="new-password"
               {...register("password")}
