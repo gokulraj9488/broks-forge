@@ -49,3 +49,14 @@ jobs:
           path: backend/target/broks-forge-api.jar
           if-no-files-found: error
           retention-days: 14
+
+      # `mvn verify` runs the JaCoCo report goal (see backend/pom.xml). Publish it so
+      # coverage is reviewable per build. Targets are documented in docs/AUTOMATED_TESTING.md.
+      - name: Upload coverage report (JaCoCo)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-coverage-report
+          path: backend/target/site/jacoco
+          if-no-files-found: warn
+          retention-days: 14

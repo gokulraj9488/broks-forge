@@ -1,0 +1,323 @@
+{
+  "info": {
+    "name": "Brok's Forge API",
+    "description": "Runnable API regression collection for Brok's Forge. Import alongside the environment file. Run in order (or via `newman run`) — the Auth folder captures an access token and the create requests capture ids into collection variables used by later requests. Each resource includes success and negative cases (unauthorized / validation / not-found / duplicate). Role-based 403 cases are covered by the backend SecurityIntegrationTest.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "uniqueEmail", "value": "" },
+    { "key": "orgId", "value": "" },
+    { "key": "projectId", "value": "" },
+    { "key": "agentId", "value": "" },
+    { "key": "credentialId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register (success) [201]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.collectionVariables.set('uniqueEmail', 'postman-' + Date.now() + '@example.com');"
+              ] }
+            },
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [
+                "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                "const b = pm.response.json();",
+                "pm.expect(b.accessToken, 'accessToken').to.be.a('string');",
+                "pm.collectionVariables.set('accessToken', b.accessToken);",
+                "pm.collectionVariables.set('refreshToken', b.refreshToken);"
+              ] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{uniqueEmail}}\",\n  \"password\": \"StrongPass!2026\",\n  \"firstName\": \"Postman\",\n  \"lastName\": \"Runner\"\n}" }
+          }
+        },
+        {
+          "name": "Register duplicate (duplicate) [409]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('409 Conflict', () => pm.response.to.have.status(409));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{uniqueEmail}}\",\n  \"password\": \"StrongPass!2026\",\n  \"firstName\": \"Dup\",\n  \"lastName\": \"User\"\n}" }
+          }
+        },
+        {
+          "name": "Register invalid e-mail (validation) [400]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"weak\"\n}" }
+          }
+        },
+        {
+          "name": "Login (success) [200]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "const b = pm.response.json();",
+            "pm.collectionVariables.set('accessToken', b.accessToken);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{uniqueEmail}}\",\n  \"password\": \"StrongPass!2026\"\n}" }
+          }
+        },
+        {
+          "name": "Login wrong password (unauthorized) [401]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{uniqueEmail}}\",\n  \"password\": \"WrongPassword!1\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Organizations",
+      "item": [
+        {
+          "name": "List organizations no token (unauthorized) [401]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations"] }
+          }
+        },
+        {
+          "name": "Create organization (success) [201]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('orgId', pm.response.json().id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Org\"\n}" }
+          }
+        },
+        {
+          "name": "Create organization blank name (validation) [400]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"\"\n}" }
+          }
+        },
+        {
+          "name": "Get organization (success) [200]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations/{{orgId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations","{{orgId}}"] }
+          }
+        },
+        {
+          "name": "Get unknown organization (not found) [404]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations/11111111-1111-1111-1111-111111111111", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations","11111111-1111-1111-1111-111111111111"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Create project (success) [201]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('projectId', pm.response.json().id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations/{{orgId}}/projects", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations","{{orgId}}","projects"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Project\"\n}" }
+          }
+        },
+        {
+          "name": "List projects (success) [200]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations/{{orgId}}/projects", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations","{{orgId}}","projects"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agents",
+      "item": [
+        {
+          "name": "Register agent (success) [201]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 Created', () => pm.response.to.have.status(201));",
+            "const b = pm.response.json();",
+            "pm.expect(b.credentialConfigured, 'credentialConfigured').to.eql(false);",
+            "pm.collectionVariables.set('agentId', b.id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations/{{orgId}}/projects/{{projectId}}/agents", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations","{{orgId}}","projects","{{projectId}}","agents"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Agent\",\n  \"visibility\": \"PRIVATE\",\n  \"framework\": \"CUSTOM_REST\",\n  \"language\": \"PYTHON\",\n  \"endpointUrl\": \"https://api.groq.com/openai/v1/chat/completions\",\n  \"authType\": \"API_KEY\"\n}" }
+          }
+        },
+        {
+          "name": "Register agent invalid URL (validation) [400]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('400 Bad Request', () => pm.response.to.have.status(400));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations/{{orgId}}/projects/{{projectId}}/agents", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations","{{orgId}}","projects","{{projectId}}","agents"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bad\",\n  \"visibility\": \"PRIVATE\",\n  \"framework\": \"CUSTOM_REST\",\n  \"language\": \"PYTHON\",\n  \"endpointUrl\": \"not-a-url\",\n  \"authType\": \"NONE\"\n}" }
+          }
+        },
+        {
+          "name": "Get agent (success) [200]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations/{{orgId}}/projects/{{projectId}}/agents/{{agentId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations","{{orgId}}","projects","{{projectId}}","agents","{{agentId}}"] }
+          }
+        },
+        {
+          "name": "Get agent unauthorized (unauthorized) [401]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations/{{orgId}}/projects/{{projectId}}/agents/{{agentId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations","{{orgId}}","projects","{{projectId}}","agents","{{agentId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Credentials",
+      "item": [
+        {
+          "name": "Set credential (success) [2xx]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('2xx', () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+            "const b = pm.response.json();",
+            "pm.test('secret is never returned', () => pm.expect(JSON.stringify(b)).to.not.include('gsk_'));",
+            "pm.collectionVariables.set('credentialId', b.id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations/{{orgId}}/projects/{{projectId}}/agents/{{agentId}}/credentials", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations","{{orgId}}","projects","{{projectId}}","agents","{{agentId}}","credentials"] },
+            "body": { "mode": "raw", "raw": "{\n  \"label\": \"Groq key\",\n  \"authType\": \"API_KEY\",\n  \"secret\": \"gsk_postman_secret_ABCDEFGH\",\n  \"headerName\": \"Authorization\",\n  \"headerPrefix\": \"Bearer\"\n}" }
+          }
+        },
+        {
+          "name": "List credentials (success, secret hidden) [200]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('no plaintext secret leaked', () => pm.expect(pm.response.text()).to.not.include('gsk_postman_secret'));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations/{{orgId}}/projects/{{projectId}}/agents/{{agentId}}/credentials", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations","{{orgId}}","projects","{{projectId}}","agents","{{agentId}}","credentials"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Run agent health check (success) [200]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('provider-aware probe recorded', () => pm.expect(pm.response.json().probeStrategy).to.be.a('string'));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/organizations/{{orgId}}/projects/{{projectId}}/agents/{{agentId}}/health-check", "host": ["{{baseUrl}}"], "path": ["api","v1","organizations","{{orgId}}","projects","{{projectId}}","agents","{{agentId}}","health-check"] }
+          }
+        },
+        {
+          "name": "Actuator health (public) [200]",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 OK', () => pm.response.to.have.status(200));",
+            "pm.test('status UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator","health"] }
+          }
+        }
+      ]
+    }
+  ]
+}
