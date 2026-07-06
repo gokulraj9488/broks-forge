@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useIdleTimeout } from "@/lib/hooks/use-idle-timeout";
+import { IdleWarningDialog } from "@/components/auth/idle-warning-dialog";
 import { FullPageSpinner } from "@/components/ui/spinner";
 
 /**
@@ -14,9 +15,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { isAuthenticated, hydrated } = useAuth();
 
-  // Auto sign-out after a configurable period of inactivity; only armed while
-  // an authenticated view is mounted.
-  useIdleTimeout(hydrated && isAuthenticated);
+  // Auto sign-out after a configurable period of inactivity, with a 60s warning;
+  // only armed while an authenticated view is mounted.
+  const { warningActive, secondsLeft, stayActive, logoutNow } = useIdleTimeout(
+    hydrated && isAuthenticated,
+  );
 
   useEffect(() => {
     if (hydrated && !isAuthenticated) {
@@ -28,7 +31,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return <FullPageSpinner />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <IdleWarningDialog
+        open={warningActive}
+        secondsLeft={secondsLeft}
+        onStay={stayActive}
+        onLogout={logoutNow}
+      />
+    </>
+  );
 }
 
 /** Inverse of AuthGuard: redirects authenticated users away from auth pages. */

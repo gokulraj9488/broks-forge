@@ -20,10 +20,15 @@ import jakarta.validation.constraints.Size;
 @Schema(name = "SetAgentCredentialRequest")
 public record SetAgentCredentialRequest(
 
+        @Schema(description = "Human-friendly label, e.g. \"Groq production key\"", example = "Groq production key")
+        @Size(max = 120)
+        String label,
+
         @NotNull(message = "Authentication type is required")
         AgentAuthType authType,
 
-        @Schema(description = "The secret value (API key / token / password / header value). Write-only.")
+        @Schema(description = "The secret value (API key / token / password / header value). Write-only.",
+                example = "gsk_xxxxxxxxxxxxxxxx")
         @Size(max = 4096)
         String secret,
 
@@ -31,8 +36,12 @@ public record SetAgentCredentialRequest(
         @Size(max = 256)
         String username,
 
-        @Schema(description = "Header name for API_KEY / CUSTOM_HEADER")
+        @Schema(description = "Header name for API_KEY / CUSTOM_HEADER", example = "Authorization")
         @Size(max = 128)
-        String headerName
+        String headerName,
+
+        @Schema(description = "Optional value prefix, e.g. \"Bearer\" or \"Token\"", example = "Bearer")
+        @Size(max = 64)
+        String headerPrefix
 ) {
 }

@@ -36,6 +36,10 @@ import java.util.UUID;
 )
 public class AgentCredential extends BaseEntity {
 
+    /** Human-friendly label, e.g. "Groq production key" (not secret). */
+    @Column(name = "label", length = 120)
+    private String label;
+
     @Column(name = "agent_id", nullable = false)
     private UUID agentId;
 
@@ -57,6 +61,10 @@ public class AgentCredential extends BaseEntity {
     @Column(name = "header_name", length = 128)
     private String headerName;
 
+    /** Optional value prefix, e.g. "Bearer" or "Token" (not secret). */
+    @Column(name = "header_prefix", length = 64)
+    private String headerPrefix;
+
     /** AES-256-GCM ciphertext of the secret. Never exposed. */
     @Column(name = "encrypted_secret", columnDefinition = "text")
     private String encryptedSecret;
@@ -72,7 +80,36 @@ public class AgentCredential extends BaseEntity {
     @Column(name = "active", nullable = false)
     private boolean active = true;
 
+    // --- Last connection-test outcome (metadata only; drives "Connection status") ---
+
+    @Column(name = "last_tested_at")
+    private Instant lastTestedAt;
+
+    @Column(name = "last_test_success")
+    private Boolean lastTestSuccess;
+
+    @Column(name = "last_test_http_status")
+    private Integer lastTestHttpStatus;
+
+    @Column(name = "last_test_message", length = 1000)
+    private String lastTestMessage;
+
     public void deactivate() {
         this.active = false;
+    }
+
+    /** Clears any prior connection-test result (e.g. after rotating the secret). */
+    public void clearTestResult() {
+        this.lastTestedAt = null;
+        this.lastTestSuccess = null;
+        this.lastTestHttpStatus = null;
+        this.lastTestMessage = null;
+    }
+
+    public void recordTestResult(Instant testedAt, boolean success, Integer httpStatus, String message) {
+        this.lastTestedAt = testedAt;
+        this.lastTestSuccess = success;
+        this.lastTestHttpStatus = httpStatus;
+        this.lastTestMessage = message;
     }
 }

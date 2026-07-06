@@ -105,6 +105,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Authenticated auth endpoints must be matched BEFORE the public wildcard.
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/change-password").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/password-change/**").authenticated()
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

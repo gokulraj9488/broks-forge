@@ -15,10 +15,12 @@ public interface AgentMapper {
 
     @Mapping(target = "tags", source = "tags")
     @Mapping(target = "capabilities", source = "agent.capabilities")
-    AgentResponse toResponse(Agent agent, List<String> tags);
+    @Mapping(target = "credentialConfigured", source = "credentialConfigured")
+    AgentResponse toResponse(Agent agent, List<String> tags, boolean credentialConfigured);
 
     @Mapping(target = "tags", source = "tags")
-    AgentSummaryResponse toSummary(Agent agent, List<String> tags);
+    @Mapping(target = "credentialConfigured", source = "credentialConfigured")
+    AgentSummaryResponse toSummary(Agent agent, List<String> tags, boolean credentialConfigured);
 
     AgentCapabilitiesDto toCapabilitiesDto(AgentCapabilities capabilities);
 }

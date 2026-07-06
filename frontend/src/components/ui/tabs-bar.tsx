@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 export interface TabItem<T extends string> {
   key: T;
   label: string;
+  /** Optional adornment rendered after the label (e.g. a "setup required" dot). */
+  badge?: React.ReactNode;
 }
 
 /**
@@ -61,7 +63,10 @@ export function TabsBar<T extends string>({
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
-            {tab.label}
+            <span className="inline-flex items-center gap-1.5">
+              {tab.label}
+              {tab.badge}
+            </span>
           </button>
         );
       })}

@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { UserMenu } from "@/components/layout/user-menu";
 import { Button } from "@/components/ui/button";
+import { ContactDeveloperLink } from "@/components/common/contact-developer";
 import { cn } from "@/lib/utils";
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
@@ -18,7 +20,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
       </div>
       <SidebarNav onNavigate={onNavigate} />
-      <div className="border-t border-border p-4">
+      <div className="space-y-1.5 border-t border-border p-4">
+        <p className="text-[11px] text-muted-foreground">
+          Need help? <ContactDeveloperLink className="text-[11px]" />
+        </p>
         <p className="text-[11px] leading-relaxed text-muted-foreground">
           Brok&apos;s Forge · v1.0.0
           <br />
@@ -31,6 +36,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <div className="min-h-screen bg-background">
@@ -82,7 +88,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mx-auto w-full max-w-6xl animate-fade-in">{children}</div>
+          {/* Keyed by route so each navigation re-triggers the fade-in transition. */}
+          <div key={pathname} className="mx-auto w-full max-w-6xl animate-fade-in">
+            {children}
+          </div>
         </main>
       </div>
     </div>

@@ -150,4 +150,25 @@
     background: hsl(var(--muted-foreground) / 0.5);
     background-clip: content-box;
   }
+
+  /* Theme sonner toasts to the Brok's Forge palette (soft tints in both themes),
+   * so success/error/warning/info toasts match badges, alerts and the rest of the
+   * system instead of sonner's stock bright colours. */
+  [data-sonner-toaster] {
+    --normal-bg: hsl(var(--popover));
+    --normal-border: hsl(var(--border));
+    --normal-text: hsl(var(--popover-foreground));
+    --success-bg: hsl(var(--success) / 0.12);
+    --success-border: hsl(var(--success) / 0.3);
+    --success-text: hsl(var(--foreground));
+    --error-bg: hsl(var(--destructive) / 0.12);
+    --error-border: hsl(var(--destructive) / 0.3);
+    --error-text: hsl(var(--foreground));
+    --warning-bg: hsl(var(--warning) / 0.12);
+    --warning-border: hsl(var(--warning) / 0.3);
+    --warning-text: hsl(var(--foreground));
+    --info-bg: hsl(var(--primary) / 0.12);
+    --info-border: hsl(var(--primary) / 0.3);
+    --info-text: hsl(var(--foreground));
+  }
 }

@@ -85,6 +85,28 @@ export function useUpdateProfile() {
   });
 }
 
+// --- OTP password change (ADR 0017) ---
+export function useRequestPasswordChangeOtp() {
+  return useMutation({
+    mutationFn: ({ currentPassword }: { currentPassword: string }) =>
+      authApi.requestPasswordChangeOtp(currentPassword),
+  });
+}
+
+export function useVerifyPasswordChangeOtp() {
+  return useMutation({
+    mutationFn: ({ code }: { code: string }) => authApi.verifyPasswordChangeOtp(code),
+  });
+}
+
+export function useCompletePasswordChange() {
+  return useMutation({
+    mutationFn: ({ ticket, newPassword }: { ticket: string; newPassword: string }) =>
+      authApi.completePasswordChange(ticket, newPassword),
+  });
+}
+
+// --- Legacy emailed-link password change (kept for compatibility) ---
 export function useChangePassword() {
   return useMutation({
     mutationFn: ({ currentPassword }: { currentPassword: string }) =>

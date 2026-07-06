@@ -36,6 +36,14 @@ public record AgentResponse(
         AgentCapabilitiesDto capabilities,
         List<String> tags,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+
+        /**
+         * Whether an active authentication credential exists for this agent.
+         * Non-sensitive readiness signal (no secret) so any member can tell an
+         * agent is usable and drive onboarding/gating without credential access.
+         * Always {@code true} for {@link AgentAuthType#NONE} agents (nothing to configure).
+         */
+        boolean credentialConfigured
 ) {
 }

@@ -8,6 +8,11 @@ export interface RegisterPayload {
   lastName?: string;
 }
 
+export interface PasswordChangeTicket {
+  ticket: string;
+  expiresAt: string;
+}
+
 export const authApi = {
   register: (payload: RegisterPayload) =>
     apiClient.post<AuthResponse>("/api/v1/auth/register", payload).then((r) => r.data),
@@ -18,15 +23,32 @@ export const authApi = {
   logout: (refreshToken: string) =>
     apiClient.post<MessageResponse>("/api/v1/auth/logout", { refreshToken }).then((r) => r.data),
 
-  // Step 1 of the verified password change: checks the current password and
-  // emails a one-time confirmation link. Nothing changes until step 2.
+  // OTP password change (ADR 0017), all authenticated. Step 1: verify the
+  // current password and e-mail a 6-digit code.
+  requestPasswordChangeOtp: (currentPassword: string) =>
+    apiClient
+      .post<MessageResponse>("/api/v1/auth/password-change/request", { currentPassword })
+      .then((r) => r.data),
+
+  // Step 2: verify the code; returns a single-use ticket for the final step.
+  verifyPasswordChangeOtp: (code: string) =>
+    apiClient
+      .post<PasswordChangeTicket>("/api/v1/auth/password-change/verify", { code })
+      .then((r) => r.data),
+
+  // Step 3: set the new password with the ticket; revokes every session.
+  completePasswordChange: (ticket: string, newPassword: string) =>
+    apiClient
+      .post<MessageResponse>("/api/v1/auth/password-change/complete", { ticket, newPassword })
+      .then((r) => r.data),
+
+  // Legacy emailed-link password change (kept for compatibility; the OTP flow
+  // above is the default UX — see ADR 0017).
   changePassword: (currentPassword: string) =>
     apiClient
       .post<MessageResponse>("/api/v1/auth/change-password", { currentPassword })
       .then((r) => r.data),
 
-  // Step 2: consumes the emailed token, applies the new password and revokes
-  // every session server-side.
   confirmPasswordChange: (token: string, newPassword: string) =>
     apiClient
       .post<MessageResponse>("/api/v1/auth/confirm-password-change", { token, newPassword })

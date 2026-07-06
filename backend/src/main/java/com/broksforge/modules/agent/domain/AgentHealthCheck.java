@@ -68,4 +68,13 @@ public class AgentHealthCheck extends BaseEntity {
 
     @Column(name = "failure_reason", length = 1000)
     private String failureReason;
+
+    /** The provider-aware strategy used for this probe (may be null for legacy rows). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "probe_strategy", length = 32)
+    private HealthProbeStrategy probeStrategy;
+
+    /** The effective URL that was probed (may differ from the endpoint, e.g. {base}/actuator/health). */
+    @Column(name = "probe_url", length = 2048)
+    private String probeUrl;
 }

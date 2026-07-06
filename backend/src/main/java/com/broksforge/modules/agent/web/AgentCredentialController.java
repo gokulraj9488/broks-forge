@@ -2,7 +2,10 @@ package com.broksforge.modules.agent.web;
 
 import com.broksforge.modules.agent.service.AgentCredentialService;
 import com.broksforge.modules.agent.web.dto.AgentCredentialResponse;
+import com.broksforge.modules.agent.web.dto.CredentialTestResponse;
 import com.broksforge.modules.agent.web.dto.SetAgentCredentialRequest;
+import com.broksforge.modules.agent.web.dto.TestAgentCredentialRequest;
+import com.broksforge.modules.agent.web.dto.UpdateAgentCredentialRequest;
 import com.broksforge.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -51,6 +55,19 @@ public class AgentCredentialController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PutMapping("/{credentialId}")
+    @Operation(summary = "Update a credential in place",
+            description = "Edits label / header settings and optionally rotates the secret (leave the secret "
+                    + "blank to keep it). Requires ADMIN.")
+    public ResponseEntity<AgentCredentialResponse> update(@PathVariable UUID organizationId,
+                                                          @PathVariable UUID projectId,
+                                                          @PathVariable UUID agentId,
+                                                          @PathVariable UUID credentialId,
+                                                          @Valid @RequestBody UpdateAgentCredentialRequest request) {
+        return ResponseEntity.ok(credentialService.update(
+                SecurityUtils.requireCurrentUserId(), organizationId, projectId, agentId, credentialId, request));
+    }
+
     @GetMapping
     @Operation(summary = "List credential metadata", description = "Returns metadata only (never secrets). Requires ADMIN.")
     public ResponseEntity<List<AgentCredentialResponse>> list(@PathVariable UUID organizationId,
@@ -58,6 +75,30 @@ public class AgentCredentialController {
                                                               @PathVariable UUID agentId) {
         return ResponseEntity.ok(credentialService.list(
                 SecurityUtils.requireCurrentUserId(), organizationId, projectId, agentId));
+    }
+
+    @PostMapping("/{credentialId}/test")
+    @Operation(summary = "Test a saved credential",
+            description = "Calls the agent endpoint with this credential and records the outcome. "
+                    + "Returns a reachability/auth verdict only — never the secret. Requires ADMIN.")
+    public ResponseEntity<CredentialTestResponse> test(@PathVariable UUID organizationId,
+                                                       @PathVariable UUID projectId,
+                                                       @PathVariable UUID agentId,
+                                                       @PathVariable UUID credentialId) {
+        return ResponseEntity.ok(credentialService.test(
+                SecurityUtils.requireCurrentUserId(), organizationId, projectId, agentId, credentialId));
+    }
+
+    @PostMapping("/test")
+    @Operation(summary = "Test an unsaved credential (dry run)",
+            description = "Verifies a secret against the agent endpoint before saving it. The secret is used "
+                    + "only for the probe and never stored. Requires ADMIN.")
+    public ResponseEntity<CredentialTestResponse> testDraft(@PathVariable UUID organizationId,
+                                                            @PathVariable UUID projectId,
+                                                            @PathVariable UUID agentId,
+                                                            @Valid @RequestBody TestAgentCredentialRequest request) {
+        return ResponseEntity.ok(credentialService.testDraft(
+                SecurityUtils.requireCurrentUserId(), organizationId, projectId, agentId, request));
     }
 
     @DeleteMapping("/{credentialId}")

@@ -4,8 +4,10 @@ import com.broksforge.common.web.PageResponse;
 import com.broksforge.config.properties.AgentHealthProperties;
 import com.broksforge.modules.agent.domain.Agent;
 import com.broksforge.modules.agent.domain.AgentHealthCheck;
+import com.broksforge.modules.agent.domain.AgentVersion;
 import com.broksforge.modules.agent.domain.HealthCheckType;
 import com.broksforge.modules.agent.repository.AgentHealthCheckRepository;
+import com.broksforge.modules.agent.repository.AgentVersionRepository;
 import com.broksforge.modules.agent.web.AgentHealthCheckMapper;
 import com.broksforge.modules.agent.web.dto.AgentHealthCheckResponse;
 import com.broksforge.modules.agent.web.dto.AgentHealthSummaryResponse;
@@ -35,17 +37,20 @@ import java.util.UUID;
 public class AgentHealthService {
 
     private final AgentHealthCheckRepository healthCheckRepository;
+    private final AgentVersionRepository agentVersionRepository;
     private final AgentAccessGuard accessGuard;
     private final AgentHealthCheckExecutor executor;
     private final AgentHealthCheckMapper mapper;
     private final AgentHealthProperties properties;
 
     public AgentHealthService(AgentHealthCheckRepository healthCheckRepository,
+                              AgentVersionRepository agentVersionRepository,
                               AgentAccessGuard accessGuard,
                               AgentHealthCheckExecutor executor,
                               AgentHealthCheckMapper mapper,
                               AgentHealthProperties properties) {
         this.healthCheckRepository = healthCheckRepository;
+        this.agentVersionRepository = agentVersionRepository;
         this.accessGuard = accessGuard;
         this.executor = executor;
         this.mapper = mapper;
@@ -57,14 +62,19 @@ public class AgentHealthService {
         Agent agent = accessGuard.requireReadable(organizationId, projectId, agentId, actorId);
         accessGuard.ensureNotArchived(agent);
 
-        HealthProbeResult result = executor.probe(agent);
+        // Load the active version so the probe can be provider-aware (provider/model live on the version).
+        AgentVersion activeVersion = agent.getCurrentActiveVersionId() != null
+                ? agentVersionRepository.findByIdAndAgentId(agent.getCurrentActiveVersionId(), agentId).orElse(null)
+                : null;
+
+        HealthProbeResult result = executor.probe(agent, activeVersion);
         Instant checkedAt = Instant.now();
 
         AgentHealthCheck check = new AgentHealthCheck();
         check.setAgentId(agentId);
         check.setOrganizationId(organizationId);
         check.setProjectId(projectId);
-        check.setVersionId(agent.getCurrentActiveVersionId());
+        check.setVersionId(activeVersion != null ? activeVersion.getId() : agent.getCurrentActiveVersionId());
         check.setCheckType(HealthCheckType.MANUAL);
         check.setStatus(result.status());
         check.setSuccess(result.success());
@@ -72,6 +82,8 @@ public class AgentHealthService {
         check.setLatencyMs(result.latencyMs());
         check.setCheckedAt(checkedAt);
         check.setFailureReason(result.failureReason());
+        check.setProbeStrategy(result.probeStrategy());
+        check.setProbeUrl(result.probeUrl());
         AgentHealthCheck saved = healthCheckRepository.save(check);
 
         agent.applyHealth(result.status(), checkedAt);

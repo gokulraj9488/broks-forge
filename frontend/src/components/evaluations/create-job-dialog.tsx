@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -26,6 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { EvaluationPrerequisites } from "@/components/evaluations/evaluation-prerequisites";
+import { CredentialSetupAlert } from "@/components/agents/agent-onboarding";
 import { useCreateEvaluationJob } from "@/lib/hooks/use-evaluation-jobs";
 import { useAgents } from "@/lib/hooks/use-agents";
 import { useDatasets } from "@/lib/hooks/use-datasets";
@@ -33,6 +36,7 @@ import { usePrompts } from "@/lib/hooks/use-prompts";
 import { useEvaluationProfiles } from "@/lib/hooks/use-evaluation-profiles";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { PROVIDER_OPTIONS, type LlmProvider } from "@/lib/api/agents";
+import { agentNeedsCredentialSetup } from "@/lib/agent-readiness";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required").max(120),
@@ -77,6 +81,7 @@ export function CreateJobDialog({
     handleSubmit,
     reset,
     control,
+    watch,
     formState: { errors },
   } = useForm<Values>({
     resolver: zodResolver(schema),
@@ -116,7 +121,12 @@ export function CreateJobDialog({
     );
   };
 
-  const noInputs = agents.length === 0 || datasets.length === 0;
+  const ready = agents.length > 0 && datasets.length > 0;
+
+  // Gate the run on the selected agent being usable: an agent whose auth type
+  // needs a secret cannot be evaluated until its credential is configured.
+  const selectedAgent = agents.find((a) => a.id === watch("agentId"));
+  const agentNeedsSetup = !!selectedAgent && agentNeedsCredentialSetup(selectedAgent);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -134,10 +144,14 @@ export function CreateJobDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {noInputs ? (
-          <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
-            You need at least one active agent and one dataset before running an evaluation.
-          </p>
+        {!ready ? (
+          <EvaluationPrerequisites
+            organizationId={organizationId}
+            projectId={projectId}
+            hasAgents={agents.length > 0}
+            hasDatasets={datasets.length > 0}
+            hasPrompts={prompts.length > 0}
+          />
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <Field label="Name" htmlFor="ej-name" error={errors.name?.message} required>
@@ -262,8 +276,18 @@ export function CreateJobDialog({
               </Field>
             </div>
 
+            {agentNeedsSetup && selectedAgent && (
+              <CredentialSetupAlert
+                onConfigure={() =>
+                  router.push(
+                    `/organizations/${organizationId}/projects/${projectId}/agents/${selectedAgent.id}?tab=credentials&onboarding=1`,
+                  )
+                }
+              />
+            )}
+
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" className="h-4 w-4 accent-[hsl(var(--primary))]" {...register("autoRun")} />
+              <Checkbox {...register("autoRun")} />
               Run immediately after creating
             </label>
 
@@ -271,7 +295,7 @@ export function CreateJobDialog({
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" loading={create.isPending}>
+              <Button type="submit" loading={create.isPending} disabled={agentNeedsSetup}>
                 Create evaluation
               </Button>
             </DialogFooter>

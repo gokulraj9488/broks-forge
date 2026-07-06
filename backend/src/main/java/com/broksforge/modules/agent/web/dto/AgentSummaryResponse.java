@@ -1,5 +1,6 @@
 package com.broksforge.modules.agent.web.dto;
 
+import com.broksforge.modules.agent.domain.AgentAuthType;
 import com.broksforge.modules.agent.domain.AgentFramework;
 import com.broksforge.modules.agent.domain.AgentHealthStatus;
 import com.broksforge.modules.agent.domain.AgentLanguage;
@@ -29,8 +30,16 @@ public record AgentSummaryResponse(
         AgentHealthStatus healthStatus,
         Instant lastHealthCheckAt,
         UUID currentActiveVersionId,
+        AgentAuthType authType,
         List<String> tags,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+
+        /**
+         * Whether an active authentication credential exists for this agent — a
+         * non-sensitive readiness signal used to flag "setup required" in lists and
+         * to gate actions. Always {@code true} for {@link AgentAuthType#NONE} agents.
+         */
+        boolean credentialConfigured
 ) {
 }

@@ -162,8 +162,12 @@ broksforge:
       email-verification-expiration-ms: ${BROKSFORGE_SECURITY_TOKENS_EMAIL_VERIFICATION_EXPIRATION_MS:86400000}
       # Password reset link lifetime (default 1 hour)
       password-reset-expiration-ms: ${BROKSFORGE_SECURITY_TOKENS_PASSWORD_RESET_EXPIRATION_MS:3600000}
-      # Password change confirmation link lifetime (default 15 minutes)
+      # Password change confirmation link lifetime (legacy link flow; default 15 minutes)
       password-change-expiration-ms: ${BROKSFORGE_SECURITY_TOKENS_PASSWORD_CHANGE_EXPIRATION_MS:900000}
+      # Password-change e-mail OTP lifetime (ADR 0017; default 5 minutes)
+      password-change-otp-expiration-ms: ${BROKSFORGE_SECURITY_TOKENS_PASSWORD_CHANGE_OTP_EXPIRATION_MS:300000}
+      # Single-use ticket lifetime after the OTP is verified (default 10 minutes)
+      password-change-ticket-expiration-ms: ${BROKSFORGE_SECURITY_TOKENS_PASSWORD_CHANGE_TICKET_EXPIRATION_MS:600000}
     encryption:
       # AES-256-GCM key for encrypting agent credentials at rest.
       # No default: production deployments MUST provide a Base64 32-byte key.
@@ -229,3 +233,8 @@ broksforge:
 logging:
   pattern:
     console: "%clr(%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}){faint} %clr(%5p) %clr([%X{correlationId:-},%X{requestId:-}]){magenta} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
+  level:
+    # Outbound agent probes (connection test + health check): log the request/response at DEBUG.
+    # Low volume (only on user-triggered checks) and the Authorization header is masked — safe to keep on.
+    com.broksforge.modules.agent.service.CredentialConnectionTester: DEBUG
+    com.broksforge.modules.agent.service.AgentHealthCheckExecutor: DEBUG

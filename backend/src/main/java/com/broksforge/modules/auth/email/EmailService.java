@@ -17,5 +17,11 @@ public interface EmailService {
 
     void sendPasswordChangeVerification(String toEmail, String recipientName, String confirmLink);
 
+    /**
+     * Sends the 6-digit one-time code that authorises a password change
+     * (see ADR 0017). {@code expiryMinutes} is stated in the message body.
+     */
+    void sendPasswordChangeOtp(String toEmail, String recipientName, String code, int expiryMinutes);
+
     void sendPasswordChangedNotification(String toEmail, String recipientName);
 }

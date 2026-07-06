@@ -48,6 +48,26 @@ public final class SecureTokens {
     }
 
     /**
+     * Generates a zero-padded decimal one-time code (e.g. {@code "482913"} for
+     * {@code digits == 6}) from a uniformly random draw. Low-entropy by design, so
+     * callers must cap verification attempts and expire the code quickly.
+     *
+     * @param digits the number of decimal digits (1&ndash;9)
+     * @return a numeric code of exactly {@code digits} characters
+     */
+    public static String generateNumericCode(int digits) {
+        if (digits < 1 || digits > 9) {
+            throw new IllegalArgumentException("digits must be between 1 and 9");
+        }
+        int bound = 1;
+        for (int i = 0; i < digits; i++) {
+            bound *= 10;
+        }
+        int code = SECURE_RANDOM.nextInt(bound);
+        return String.format("%0" + digits + "d", code);
+    }
+
+    /**
      * @return the lowercase hex SHA-256 digest of {@code value}
      */
     public static String sha256Hex(String value) {

@@ -7,7 +7,6 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,9 +21,12 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @Entity
+// slug uniqueness is enforced by a PARTIAL unique index (WHERE deleted = false)
+// defined in migration V30, so a slug frees up once its organization is
+// soft-deleted. JPA's @UniqueConstraint cannot express a partial index, so it is
+// intentionally omitted here — the migration is the source of truth.
 @Table(
         name = "organizations",
-        uniqueConstraints = @UniqueConstraint(name = "uq_organizations_slug", columnNames = "slug"),
         indexes = {
                 @Index(name = "idx_organizations_slug", columnList = "slug"),
                 @Index(name = "idx_organizations_owner", columnList = "owner_id")

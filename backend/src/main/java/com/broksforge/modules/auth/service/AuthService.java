@@ -1,19 +1,24 @@
 package com.broksforge.modules.auth.service;
 
+import com.broksforge.common.exception.ApiException;
 import com.broksforge.common.exception.ErrorCode;
 import com.broksforge.common.exception.UnauthorizedException;
+import com.broksforge.common.ratelimit.RateLimiterService;
 import com.broksforge.common.util.SecureTokens;
 import com.broksforge.config.properties.AppProperties;
 import com.broksforge.config.properties.AuthTokenProperties;
 import com.broksforge.modules.auth.domain.EmailVerificationToken;
+import com.broksforge.modules.auth.domain.PasswordChangeOtp;
 import com.broksforge.modules.auth.domain.PasswordChangeToken;
 import com.broksforge.modules.auth.domain.PasswordResetToken;
 import com.broksforge.modules.auth.domain.RefreshToken;
 import com.broksforge.modules.auth.email.EmailService;
 import com.broksforge.modules.auth.repository.EmailVerificationTokenRepository;
+import com.broksforge.modules.auth.repository.PasswordChangeOtpRepository;
 import com.broksforge.modules.auth.repository.PasswordChangeTokenRepository;
 import com.broksforge.modules.auth.repository.PasswordResetTokenRepository;
 import com.broksforge.modules.auth.web.dto.AuthResponse;
+import com.broksforge.modules.auth.web.dto.PasswordChangeTicketResponse;
 import com.broksforge.modules.user.domain.Role;
 import com.broksforge.modules.user.domain.User;
 import com.broksforge.modules.user.service.CreateUserCommand;
@@ -27,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -41,12 +47,21 @@ import java.util.UUID;
 @Service
 public class AuthService {
 
+    private static final int OTP_DIGITS = 6;
+    private static final int OTP_MAX_ATTEMPTS = 5;
+    // Per-user throttle on code generation (on top of the per-IP interceptor), so a
+    // stolen access token cannot spam a victim's inbox with password-change codes.
+    private static final int OTP_GENERATION_LIMIT = 5;
+    private static final Duration OTP_GENERATION_WINDOW = Duration.ofMinutes(15);
+
     private final UserService userService;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordChangeTokenRepository passwordChangeTokenRepository;
+    private final PasswordChangeOtpRepository passwordChangeOtpRepository;
+    private final RateLimiterService rateLimiter;
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
     private final UserMapper userMapper;
@@ -59,6 +74,8 @@ public class AuthService {
                        EmailVerificationTokenRepository emailVerificationTokenRepository,
                        PasswordResetTokenRepository passwordResetTokenRepository,
                        PasswordChangeTokenRepository passwordChangeTokenRepository,
+                       PasswordChangeOtpRepository passwordChangeOtpRepository,
+                       RateLimiterService rateLimiter,
                        EmailService emailService,
                        AuthenticationManager authenticationManager,
                        UserMapper userMapper,
@@ -70,6 +87,8 @@ public class AuthService {
         this.emailVerificationTokenRepository = emailVerificationTokenRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordChangeTokenRepository = passwordChangeTokenRepository;
+        this.passwordChangeOtpRepository = passwordChangeOtpRepository;
+        this.rateLimiter = rateLimiter;
         this.emailService = emailService;
         this.authenticationManager = authenticationManager;
         this.userMapper = userMapper;
@@ -182,6 +201,103 @@ public class AuthService {
         User user = userService.getActiveByIdOrThrow(token.getUserId());
         emailService.sendPasswordChangedNotification(user.getEmail(), user.fullName());
         log.info("Password change confirmed for user {}", token.getUserId());
+    }
+
+    // ----------------------------------------------------------------------
+    // Password change via e-mail OTP (authenticated, 3 steps — see ADR 0017)
+    // ----------------------------------------------------------------------
+
+    /**
+     * Step 1: re-authenticates the caller with their current password, then
+     * e-mails a single-use 6-digit code. Nothing changes yet. Rate-limited
+     * per user so a stolen access token cannot flood the victim's inbox.
+     */
+    @Transactional
+    public void requestPasswordChangeOtp(UUID userId, String currentPassword) {
+        User user = userService.getActiveByIdOrThrow(userId);
+        if (!userService.checkPassword(user, currentPassword)) {
+            throw new UnauthorizedException(ErrorCode.INVALID_CREDENTIALS, "Current password is incorrect");
+        }
+        if (!rateLimiter.tryAcquire("rl:pwd-otp:gen:" + userId, OTP_GENERATION_LIMIT, OTP_GENERATION_WINDOW)) {
+            throw new ApiException(ErrorCode.RATE_LIMITED,
+                    "Too many password-change codes requested. Please wait a few minutes and try again.");
+        }
+
+        passwordChangeOtpRepository.invalidateAllForUser(userId, Instant.now());
+        String code = SecureTokens.generateNumericCode(OTP_DIGITS);
+        PasswordChangeOtp otp = new PasswordChangeOtp();
+        otp.setUserId(userId);
+        otp.setCodeHash(SecureTokens.sha256Hex(code));
+        otp.setExpiresAt(Instant.now().plusMillis(authTokenProperties.passwordChangeOtpExpirationMs()));
+        otp.setMaxAttempts(OTP_MAX_ATTEMPTS);
+        passwordChangeOtpRepository.save(otp);
+
+        int expiryMinutes = (int) Math.max(1, authTokenProperties.passwordChangeOtpExpirationMs() / 60_000);
+        emailService.sendPasswordChangeOtp(user.getEmail(), user.fullName(), code, expiryMinutes);
+        log.info("Password-change OTP issued for user {}", userId);
+    }
+
+    /**
+     * Step 2: verifies the emailed code and, on success, returns a single-use
+     * ticket that authorises the final step. Each wrong code costs an attempt;
+     * once attempts are exhausted (or the code expired) the code is burned and a
+     * new one must be requested.
+     *
+     * <p>Uses {@code noRollbackFor = ApiException.class} so the attempt counter
+     * (and the burn-on-lockout) persist even though verification failures throw —
+     * otherwise the transaction would roll back the increment and defeat the cap.</p>
+     */
+    @Transactional(noRollbackFor = ApiException.class)
+    public PasswordChangeTicketResponse verifyPasswordChangeOtp(UUID userId, String code) {
+        PasswordChangeOtp otp = passwordChangeOtpRepository
+                .findFirstByUserIdAndConsumedAtIsNullAndVerifiedAtIsNullOrderByCreatedAtDesc(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.OTP_INVALID,
+                        "No active code. Request a new password-change code."));
+
+        if (otp.getExpiresAt().isBefore(Instant.now()) || !otp.hasAttemptsRemaining()) {
+            otp.markConsumed();
+            throw new ApiException(ErrorCode.OTP_LOCKED,
+                    "This code is no longer valid. Request a new password-change code.");
+        }
+
+        if (!SecureTokens.constantTimeEquals(otp.getCodeHash(), SecureTokens.sha256Hex(code))) {
+            otp.recordFailedAttempt();
+            if (!otp.hasAttemptsRemaining()) {
+                otp.markConsumed();
+                throw new ApiException(ErrorCode.OTP_LOCKED,
+                        "Too many incorrect attempts. Request a new password-change code.");
+            }
+            throw new ApiException(ErrorCode.OTP_INVALID, "Incorrect code. Please try again.");
+        }
+
+        String ticket = SecureTokens.generateToken();
+        Instant ticketExpiry = Instant.now().plusMillis(authTokenProperties.passwordChangeTicketExpirationMs());
+        otp.markVerified(SecureTokens.sha256Hex(ticket), ticketExpiry);
+        log.info("Password-change OTP verified for user {}", userId);
+        return new PasswordChangeTicketResponse(ticket, ticketExpiry);
+    }
+
+    /**
+     * Step 3: consumes the single-use ticket, applies the new password and
+     * revokes every session so the user must sign in again everywhere. The
+     * ticket is bound to the caller as defence in depth even though the endpoint
+     * is already authenticated.
+     */
+    @Transactional
+    public void completePasswordChange(UUID userId, String ticket, String newPassword) {
+        PasswordChangeOtp otp = passwordChangeOtpRepository
+                .findByTicketHash(SecureTokens.sha256Hex(ticket))
+                .filter(o -> o.getUserId().equals(userId) && o.isTicketUsable())
+                .orElseThrow(() -> new UnauthorizedException(ErrorCode.TOKEN_INVALID,
+                        "Your verification has expired. Start the password change again."));
+
+        otp.markConsumed();
+        userService.setPassword(userId, newPassword);
+        refreshTokenService.revokeAllForUser(userId);
+
+        User user = userService.getActiveByIdOrThrow(userId);
+        emailService.sendPasswordChangedNotification(user.getEmail(), user.fullName());
+        log.info("Password changed via OTP for user {}", userId);
     }
 
     // ----------------------------------------------------------------------

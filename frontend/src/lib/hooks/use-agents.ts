@@ -8,6 +8,8 @@ import {
   type RegisterAgentPayload,
   type RegisterAgentVersionPayload,
   type SetAgentCredentialPayload,
+  type TestAgentCredentialPayload,
+  type UpdateAgentCredentialPayload,
   type UpdateAgentPayload,
 } from "@/lib/api/agents";
 
@@ -159,12 +161,42 @@ export function useSetCredential(organizationId: string, projectId: string, agen
   });
 }
 
+export function useUpdateCredential(organizationId: string, projectId: string, agentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ credentialId, payload }: { credentialId: string; payload: UpdateAgentCredentialPayload }) =>
+      agentsApi.updateCredential(organizationId, projectId, agentId, credentialId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.credentials(organizationId, projectId, agentId) });
+      qc.invalidateQueries({ queryKey: keys.detail(organizationId, projectId, agentId) });
+    },
+  });
+}
+
 export function useDeleteCredential(organizationId: string, projectId: string, agentId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (credentialId: string) =>
       agentsApi.deleteCredential(organizationId, projectId, agentId, credentialId),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.credentials(organizationId, projectId, agentId) }),
+  });
+}
+
+/** Tests a saved credential; records the outcome server-side, so refresh the list. */
+export function useTestCredential(organizationId: string, projectId: string, agentId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (credentialId: string) =>
+      agentsApi.testCredential(organizationId, projectId, agentId, credentialId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.credentials(organizationId, projectId, agentId) }),
+  });
+}
+
+/** Dry-runs a connection test for an unsaved credential (no persistence). */
+export function useTestDraftCredential(organizationId: string, projectId: string, agentId: string) {
+  return useMutation({
+    mutationFn: (payload: TestAgentCredentialPayload) =>
+      agentsApi.testDraftCredential(organizationId, projectId, agentId, payload),
   });
 }
 
