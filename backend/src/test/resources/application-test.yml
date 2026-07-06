@@ -1,0 +1,37 @@
+# ===========================================================================
+# Test profile (activated by AbstractIntegrationTest via @ActiveProfiles("test")).
+# The datasource is supplied at runtime by Testcontainers (@DynamicPropertySource),
+# so only test-safe secrets and toggles live here. NEVER reuse these keys anywhere.
+# ===========================================================================
+broksforge:
+  security:
+    jwt:
+      # Test-only signing secret (Base64, decodes to 48 bytes). Not a real key.
+      secret: vTjUOFXzCdn9qMirrdcjFw2QIEFjVJcHzj1clbCiCamwWRK/kOeC/MRyVGdrahed
+      issuer: broks-forge
+      access-token-expiration-ms: 900000
+      refresh-token-expiration-ms: 2592000000
+    encryption:
+      # Test-only AES-256 key (Base64, decodes to 32 bytes). Not a real key.
+      secret: bmsy5fVfCCs4bmfYnV5sGmdlh3edbbnP3vZxvX2fchI=
+      key-version: 1
+    rate-limit:
+      # No Redis in the test JVM; the limiter is fail-open anyway, but disabling it
+      # keeps tests deterministic and avoids connection attempts.
+      enabled: false
+  agent:
+    health:
+      # Allow probing arbitrary hosts from tests (the SSRF guard is unit-tested separately).
+      allow-private-targets: true
+
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+management:
+  health:
+    # Redis is not started for tests; exclude it so /actuator/health reflects only the DB.
+    redis:
+      enabled: false
