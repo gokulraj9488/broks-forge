@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
+import { PasswordStrengthMeter } from "@/components/ui/password-strength-meter";
 import { useRegister } from "@/lib/hooks/use-auth";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { registerSchema, type RegisterValues } from "@/lib/validations";
@@ -20,8 +21,10 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
-  } = useForm<RegisterValues>({ resolver: zodResolver(registerSchema) });
+  } = useForm<RegisterValues>({ resolver: zodResolver(registerSchema), mode: "onBlur" });
+  const password = watch("password") ?? "";
 
   const onSubmit = (values: RegisterValues) => {
     registerMutation.mutate(values, {
@@ -72,6 +75,7 @@ export default function RegisterPage() {
               {...register("password")}
             />
           </Field>
+          <PasswordStrengthMeter value={password} className="-mt-2" />
           <Button type="submit" className="w-full" loading={registerMutation.isPending}>
             Create account
           </Button>

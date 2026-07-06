@@ -5,8 +5,10 @@ import com.broksforge.common.exception.ResourceConflictException;
 import com.broksforge.common.util.SlugGenerator;
 import com.broksforge.common.web.PageResponse;
 import com.broksforge.modules.agent.domain.Agent;
+import com.broksforge.modules.agent.domain.AgentAuthType;
 import com.broksforge.modules.agent.domain.AgentCapabilities;
 import com.broksforge.modules.agent.domain.AgentTag;
+import com.broksforge.modules.agent.repository.AgentCredentialRepository;
 import com.broksforge.modules.agent.repository.AgentRepository;
 import com.broksforge.modules.agent.repository.AgentSpecifications;
 import com.broksforge.modules.agent.repository.AgentTagRepository;
@@ -28,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -48,6 +51,7 @@ public class AgentService {
 
     private final AgentRepository agentRepository;
     private final AgentTagRepository tagRepository;
+    private final AgentCredentialRepository credentialRepository;
     private final AgentAccessGuard accessGuard;
     private final OrganizationAccessService accessService;
     private final ProjectService projectService;
@@ -55,12 +59,14 @@ public class AgentService {
 
     public AgentService(AgentRepository agentRepository,
                         AgentTagRepository tagRepository,
+                        AgentCredentialRepository credentialRepository,
                         AgentAccessGuard accessGuard,
                         OrganizationAccessService accessService,
                         ProjectService projectService,
                         AgentMapper mapper) {
         this.agentRepository = agentRepository;
         this.tagRepository = tagRepository;
+        this.credentialRepository = credentialRepository;
         this.accessGuard = accessGuard;
         this.accessService = accessService;
         this.projectService = projectService;
@@ -92,7 +98,8 @@ public class AgentService {
         List<String> tags = replaceTags(saved, request.tags());
 
         log.info("Agent {} ('{}') registered in project {} by {}", saved.getId(), slug, projectId, actorId);
-        return mapper.toResponse(saved, tags);
+        // Fresh agent: no credential yet, so this is false unless the agent needs none (NONE auth).
+        return mapper.toResponse(saved, tags, credentialConfigured(saved));
     }
 
     @Transactional(readOnly = true)
@@ -106,17 +113,21 @@ public class AgentService {
                 filter.visibility(), filter.status(), filter.healthStatus(), filter.tag());
         Page<Agent> page = agentRepository.findAll(spec, pageable);
 
-        Map<UUID, List<String>> tagsByAgent = loadTagsForAgents(
-                page.getContent().stream().map(Agent::getId).toList());
+        List<UUID> agentIds = page.getContent().stream().map(Agent::getId).toList();
+        Map<UUID, List<String>> tagsByAgent = loadTagsForAgents(agentIds);
+        Set<UUID> configured = agentIds.isEmpty()
+                ? Set.of()
+                : new HashSet<>(credentialRepository.findAgentIdsWithActiveCredential(agentIds));
 
         return PageResponse.from(page.map(agent ->
-                mapper.toSummary(agent, tagsByAgent.getOrDefault(agent.getId(), List.of()))));
+                mapper.toSummary(agent, tagsByAgent.getOrDefault(agent.getId(), List.of()),
+                        agent.getAuthType() == AgentAuthType.NONE || configured.contains(agent.getId()))));
     }
 
     @Transactional(readOnly = true)
     public AgentResponse get(UUID actorId, UUID organizationId, UUID projectId, UUID agentId) {
         Agent agent = accessGuard.requireReadable(organizationId, projectId, agentId, actorId);
-        return mapper.toResponse(agent, loadTags(agentId));
+        return mapper.toResponse(agent, loadTags(agentId), credentialConfigured(agent));
     }
 
     @Transactional
@@ -153,7 +164,7 @@ public class AgentService {
 
         List<String> tags = request.tags() != null ? replaceTags(agent, request.tags()) : loadTags(agentId);
         log.info("Agent {} updated in project {} by {}", agentId, projectId, actorId);
-        return mapper.toResponse(agent, tags);
+        return mapper.toResponse(agent, tags, credentialConfigured(agent));
     }
 
     @Transactional
@@ -170,7 +181,7 @@ public class AgentService {
                 OrganizationRole.MEMBER);
         agent.archive();
         log.info("Agent {} archived in project {} by {}", agentId, projectId, actorId);
-        return mapper.toResponse(agent, loadTags(agentId));
+        return mapper.toResponse(agent, loadTags(agentId), credentialConfigured(agent));
     }
 
     @Transactional
@@ -179,7 +190,7 @@ public class AgentService {
                 OrganizationRole.MEMBER);
         agent.unarchive();
         log.info("Agent {} unarchived in project {} by {}", agentId, projectId, actorId);
-        return mapper.toResponse(agent, loadTags(agentId));
+        return mapper.toResponse(agent, loadTags(agentId), credentialConfigured(agent));
     }
 
     // ----------------------------------------------------------------------
@@ -255,5 +266,17 @@ public class AgentService {
 
     private String trimToNull(String value) {
         return StringUtils.hasText(value) ? value.trim() : null;
+    }
+
+    /**
+     * Whether the agent's credential situation is satisfied — i.e. it needs no
+     * authentication (NONE) or it has an active credential. Drives the
+     * non-sensitive {@code credentialConfigured} readiness flag on responses.
+     * Within the agent aggregate, so reading the credential repository here is
+     * a same-module concern, not a cross-module dependency.
+     */
+    private boolean credentialConfigured(Agent agent) {
+        return agent.getAuthType() == AgentAuthType.NONE
+                || credentialRepository.existsByAgentIdAndActiveTrue(agent.getId());
     }
 }

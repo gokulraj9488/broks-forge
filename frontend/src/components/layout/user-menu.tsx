@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Info, LogOut, User as UserIcon, Settings as SettingsIcon } from "lucide-react";
+import { Info, LifeBuoy, LogOut, User as UserIcon, Settings as SettingsIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -57,6 +57,12 @@ export function UserMenu() {
           <Link href="/settings">
             <SettingsIcon />
             Settings
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/help">
+            <LifeBuoy />
+            Help
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

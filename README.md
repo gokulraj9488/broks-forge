@@ -49,6 +49,7 @@ Modular monolith · Clean Architecture · Built to scale into microservices.
 - [Observability](#observability)
 - [Screenshots](#screenshots)
 - [Verifying the build](#verifying-the-build)
+- [Quality assurance & testing](#quality-assurance--testing)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
 - [Roadmap](#roadmap)
@@ -61,8 +62,8 @@ Modular monolith · Clean Architecture · Built to scale into microservices.
 - Register, login, JWT access tokens + rotating refresh tokens, logout
 - Forgot-password and password-reset flows (single-use, hashed tokens)
 - Email-verification architecture (single-use, hashed tokens)
-- Change password (revokes all sessions)
-- BCrypt password hashing, strong-password policy
+- Change password via **email OTP** — current password → 6-digit code → verify → new password; rate-limited, 5-min expiry, revokes all sessions ([ADR 0017](docs/adr/0017-otp-password-change.md))
+- BCrypt password hashing, strong-password policy, Caps-Lock detection + strength meter
 
 **Multi-tenancy**
 - Organizations with slugs, owners and lifecycle status
@@ -173,7 +174,7 @@ broks-forge/
 ├── docker-compose.yml          # postgres · redis · backend · frontend
 ├── .env.example                # copy to .env
 ├── docs/                       # MASTER_ARCHITECTURE, ENGINEERING_HANDBOOK, PROJECT_RULES, ROADMAP,
-│   └── adr/                     #   CODING/SECURITY/TESTING/PERFORMANCE/API/ERROR guides + ADRs (0001–0016)
+│   └── adr/                     #   CODING/SECURITY/TESTING/PERFORMANCE/API/ERROR guides + ADRs (0001–0018)
 │
 ├── backend/                    # Spring Boot 3 / Java 21
 │   ├── Dockerfile
@@ -195,7 +196,7 @@ broks-forge/
 │       │           advisor/   rootcause/   debugger/   knowledge/
 │       └── resources/
 │           ├── application*.yml
-│           └── db/migration/   # Flyway V1…V25  (V11–V23 intelligence · V24–V25 knowledge graph)
+│           └── db/migration/   # Flyway V1…V29  (V11–V23 intelligence · V24–V25 knowledge · V26–V29 auth OTP / credentials / health)
 │
 └── frontend/                   # Next.js 15 / React 19 / TS
     ├── Dockerfile
@@ -257,7 +258,7 @@ docker compose up --build
 
 The first build compiles the backend and frontend images; subsequent starts are fast. Compose waits
 for Postgres and Redis health checks before starting the API, and the API runs Flyway migrations
-(`V1`…`V25`) on boot before serving traffic. When the stack is healthy, jump to
+(`V1`…`V29`) on boot before serving traffic. When the stack is healthy, jump to
 [Quick start (Docker)](#quick-start-docker) for the service URLs and a first walkthrough, or to
 [Verifying the build](#verifying-the-build) for the full capability checklist.
 
@@ -385,10 +386,14 @@ All secrets are read from the environment — nothing is hardcoded. See [`.env.e
 | `BROKSFORGE_MAIL_FROM_ADDRESS` / `_FROM_NAME` | *(Prod)* From identity for outbound e-mail | `no-reply@broksforge.dev` / `Brok's Forge` |
 | `JWT_ACCESS_TOKEN_EXPIRATION_MS` | Access-token lifetime | `900000` (15 min) |
 | `JWT_REFRESH_TOKEN_EXPIRATION_MS` | Refresh-token lifetime | `2592000000` (30 d) |
+| `BROKSFORGE_SECURITY_TOKENS_PASSWORD_CHANGE_OTP_EXPIRATION_MS` | Password-change OTP lifetime | `300000` (5 min) |
+| `BROKSFORGE_SECURITY_TOKENS_PASSWORD_CHANGE_TICKET_EXPIRATION_MS` | Verified-ticket lifetime | `600000` (10 min) |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins | `http://localhost:3000` |
 | `APP_PUBLIC_URL` | Base URL used in email links | `http://localhost:3000` |
 | `FRONTEND_PORT` | Host port for the web app | `3000` |
 | `NEXT_PUBLIC_API_BASE_URL` | API base URL used by the browser | `http://localhost:8080` |
+| `NEXT_PUBLIC_APP_URL` | Public base URL for SEO / Open Graph / sitemap | `https://broksforge.dev` |
+| `NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES` | Idle-session timeout (warns 60s before; `0` disables) | `30` |
 
 ---
 
@@ -406,8 +411,8 @@ Every endpoint is documented and explorable at **http://localhost:8080/swagger-u
 | API keys | `GET/POST …/projects/{projectId}/api-keys` · `DELETE …/api-keys/{keyId}` |
 | **Agents** | `GET/POST …/projects/{projectId}/agents` · `GET/PATCH/DELETE …/agents/{agentId}` · `POST …/agents/{agentId}/archive` · `unarchive` |
 | **Agent versions** | `GET/POST …/agents/{agentId}/versions` · `POST …/versions/{versionId}/activate` · `rollback` |
-| **Agent credentials** | `GET/POST …/agents/{agentId}/credentials` · `DELETE …/credentials/{credentialId}` |
-| **Agent health** | `POST …/agents/{agentId}/health-check` · `GET …/agents/{agentId}/health` · `GET …/health/history` |
+| **Agent credentials** | `GET/POST …/agents/{agentId}/credentials` · `PUT/DELETE …/credentials/{credentialId}` · `POST …/credentials/{credentialId}/test` · `POST …/credentials/test` (dry-run) |
+| **Agent health** | `POST …/agents/{agentId}/health-check` (provider-aware probe) · `GET …/agents/{agentId}/health` · `GET …/health/history` |
 | **Datasets** | `GET/POST …/projects/{projectId}/datasets` · `GET/PATCH/DELETE …/datasets/{id}` · `archive`/`unarchive` · `GET/POST …/datasets/{id}/versions` · `…/versions/{vId}/items` · `…/datasets/{id}/stats` |
 | **Prompts** | `GET/POST …/prompts` · `GET/PATCH/DELETE …/prompts/{id}` · `GET/POST …/prompts/{id}/versions` · `…/versions/{vId}/activate`·`rollback` · `…/prompts/{id}/compare` |
 | **Evaluation profiles** | `GET/POST …/evaluation-profiles` · `GET/PATCH/DELETE …/evaluation-profiles/{id}` |
@@ -590,6 +595,34 @@ After `docker compose up --build`, confirm each capability:
 20. **Advisor** — open **Advisor** (sidebar) for the project advisory; open an agent and a prompt detail page → *Advisor* for agent- and prompt-scoped recommendations (each with why / what changed / how to fix / expected improvement / confidence / severity).
 21. **Root cause & AI Debugger** — on an evaluation job → *Root cause* for the diagnosed failures; on a run → *Debug* to see the stage-by-stage execution timeline.
 22. **Knowledge graph** — open **Knowledge** (sidebar) to browse the seeded failure-mode / recommendation catalogue and a node's graph neighbours.
+
+---
+
+## Quality assurance & testing
+
+Brok's Forge ships with a layered, automated test suite plus a manual QA process (see
+[ADR-0019](docs/adr/0019-layered-automated-testing-and-qa.md)). Full details:
+[docs/AUTOMATED_TESTING.md](docs/AUTOMATED_TESTING.md) and the manual plan
+[docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md) (100+ cases + a release-readiness report).
+
+| Layer | Tool | Where | Run |
+|-------|------|-------|-----|
+| Unit + integration | JUnit 5, Mockito, **Testcontainers** (real PostgreSQL 16), MockMvc | `backend/src/test/**` | `cd backend && mvn verify` |
+| Static (frontend) | ESLint, `tsc`, `next build` | `frontend/` | `cd frontend && npm run lint && npm run typecheck && npm run build` |
+| End-to-end | **Playwright** (self-contained, isolated from the app build) | `e2e/` | `cd e2e && npm ci && npm run install:browsers && npm test` |
+| API | **Postman / Newman** | `docs/api-testing/` | `newman run docs/api-testing/broks-forge.postman_collection.json -e docs/api-testing/broks-forge.postman_environment.json` |
+
+The backend suite (**60 tests, all green**) covers encryption, JWT, the SSRF guard, provider-aware
+health probing, Flyway migrations, deny-by-default security, and the full agent-registration lifecycle
+(including the slug-reuse-after-soft-delete regression). Coverage is measured by **JaCoCo**
+(`backend/target/site/jacoco`) with targets documented in the testing guide.
+
+**Regression / CI** — every PR runs `backend-ci` (JUnit + Testcontainers + Flyway + JaCoCo),
+`frontend-ci` (lint + type-check + build), `docker` (image build), and `e2e` (compose stack →
+Playwright + Newman). Any failure blocks the check.
+
+**Release checklist** — before tagging a release, work through
+[docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md) and complete its Release Readiness Report.
 
 ---
 

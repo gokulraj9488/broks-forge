@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { PasswordInput } from "@/components/ui/password-input";
+import { PasswordStrengthMeter } from "@/components/ui/password-strength-meter";
 import { FullPageSpinner } from "@/components/ui/spinner";
 import { authApi } from "@/lib/api/auth";
 import { getApiErrorMessage } from "@/lib/api/client";
@@ -23,8 +24,10 @@ function ResetPasswordForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
-  } = useForm<ResetPasswordValues>({ resolver: zodResolver(resetPasswordSchema) });
+  } = useForm<ResetPasswordValues>({ resolver: zodResolver(resetPasswordSchema), mode: "onBlur" });
+  const newPassword = watch("newPassword") ?? "";
 
   const onSubmit = async (values: ResetPasswordValues) => {
     if (!token) {
@@ -70,6 +73,7 @@ function ResetPasswordForm() {
               {...register("newPassword")}
             />
           </Field>
+          <PasswordStrengthMeter value={newPassword} className="-mt-2" />
           <Field
             label="Confirm password"
             htmlFor="confirmPassword"

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
+import { ContactDeveloperButton } from "@/components/common/contact-developer";
 
 export const metadata: Metadata = {
   title: "About · Brok's Forge",
@@ -104,6 +105,11 @@ export default function AboutPage() {
               </li>
             ))}
           </ul>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <ContactDeveloperButton />
+            <span className="text-xs text-muted-foreground">Questions or feedback? Reach out any time.</span>
+          </div>
         </CardContent>
       </Card>
 

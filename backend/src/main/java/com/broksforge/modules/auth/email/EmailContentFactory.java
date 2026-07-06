@@ -76,6 +76,23 @@ public class EmailContentFactory {
         return new EmailMessage(subject, html, text);
     }
 
+    public EmailMessage passwordChangeOtp(String recipientName, String code, int expiryMinutes) {
+        String subject = "Your " + BRAND + " password-change code";
+        String expiry = "This code expires in " + expiryMinutes + " minute" + (expiryMinutes == 1 ? "" : "s") + ".";
+        String html = layout("Confirm your password change",
+                greeting(recipientName)
+                        + paragraph("We received a request to change your " + esc(BRAND) + " password. "
+                        + "Enter this code to continue:")
+                        + codeBlock(code)
+                        + paragraph(muted(expiry + " If you did not request this change, ignore this e-mail — "
+                        + "your password will not change.")));
+        String text = greetingText(recipientName)
+                + "We received a request to change your " + BRAND + " password. Enter this code to continue:\n\n"
+                + "    " + code + "\n\n" + expiry + " If you did not request this change, ignore this e-mail.\n\n"
+                + "— " + BRAND;
+        return new EmailMessage(subject, html, text);
+    }
+
     public EmailMessage passwordChanged(String recipientName) {
         String subject = "Your " + BRAND + " password was changed";
         String html = layout("Password changed",
@@ -140,6 +157,14 @@ public class EmailContentFactory {
                 + "<tr><td style=\"border-radius:8px;background:" + PRIMARY + ";\">"
                 + "<a href=\"" + href + "\" style=\"display:inline-block;padding:12px 22px;color:" + PRIMARY_TEXT + ";"
                 + "text-decoration:none;font-weight:600;font-size:15px;border-radius:8px;\">" + esc(label) + "</a>"
+                + "</td></tr></table>";
+    }
+
+    private String codeBlock(String code) {
+        return "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:8px 0 20px;\">"
+                + "<tr><td style=\"border:1px solid #e2e8f0;border-radius:10px;background:" + BG + ";"
+                + "padding:16px 28px;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;"
+                + "font-size:30px;font-weight:700;letter-spacing:8px;color:" + INK + ";\">" + esc(code)
                 + "</td></tr></table>";
     }
 

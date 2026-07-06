@@ -45,6 +45,12 @@ export type LlmProvider =
   | "OTHER";
 export type DeploymentEnvironment = "DEVELOPMENT" | "STAGING" | "PRODUCTION";
 export type HealthCheckType = "MANUAL" | "SCHEDULED";
+export type HealthProbeStrategy =
+  | "GET_ROOT"
+  | "GET_HEALTH"
+  | "GET_ACTUATOR_HEALTH"
+  | "GET_MODELS"
+  | "POST_COMPLETION";
 
 // ---------------------------------------------------------------------------
 // DTOs
@@ -81,6 +87,8 @@ export interface AgentResponse {
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  /** True when an active credential exists (or auth is NONE). Non-sensitive readiness signal. */
+  credentialConfigured: boolean;
 }
 
 export interface AgentSummaryResponse {
@@ -97,9 +105,12 @@ export interface AgentSummaryResponse {
   healthStatus: AgentHealthStatus;
   lastHealthCheckAt: string | null;
   currentActiveVersionId: string | null;
+  authType: AgentAuthType;
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  /** True when an active credential exists (or auth is NONE). Non-sensitive readiness signal. */
+  credentialConfigured: boolean;
 }
 
 export interface AgentVersionResponse {
@@ -123,13 +134,28 @@ export interface AgentVersionResponse {
 export interface AgentCredentialResponse {
   id: string;
   agentId: string;
+  label: string | null;
   authType: AgentAuthType;
   username: string | null;
   headerName: string | null;
+  headerPrefix: string | null;
   secretHint: string | null;
   keyVersion: number;
   active: boolean;
+  lastTestedAt: string | null;
+  lastTestSuccess: boolean | null;
+  lastTestHttpStatus: number | null;
+  lastTestMessage: string | null;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface CredentialTestResult {
+  success: boolean;
+  httpStatus: number | null;
+  latencyMs: number;
+  message: string;
+  testedAt: string;
 }
 
 export interface AgentHealthCheckResponse {
@@ -143,6 +169,8 @@ export interface AgentHealthCheckResponse {
   latencyMs: number | null;
   checkedAt: string;
   failureReason: string | null;
+  probeStrategy: HealthProbeStrategy | null;
+  probeUrl: string | null;
 }
 
 export interface AgentHealthSummaryResponse {
@@ -188,11 +216,17 @@ export interface RegisterAgentVersionPayload {
 }
 
 export interface SetAgentCredentialPayload {
+  label?: string;
   authType: AgentAuthType;
   secret?: string;
   username?: string;
   headerName?: string;
+  headerPrefix?: string;
 }
+
+export type UpdateAgentCredentialPayload = SetAgentCredentialPayload;
+
+export type TestAgentCredentialPayload = Omit<SetAgentCredentialPayload, "label">;
 
 export interface AgentFilterParams extends PageParams {
   q?: string;
@@ -289,6 +323,20 @@ export const agentsApi = {
       .post<AgentCredentialResponse>(`${base(organizationId, projectId)}/${agentId}/credentials`, payload)
       .then((r) => r.data),
 
+  updateCredential: (
+    organizationId: string,
+    projectId: string,
+    agentId: string,
+    credentialId: string,
+    payload: UpdateAgentCredentialPayload,
+  ) =>
+    apiClient
+      .put<AgentCredentialResponse>(
+        `${base(organizationId, projectId)}/${agentId}/credentials/${credentialId}`,
+        payload,
+      )
+      .then((r) => r.data),
+
   deleteCredential: (
     organizationId: string,
     projectId: string,
@@ -297,6 +345,23 @@ export const agentsApi = {
   ) =>
     apiClient
       .delete<void>(`${base(organizationId, projectId)}/${agentId}/credentials/${credentialId}`)
+      .then((r) => r.data),
+
+  testCredential: (organizationId: string, projectId: string, agentId: string, credentialId: string) =>
+    apiClient
+      .post<CredentialTestResult>(
+        `${base(organizationId, projectId)}/${agentId}/credentials/${credentialId}/test`,
+      )
+      .then((r) => r.data),
+
+  testDraftCredential: (
+    organizationId: string,
+    projectId: string,
+    agentId: string,
+    payload: TestAgentCredentialPayload,
+  ) =>
+    apiClient
+      .post<CredentialTestResult>(`${base(organizationId, projectId)}/${agentId}/credentials/test`, payload)
       .then((r) => r.data),
 
   runHealthCheck: (organizationId: string, projectId: string, agentId: string) =>
@@ -392,3 +457,11 @@ export const HEALTH_STATUS_OPTIONS: { value: AgentHealthStatus; label: string }[
   { value: "DEGRADED", label: "Degraded" },
   { value: "UNHEALTHY", label: "Unhealthy" },
 ];
+
+export const HEALTH_PROBE_STRATEGY_LABELS: Record<HealthProbeStrategy, string> = {
+  GET_ROOT: "GET endpoint",
+  GET_HEALTH: "GET /health",
+  GET_ACTUATOR_HEALTH: "GET /actuator/health",
+  GET_MODELS: "GET /models",
+  POST_COMPLETION: "POST completion",
+};

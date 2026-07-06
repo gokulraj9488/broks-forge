@@ -6,14 +6,17 @@ import com.broksforge.common.web.RequestUtils;
 import com.broksforge.modules.auth.service.AuthService;
 import com.broksforge.modules.auth.web.dto.AuthResponse;
 import com.broksforge.modules.auth.web.dto.ChangePasswordRequest;
+import com.broksforge.modules.auth.web.dto.CompletePasswordChangeRequest;
 import com.broksforge.modules.auth.web.dto.ConfirmPasswordChangeRequest;
 import com.broksforge.modules.auth.web.dto.ForgotPasswordRequest;
 import com.broksforge.modules.auth.web.dto.LoginRequest;
+import com.broksforge.modules.auth.web.dto.PasswordChangeTicketResponse;
 import com.broksforge.modules.auth.web.dto.RefreshTokenRequest;
 import com.broksforge.modules.auth.web.dto.RegisterRequest;
 import com.broksforge.modules.auth.web.dto.ResendVerificationRequest;
 import com.broksforge.modules.auth.web.dto.ResetPasswordRequest;
 import com.broksforge.modules.auth.web.dto.VerifyEmailRequest;
+import com.broksforge.modules.auth.web.dto.VerifyPasswordChangeOtpRequest;
 import com.broksforge.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -138,6 +141,60 @@ public class AuthController {
     public ResponseEntity<MessageResponse> confirmPasswordChange(
             @Valid @RequestBody ConfirmPasswordChangeRequest request) {
         authService.confirmPasswordChange(request.token(), request.newPassword());
+        return ResponseEntity.ok(MessageResponse.of("Password changed successfully. Please sign in again."));
+    }
+
+    @PostMapping("/password-change/request")
+    @Operation(summary = "Request a password-change code (OTP)",
+            security = @SecurityRequirement(name = "bearerAuth"),
+            description = "Verifies the current password and e-mails a single-use 6-digit code. Step 1 of 3; "
+                    + "nothing changes until the code is verified and the new password is set.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Code sent"),
+            @ApiResponse(responseCode = "401", description = "Not authenticated or wrong current password",
+                    content = @Content(schema = @Schema(implementation = ApiError.class))),
+            @ApiResponse(responseCode = "429", description = "Too many codes requested",
+                    content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    public ResponseEntity<MessageResponse> requestPasswordChangeOtp(
+            @Valid @RequestBody ChangePasswordRequest request) {
+        UUID userId = SecurityUtils.requireCurrentUserId();
+        authService.requestPasswordChangeOtp(userId, request.currentPassword());
+        return ResponseEntity.ok(MessageResponse.of(
+                "We emailed you a 6-digit code. Enter it to continue — it expires in 5 minutes."));
+    }
+
+    @PostMapping("/password-change/verify")
+    @Operation(summary = "Verify the password-change code (OTP)",
+            security = @SecurityRequirement(name = "bearerAuth"),
+            description = "Step 2 of 3. Returns a single-use ticket used to set the new password.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Code verified; ticket returned"),
+            @ApiResponse(responseCode = "400", description = "Incorrect code",
+                    content = @Content(schema = @Schema(implementation = ApiError.class))),
+            @ApiResponse(responseCode = "429", description = "Too many incorrect attempts",
+                    content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    public ResponseEntity<PasswordChangeTicketResponse> verifyPasswordChangeOtp(
+            @Valid @RequestBody VerifyPasswordChangeOtpRequest request) {
+        UUID userId = SecurityUtils.requireCurrentUserId();
+        return ResponseEntity.ok(authService.verifyPasswordChangeOtp(userId, request.code()));
+    }
+
+    @PostMapping("/password-change/complete")
+    @Operation(summary = "Set the new password using the verified ticket",
+            security = @SecurityRequirement(name = "bearerAuth"),
+            description = "Step 3 of 3. Applies the new password and revokes every session; "
+                    + "the user must sign in again.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Password changed"),
+            @ApiResponse(responseCode = "401", description = "Invalid or expired ticket",
+                    content = @Content(schema = @Schema(implementation = ApiError.class)))
+    })
+    public ResponseEntity<MessageResponse> completePasswordChange(
+            @Valid @RequestBody CompletePasswordChangeRequest request) {
+        UUID userId = SecurityUtils.requireCurrentUserId();
+        authService.completePasswordChange(userId, request.ticket(), request.newPassword());
         return ResponseEntity.ok(MessageResponse.of("Password changed successfully. Please sign in again."));
     }
 

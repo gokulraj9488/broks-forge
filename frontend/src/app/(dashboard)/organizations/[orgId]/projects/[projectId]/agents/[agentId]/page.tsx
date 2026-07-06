@@ -1,36 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { ArrowLeft, Bot, ExternalLink, Lightbulb } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { TabsBar } from "@/components/ui/tabs-bar";
+import { TabsBar, type TabItem } from "@/components/ui/tabs-bar";
 import { HealthBadge, StatusBadge } from "@/components/common/badges";
 import { VersionsPanel } from "@/components/agents/versions-panel";
 import { HealthPanel } from "@/components/agents/health-panel";
 import { CredentialsPanel } from "@/components/agents/credentials-panel";
 import { AgentSettingsPanel } from "@/components/agents/agent-settings-panel";
+import {
+  AgentReadinessBadge,
+  AgentReadinessChecklist,
+  CredentialSetupAlert,
+} from "@/components/agents/agent-onboarding";
 import { AdvisoryReport } from "@/components/advisor/advisory-report";
-import { useAgent } from "@/lib/hooks/use-agents";
+import {
+  useAgent,
+  useAgentCredentials,
+  useAgentHealth,
+  useRunHealthCheck,
+  useTestCredential,
+} from "@/lib/hooks/use-agents";
 import { useAgentAdvisory } from "@/lib/hooks/use-advisor";
 import { useOrganization } from "@/lib/hooks/use-organizations";
-import { FRAMEWORK_OPTIONS, type AgentResponse } from "@/lib/api/agents";
+import { FRAMEWORK_OPTIONS, type AgentCredentialResponse, type AgentResponse } from "@/lib/api/agents";
+import { computeAgentReadiness } from "@/lib/agent-readiness";
 import { formatDateTime } from "@/lib/utils";
 
 type Tab = "overview" | "versions" | "advisor" | "health" | "credentials" | "settings";
 
-const TABS = [
-  { key: "overview" as const, label: "Overview" },
-  { key: "versions" as const, label: "Versions" },
-  { key: "advisor" as const, label: "Advisor" },
-  { key: "health" as const, label: "Health" },
-  { key: "credentials" as const, label: "Credentials" },
-  { key: "settings" as const, label: "Settings" },
+const TABS: TabItem<Tab>[] = [
+  { key: "overview", label: "Overview" },
+  { key: "versions", label: "Versions" },
+  { key: "advisor", label: "Advisor" },
+  { key: "health", label: "Health" },
+  { key: "credentials", label: "Credentials" },
+  { key: "settings", label: "Settings" },
 ];
+const TAB_KEYS = TABS.map((t) => t.key);
+
+function coerceTab(value: string | null): Tab {
+  return value && (TAB_KEYS as string[]).includes(value) ? (value as Tab) : "overview";
+}
 
 function AgentAdvisor({
   organizationId,
@@ -146,16 +164,85 @@ function Overview({ agent }: { agent: AgentResponse }) {
   );
 }
 
-export default function AgentDetailPage() {
+const SETUP_DOT = (
+  <>
+    <span className="inline-block h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
+    <span className="sr-only">setup required</span>
+  </>
+);
+
+function AgentDetail() {
   const params = useParams<{ orgId: string; projectId: string; agentId: string }>();
+  const searchParams = useSearchParams();
   const { orgId, projectId, agentId } = params;
+
   const { data: organization } = useOrganization(orgId);
   const { data: agent, isLoading, isError } = useAgent(orgId, projectId, agentId);
-  const [tab, setTab] = useState<Tab>("overview");
 
   const role = organization?.currentUserRole;
   const canManage = role === "OWNER" || role === "ADMIN" || role === "MEMBER";
   const canAdmin = role === "OWNER" || role === "ADMIN";
+
+  // Health is readable by any member; credentials are admin-only, so only fetch
+  // them when the viewer can manage them (otherwise fall back to the agent's flag).
+  const { data: health } = useAgentHealth(orgId, projectId, agentId);
+  const { data: credentials } = useAgentCredentials(
+    orgId,
+    projectId,
+    canAdmin ? agentId : undefined,
+  );
+  const runHealthCheck = useRunHealthCheck(orgId, projectId, agentId);
+  const testCredential = useTestCredential(orgId, projectId, agentId);
+
+  const [tab, setTab] = useState<Tab>(() => coerceTab(searchParams.get("tab")));
+  const [onboarding] = useState(() => searchParams.get("onboarding") === "1");
+  const [credDialogOpen, setCredDialogOpen] = useState(false);
+  const autoOpenedRef = useRef(false);
+  const readyToastRef = useRef(false);
+
+  const readiness = agent ? computeAgentReadiness(agent, credentials, health) : null;
+  const needsCredentialSetup = readiness?.needsCredentialSetup ?? false;
+  const activeCredentialId = credentials?.find((c) => c.active)?.id;
+
+  const goToCredentials = useCallback(() => {
+    setTab("credentials");
+    setCredDialogOpen(true);
+  }, []);
+
+  const handleCredentialSaved = (saved: AgentCredentialResponse) => {
+    setCredDialogOpen(false);
+    setTab("health");
+    // Persist a connection test so "Connection verified" can complete on its own,
+    // then the Health panel auto-runs the first check — a hands-free hand-off.
+    testCredential.mutate(saved.id);
+  };
+
+  const verifyConnection = () => {
+    if (activeCredentialId) testCredential.mutate(activeCredentialId);
+  };
+
+  const runHealth = () => {
+    setTab("health");
+    runHealthCheck.mutate();
+  };
+
+  // Onboarding: land on Credentials and open the dialog once, only when setup is needed.
+  useEffect(() => {
+    if (!onboarding || autoOpenedRef.current || !canAdmin || !readiness) return;
+    if (readiness.needsCredentialSetup) {
+      autoOpenedRef.current = true;
+      setTab("credentials");
+      setCredDialogOpen(true);
+    }
+  }, [onboarding, canAdmin, readiness]);
+
+  // Celebrate reaching Ready during onboarding (once).
+  useEffect(() => {
+    if (onboarding && readiness?.isReady && !readyToastRef.current) {
+      readyToastRef.current = true;
+      toast.success("Agent is ready — onboarding complete");
+    }
+  }, [onboarding, readiness?.isReady]);
 
   if (isLoading) {
     return (
@@ -176,6 +263,11 @@ export default function AgentDetailPage() {
       />
     );
   }
+
+  const showChecklist = !!readiness?.requiresCredential && !readiness.isReady;
+  const tabs: TabItem<Tab>[] = TABS.map((t) =>
+    t.key === "credentials" && needsCredentialSetup ? { ...t, badge: SETUP_DOT } : t,
+  );
 
   return (
     <div className="space-y-6">
@@ -199,16 +291,33 @@ export default function AgentDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {agent.status === "ARCHIVED" && <StatusBadge status="ARCHIVED" />}
+          {readiness?.requiresCredential && <AgentReadinessBadge readiness={readiness} />}
           <HealthBadge status={agent.healthStatus} />
         </div>
       </div>
 
       {agent.description && <p className="max-w-2xl text-sm text-muted-foreground">{agent.description}</p>}
 
-      <TabsBar tabs={TABS} value={tab} onChange={setTab} />
+      {showChecklist && readiness && (
+        <AgentReadinessChecklist
+          readiness={readiness}
+          onConfigureCredential={goToCredentials}
+          onVerifyConnection={verifyConnection}
+          onRunHealth={runHealth}
+          runningHealth={runHealthCheck.isPending}
+          verifyingConnection={testCredential.isPending}
+        />
+      )}
+
+      <TabsBar tabs={tabs} value={tab} onChange={setTab} />
 
       <div>
-        {tab === "overview" && <Overview agent={agent} />}
+        {tab === "overview" && (
+          <div className="space-y-6">
+            {needsCredentialSetup && <CredentialSetupAlert onConfigure={goToCredentials} />}
+            <Overview agent={agent} />
+          </div>
+        )}
         {tab === "versions" && (
           <VersionsPanel
             organizationId={orgId}
@@ -217,15 +326,28 @@ export default function AgentDetailPage() {
             canManage={canManage}
           />
         )}
-        {tab === "advisor" && (
-          <AgentAdvisor organizationId={orgId} projectId={projectId} agentId={agentId} />
-        )}
+        {tab === "advisor" &&
+          (needsCredentialSetup ? (
+            <div className="space-y-4">
+              <CredentialSetupAlert onConfigure={goToCredentials} />
+              <EmptyState
+                icon={Lightbulb}
+                title="Advisor unavailable"
+                description="Configure credentials so the platform can reach this agent, then the engineering advisor will be available."
+              />
+            </div>
+          ) : (
+            <AgentAdvisor organizationId={orgId} projectId={projectId} agentId={agentId} />
+          ))}
         {tab === "health" && (
           <HealthPanel
             organizationId={orgId}
             projectId={projectId}
             agentId={agentId}
             disabled={agent.status === "ARCHIVED"}
+            needsCredentialSetup={needsCredentialSetup}
+            onConfigureCredential={goToCredentials}
+            autoRun={onboarding && !needsCredentialSetup}
           />
         )}
         {tab === "credentials" && (
@@ -234,6 +356,10 @@ export default function AgentDetailPage() {
             projectId={projectId}
             agentId={agentId}
             canManage={canAdmin}
+            createOpen={credDialogOpen}
+            onCreateOpenChange={setCredDialogOpen}
+            onCredentialSaved={handleCredentialSaved}
+            initialAuthType={agent.authType}
           />
         )}
         {tab === "settings" && (
@@ -247,5 +373,13 @@ export default function AgentDetailPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AgentDetailPage() {
+  return (
+    <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+      <AgentDetail />
+    </Suspense>
   );
 }

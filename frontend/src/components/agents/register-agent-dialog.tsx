@@ -103,7 +103,12 @@ export function RegisterAgentDialog({
           toast.success("Agent registered");
           setOpen(false);
           reset();
-          router.push(`/organizations/${organizationId}/projects/${projectId}/agents/${agent.id}`);
+          const base = `/organizations/${organizationId}/projects/${projectId}/agents/${agent.id}`;
+          // Auth-requiring agents are unusable until a credential is set, so start
+          // onboarding directly on the Credentials tab. NONE agents are ready to use.
+          router.push(
+            values.authType === "NONE" ? base : `${base}?tab=credentials&onboarding=1`,
+          );
         },
         onError: (error) => toast.error(getApiErrorMessage(error)),
       },

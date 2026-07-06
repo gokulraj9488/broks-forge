@@ -62,6 +62,12 @@ public class SmtpEmailService implements EmailService {
     }
 
     @Override
+    public void sendPasswordChangeOtp(String toEmail, String recipientName, String code, int expiryMinutes) {
+        send(toEmail, content.passwordChangeOtp(recipientName, code, expiryMinutes));
+        audit("password-change-otp", toEmail);
+    }
+
+    @Override
     public void sendPasswordChangedNotification(String toEmail, String recipientName) {
         send(toEmail, content.passwordChanged(recipientName));
         audit("password-changed", toEmail);

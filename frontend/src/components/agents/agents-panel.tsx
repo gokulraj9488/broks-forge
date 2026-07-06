@@ -26,6 +26,7 @@ import {
   type AgentHealthStatus,
   type AgentLifecycleStatus,
 } from "@/lib/api/agents";
+import { agentNeedsCredentialSetup } from "@/lib/agent-readiness";
 
 const PAGE_SIZE = 12;
 const ALL = "all";
@@ -173,7 +174,12 @@ export function AgentsPanel({
                           <p className="truncate text-xs text-muted-foreground">/{agent.slug}</p>
                         </div>
                       </div>
-                      <HealthBadge status={agent.healthStatus} />
+                      <div className="flex shrink-0 items-center gap-2">
+                        {agentNeedsCredentialSetup(agent) && (
+                          <Badge variant="warning">Setup required</Badge>
+                        )}
+                        <HealthBadge status={agent.healthStatus} />
+                      </div>
                     </div>
                     {agent.description && (
                       <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">

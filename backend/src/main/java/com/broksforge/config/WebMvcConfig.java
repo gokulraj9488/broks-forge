@@ -31,6 +31,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/v1/auth/verify-email",
                         "/api/v1/auth/resend-verification",
                         "/api/v1/auth/change-password",
-                        "/api/v1/auth/confirm-password-change");
+                        "/api/v1/auth/confirm-password-change",
+                        "/api/v1/auth/password-change/request",
+                        "/api/v1/auth/password-change/verify",
+                        "/api/v1/auth/password-change/complete");
     }
 }

@@ -46,14 +46,19 @@ export const resetPasswordSchema = z
   });
 export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
-// Step 1 of the verified password change: only the current password is needed;
-// the new password is chosen on the emailed confirmation page.
+// OTP password change (ADR 0017). Step 1: current password only.
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
 });
 export type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
 
-// Step 2 (emailed link) shares the reset-password shape: new + confirm.
+// Step 2: the 6-digit code from e-mail.
+export const verifyOtpSchema = z.object({
+  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code from your email"),
+});
+export type VerifyOtpValues = z.infer<typeof verifyOtpSchema>;
+
+// Step 3 (and the legacy emailed link) share the reset-password shape: new + confirm.
 export const confirmPasswordChangeSchema = resetPasswordSchema;
 export type ConfirmPasswordChangeValues = ResetPasswordValues;
 
@@ -182,14 +187,18 @@ export type AgentVersionValues = z.infer<typeof agentVersionSchema>;
 
 export const setCredentialSchema = z
   .object({
+    label: z.string().max(120).optional(),
     authType: z.enum(["NONE", "API_KEY", "BEARER_TOKEN", "BASIC_AUTH", "CUSTOM_HEADER"]),
     secret: z.string().max(4096).optional(),
     username: z.string().max(256).optional(),
     headerName: z.string().max(128).optional(),
+    headerPrefix: z.string().max(64).optional(),
+    // When editing an existing credential, a blank secret keeps the stored one.
+    keepSecret: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.authType === "NONE") return;
-    if (!data.secret) {
+    if (!data.secret && !data.keepSecret) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["secret"], message: "A secret is required" });
     }
     if (data.authType === "BASIC_AUTH" && !data.username) {

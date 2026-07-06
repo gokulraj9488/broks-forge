@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Activity, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -7,24 +8,36 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip } from "@/components/ui/tooltip";
 import { HealthBadge } from "@/components/common/badges";
+import { CredentialSetupAlert } from "@/components/agents/agent-onboarding";
 import { useAgentHealth, useRunHealthCheck } from "@/lib/hooks/use-agents";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { formatDateTime } from "@/lib/utils";
+import { HEALTH_PROBE_STRATEGY_LABELS } from "@/lib/api/agents";
 
 export function HealthPanel({
   organizationId,
   projectId,
   agentId,
   disabled,
+  needsCredentialSetup,
+  onConfigureCredential,
+  autoRun,
 }: {
   organizationId: string;
   projectId: string;
   agentId: string;
   disabled?: boolean;
+  /** When true, show the credentials-required warning (agent unusable until configured). */
+  needsCredentialSetup?: boolean;
+  onConfigureCredential?: () => void;
+  /** When true (onboarding hand-off), run the first health check automatically. */
+  autoRun?: boolean;
 }) {
   const { data, isLoading } = useAgentHealth(organizationId, projectId, agentId);
   const runCheck = useRunHealthCheck(organizationId, projectId, agentId);
+  const autoRanRef = useRef(false);
 
   const run = () =>
     runCheck.mutate(undefined, {
@@ -34,6 +47,17 @@ export function HealthPanel({
           : toast.error(result.failureReason ?? "Agent is unhealthy"),
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
+
+  // Onboarding hand-off: run the initial health check once, only when no check
+  // has run yet and credentials are in place (so the probe can authenticate).
+  useEffect(() => {
+    if (!autoRun || autoRanRef.current || disabled) return;
+    if (data && data.totalChecks === 0 && !runCheck.isPending) {
+      autoRanRef.current = true;
+      run();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRun, data, disabled]);
 
   if (isLoading) {
     return (
@@ -45,9 +69,11 @@ export function HealthPanel({
   }
 
   const availability = data?.availabilityPercent;
+  const lastProbe = data?.recent?.[0];
 
   return (
     <div className="space-y-4">
+      {needsCredentialSetup && <CredentialSetupAlert onConfigure={onConfigureCredential} />}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold">Health</h2>
@@ -71,6 +97,11 @@ export function HealthPanel({
             <p className="pt-1 text-xs text-muted-foreground">
               Last checked {formatDateTime(data?.lastCheckedAt)}
             </p>
+            {lastProbe?.probeStrategy && (
+              <p className="text-xs text-muted-foreground">
+                Probe: {HEALTH_PROBE_STRATEGY_LABELS[lastProbe.probeStrategy]}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -104,6 +135,14 @@ export function HealthPanel({
                     <span className="text-muted-foreground">{formatDateTime(check.checkedAt)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {check.probeStrategy &&
+                      (check.probeUrl ? (
+                        <Tooltip content={check.probeUrl}>
+                          <Badge variant="muted">{HEALTH_PROBE_STRATEGY_LABELS[check.probeStrategy]}</Badge>
+                        </Tooltip>
+                      ) : (
+                        <Badge variant="muted">{HEALTH_PROBE_STRATEGY_LABELS[check.probeStrategy]}</Badge>
+                      ))}
                     {check.httpStatus != null && <Badge variant="outline">HTTP {check.httpStatus}</Badge>}
                     {check.latencyMs != null && <span>{check.latencyMs}ms</span>}
                     {!check.success && check.failureReason && (

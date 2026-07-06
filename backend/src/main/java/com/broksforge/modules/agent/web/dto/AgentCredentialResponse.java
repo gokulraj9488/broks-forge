@@ -13,13 +13,26 @@ import java.util.UUID;
 public record AgentCredentialResponse(
         UUID id,
         UUID agentId,
+        @Schema(description = "Human-friendly label")
+        String label,
         AgentAuthType authType,
         String username,
         String headerName,
+        @Schema(description = "Value prefix, e.g. \"Bearer\"")
+        String headerPrefix,
         @Schema(description = "Masked hint of the secret, e.g. ••••ab12")
         String secretHint,
         int keyVersion,
         boolean active,
-        Instant createdAt
+        @Schema(description = "When the credential was last connection-tested (null if never)")
+        Instant lastTestedAt,
+        @Schema(description = "Whether the last connection test passed (null if never tested)")
+        Boolean lastTestSuccess,
+        @Schema(description = "HTTP status from the last connection test")
+        Integer lastTestHttpStatus,
+        @Schema(description = "Human-readable result of the last connection test")
+        String lastTestMessage,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

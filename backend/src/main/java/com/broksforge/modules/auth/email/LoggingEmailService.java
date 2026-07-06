@@ -86,6 +86,23 @@ public class LoggingEmailService implements EmailService {
     }
 
     @Override
+    public void sendPasswordChangeOtp(String toEmail, String recipientName, String code, int expiryMinutes) {
+        log.info("""
+
+                ===================== EMAIL (password change OTP) ==============
+                To:      {} <{}>
+                Subject: Your Brok's Forge password-change code
+                ----------------------------------------------------------------
+                We received a request to change your password. Enter this code:
+                {}
+                This code expires in {} minutes. If you did not request this,
+                ignore this message.
+                ================================================================
+                """, recipientName, toEmail, code, expiryMinutes);
+        System.out.printf(">>> [dev-mail] Password-change code for %s: %s%n", toEmail, code);
+    }
+
+    @Override
     public void sendPasswordChangedNotification(String toEmail, String recipientName) {
         log.info("""
 

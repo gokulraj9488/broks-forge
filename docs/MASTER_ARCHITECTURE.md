@@ -114,7 +114,7 @@ The platform's domains, grouped by phase. Each maps to a feature module under
 
 | Domain | Module | Aggregate(s) | Responsibility |
 |---|---|---|---|
-| Authentication | `auth` | `RefreshToken`, `PasswordResetToken`, `EmailVerificationToken` | Register/login, JWT issuance, rotating refresh tokens, password reset, email verification |
+| Authentication | `auth` | `RefreshToken`, `PasswordResetToken`, `EmailVerificationToken`, `PasswordChangeToken`, `PasswordChangeOtp` | Register/login, JWT issuance, rotating refresh tokens, password reset, email verification, OTP password change ([ADR 0017](./adr/0017-otp-password-change.md)) |
 | Users | `user` | `User` | Profile, platform role (`USER`/`ADMIN`), credentials |
 | Organizations | `organization` | `Organization`, `OrganizationMember` | Tenancy boundary, membership, `OrganizationRole` (OWNER/ADMIN/MEMBER) |
 | Projects | `project` | `Project` | Workspace within an organization; the scope every resource lives in |
@@ -382,7 +382,9 @@ the other way around.**
 
 Migrations live in `backend/src/main/resources/db/migration/` and are **append-only**. `V1`..`V25`
 exist today (Phase 1 = `V1`..`V5`, Phase 2 agent registry = `V6`..`V10`, Phase 3 Intelligence Layer =
-`V11`..`V23`, Phase 4 AI Engineering Advisor = `V24`..`V25`). **An applied migration is never
+`V11`..`V23`, Phase 4 AI Engineering Advisor = `V24`..`V25`; post-1.0 additions = `V26`..`V29`
+— password-change tokens/OTPs ([ADR 0017](./adr/0017-otp-password-change.md)) and the
+agent-credential / health-check extensions ([ADR 0018](./adr/0018-provider-aware-health-checks.md))). **An applied migration is never
 edited** — corrections ship as a new `V<n+1>`. Note that Phase 4 added only **two** tables
 (`knowledge_nodes`, `knowledge_edges`): the advisor, root-cause and debugger features compute on read
 and persist nothing.

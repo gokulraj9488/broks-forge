@@ -22,6 +22,9 @@ decision changes, add a new ADR that supersedes the old one rather than editing 
 | [0014](0014-ai-debugger-and-tracing-seam.md) | AI Debugger execution timeline and the tracing seam | Accepted |
 | [0015](0015-production-observability-metrics-and-structured-logging.md) | Production observability — Prometheus metrics and structured logging | Accepted |
 | [0016](0016-pluggable-email-transport.md) | Pluggable e-mail transport (console for dev, SMTP for production) | Accepted |
+| [0017](0017-otp-password-change.md) | Email OTP for password change (supersedes the emailed link) | Accepted |
+| [0018](0018-provider-aware-health-checks.md) | Provider-aware health checks and credential connection testing | Accepted |
+| [0019](0019-layered-automated-testing-and-qa.md) | Layered automated testing strategy and quality assurance | Accepted |
 
 ## Format
 

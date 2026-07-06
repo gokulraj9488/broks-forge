@@ -61,6 +61,7 @@ Two first-class authentication mechanisms, both stateless at the application lay
 - **Token pair:** short-lived **access** token + longer-lived **refresh** token, with **refresh rotation** (each refresh issues a new refresh token).
 - **Passwords:** stored with **BCrypt** (adaptive, salted). Never logged, never returned.
 - **Account lifecycle tokens:** email-verification and password-reset tokens are high-entropy and stored **hashed** (SHA-256), so a database read does not yield a usable token.
+- **Password change (OTP):** an authenticated password change requires a **6-digit e-mail OTP** (stored hashed, 5-minute expiry, attempt-capped, per-user rate-limited); a successful verify mints a single-use, hashed **continuation ticket**, and completing the change **revokes every refresh token**. See [ADR-0017](./adr/0017-otp-password-change.md).
 
 ### 2.2 API keys (programmatic clients)
 
