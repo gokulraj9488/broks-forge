@@ -111,7 +111,63 @@ and findings are derived on read; no Phase 1–3 behaviour is changed.
 
 ---
 
+### V1 — GA hardening & the Benchmark Gallery  ·  `v1.0.0`
+
+Shipped alongside the GA hardening line in the Version History table below — real engineering work
+verified live against real infrastructure, not planned/future items:
+
+- **Benchmark Gallery** — a new one-click onboarding feature on the `benchmark` module: 8 curated
+  templates (Customer Support, RAG, Coding, Reasoning, Hallucination, Safety, Summarization,
+  Translation), each provisioning a starter Dataset, Prompt, Evaluation Profile and an auto-run
+  Evaluation Job in a single API call. Backed by a static, in-code catalog
+  (`BenchmarkGalleryCatalog`) — **no new tables**, since it provisions ordinary entities through the
+  existing dataset/prompt/evaluation services rather than persisting anything gallery-specific. See
+  [MASTER_ARCHITECTURE.md → Benchmark Gallery](./MASTER_ARCHITECTURE.md#benchmark-gallery-v1--curated-one-click-templates).
+- **Native Ollama trust model** — a narrow, explicit `OutboundUrlGuard` bypass so native Ollama
+  providers can reach `localhost`/`127.0.0.1`/`host.docker.internal` without
+  `BROKSFORGE_MODEL_ALLOW_PRIVATE_TARGETS=true`, asserted per call site from the provider's type,
+  never inferred from the URL. Custom REST on localhost remains blocked; remote providers are
+  unaffected. Ollama health checks now correctly probe `GET /api/tags` instead of `GET /api/chat`.
+- **Evaluation model resolution** — a precedence chain (evaluation override → agent version override
+  → the linked Provider's configured default model) that fixes the "HTTP 400 model is required"
+  failure for Ollama-backed jobs, plus a defense-in-depth validation error (instead of a silently
+  missing model field) when no model resolves and the endpoint requires one.
+- **Provider Test Connection / Refresh Models UI** — `ProviderController`'s
+  `POST /{providerId}/test-connection`, wired into the frontend Providers panel and the Agent Health
+  page, surfaces exactly what was probed (method, URL, strategy) instead of a generic message.
+- **Deployment architecture** — a documented Railway (backend) + Vercel (frontend) production
+  deployment path, including the `server.port: ${PORT:8080}` change needed for Railway. See
+  [DEPLOYMENT.md](./DEPLOYMENT.md).
+- **Advisor bug fix** — `AgentAdvisor`'s three distinct finding types (insecure transport, missing
+  auth, missing healthcheck) previously shared one `knowledgeKey`, corrupting knowledge-graph
+  observation tracking; each now reports its own key.
+
+---
+
 ## Remaining / Future Phases
+
+### V1.1 — explicitly deferred, not started
+
+Called out here so it is unambiguous that none of the following has been started — no partial
+implementation, no design spike, nothing beyond the item existing as a candidate:
+
+- **AI-generated test cases** — synthesizing dataset items / test cases from a description or an
+  existing dataset, rather than hand-authoring them.
+- **Production monitoring** — live monitoring of deployed agents beyond the existing on-demand health
+  check and analytics views.
+- **Quality-drop alerting** — proactive notification when quality/cost/latency regresses, distinct
+  from the existing on-demand `RegressionCheck`.
+- **CI/CD pipeline** — a pipeline definition/integration for running evaluations and regression gates
+  automatically on push/deploy (related to, but not the same as, the CLI candidate in Phase 6).
+- **Team collaboration features** — beyond the existing OWNER/ADMIN/MEMBER roles: comments,
+  assignment, review workflows on evaluation results or advisor recommendations.
+- **SSRF DNS-rebinding hardening** — `OutboundUrlGuard` resolves a hostname once at validation time
+  and again when the HTTP client actually connects; an attacker-controlled DNS record could rebind
+  between the two lookups. Deferred rather than rushed: closing it properly means pinning the
+  resolved IP through the HTTP client stack across all seven call sites that use the guard, which
+  needs dedicated testing time this pass did not have. See
+  [MASTER_ARCHITECTURE.md → Native Ollama trust model](./MASTER_ARCHITECTURE.md#native-ollama-trust-model-narrow-explicit-bypass)
+  for the current guard behavior this hardening would extend.
 
 ### Phase 5 — Live Tracing & RAG / Memory Inspectors  ·  target `v0.5.0`
 
