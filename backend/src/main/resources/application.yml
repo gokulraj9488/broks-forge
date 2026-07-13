@@ -13,6 +13,14 @@ spring:
     # Local development is the default when no profile is supplied.
     default: dev
 
+  servlet:
+    multipart:
+      # Dataset file uploads (CSV/JSON/XLSX/ZIP). Requests above this threshold are streamed
+      # to a temp file on disk by the container rather than buffered in memory in full.
+      max-file-size: 25MB
+      max-request-size: 26MB
+      file-size-threshold: 1MB
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/broksforge}
     username: ${SPRING_DATASOURCE_USERNAME:broksforge}
@@ -67,7 +75,9 @@ spring:
       fail-on-unknown-properties: false
 
 server:
-  port: 8080
+  # Railway (and most PaaS hosts) inject PORT at runtime and require the app to bind to it;
+  # Docker Compose/local dev has no PORT set, so this falls back to the usual 8080.
+  port: ${PORT:8080}
   shutdown: graceful
   error:
     include-message: never
@@ -207,11 +217,48 @@ broksforge:
     # Defensive cap on stored output length per invocation.
     max-output-chars: ${BROKSFORGE_MODEL_MAX_OUTPUT_CHARS:100000}
   # ---------------------------------------------------------------------------
+  # Per-provider defaults for outbound model invocations. Applied only when the caller
+  # (job/profile generation parameters) didn't already specify max_tokens/max_completion_tokens —
+  # never relies on whatever a provider does when the field is omitted (some fall back to the
+  # full model context window, which can exhaust an account's credit balance on one request).
+  # ---------------------------------------------------------------------------
+  providers:
+    default-max-tokens:
+      openai: ${BROKSFORGE_PROVIDER_OPENAI_MAX_TOKENS:1024}
+      groq: ${BROKSFORGE_PROVIDER_GROQ_MAX_TOKENS:1024}
+      openrouter: ${BROKSFORGE_PROVIDER_OPENROUTER_MAX_TOKENS:1024}
+      google: ${BROKSFORGE_PROVIDER_GOOGLE_MAX_TOKENS:1024}
+      anthropic: ${BROKSFORGE_PROVIDER_ANTHROPIC_MAX_TOKENS:1024}
+      mistral: ${BROKSFORGE_PROVIDER_MISTRAL_MAX_TOKENS:1024}
+      deepseek: ${BROKSFORGE_PROVIDER_DEEPSEEK_MAX_TOKENS:1024}
+      cohere: ${BROKSFORGE_PROVIDER_COHERE_MAX_TOKENS:1024}
+      azure: ${BROKSFORGE_PROVIDER_AZURE_MAX_TOKENS:1024}
+      ollama: ${BROKSFORGE_PROVIDER_OLLAMA_MAX_TOKENS:1024}
+    # Used when the target provider isn't one of the keys above (unrecognised host, or a
+    # provider not yet listed).
+    fallback-max-tokens: ${BROKSFORGE_PROVIDER_FALLBACK_MAX_TOKENS:1024}
+  # ---------------------------------------------------------------------------
   # Evaluation (Phase 3)
   # ---------------------------------------------------------------------------
   evaluation:
-    # Largest dataset a single synchronous job may run (async workers are future work).
+    # Largest dataset a single job may run synchronously on the request thread; larger
+    # jobs are executed in the background (EvaluationBackgroundRunner).
     max-items-per-job: ${BROKSFORGE_EVALUATION_MAX_ITEMS_PER_JOB:500}
+    # Page size used to stream dataset rows for a background job (bounds memory use
+    # regardless of dataset size).
+    batch-size: ${BROKSFORGE_EVALUATION_BATCH_SIZE:50}
+    # Max concurrent row invocations across all background jobs.
+    worker-concurrency: ${BROKSFORGE_EVALUATION_WORKER_CONCURRENCY:4}
+    # Max evaluation jobs the background runner executes at once (queue priority governs
+    # which queued job is picked up next when a slot frees up).
+    max-concurrent-jobs: ${BROKSFORGE_EVALUATION_MAX_CONCURRENT_JOBS:2}
+    # Max invocation attempts per row before it is recorded as failed.
+    max-attempts: ${BROKSFORGE_EVALUATION_MAX_ATTEMPTS:3}
+    retry-backoff-ms: ${BROKSFORGE_EVALUATION_RETRY_BACKOFF_MS:500}
+    retry-backoff-max-ms: ${BROKSFORGE_EVALUATION_RETRY_BACKOFF_MAX_MS:15000}
+    # A RUNNING job with no progress for this long is treated as stalled (e.g. after a
+    # crash) and automatically resumed by the recovery scheduler.
+    stall-after-ms: ${BROKSFORGE_EVALUATION_STALL_AFTER_MS:120000}
   # ---------------------------------------------------------------------------
   # AI Engineering Advisor (Phase 4) — heuristic thresholds for recommendations
   # ---------------------------------------------------------------------------

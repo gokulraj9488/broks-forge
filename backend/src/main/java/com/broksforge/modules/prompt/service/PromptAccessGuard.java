@@ -42,7 +42,7 @@ public class PromptAccessGuard {
 
     public void ensureNotArchived(Prompt prompt) {
         if (prompt.isArchived()) {
-            throw new ResourceConflictException(ErrorCode.AGENT_ARCHIVED,
+            throw new ResourceConflictException(ErrorCode.PROMPT_ARCHIVED,
                     "Prompt is archived; unarchive it before making changes");
         }
     }

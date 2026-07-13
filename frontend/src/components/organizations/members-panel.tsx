@@ -37,7 +37,7 @@ export function MembersPanel({
   canManage: boolean;
 }) {
   const { user } = useAuth();
-  const { data, isLoading } = useOrganizationMembers(organizationId, { size: 100 });
+  const { data, isLoading, isError, refetch, isRefetching } = useOrganizationMembers(organizationId, { size: 100 });
   const updateRole = useUpdateMemberRole(organizationId);
   const removeMember = useRemoveMember(organizationId);
   const [pendingRemoval, setPendingRemoval] = useState<OrganizationMemberResponse | null>(null);
@@ -75,6 +75,21 @@ export function MembersPanel({
           <Skeleton key={i} className="h-16 w-full" />
         ))}
       </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <EmptyState
+        icon={Users}
+        title="Couldn't load members"
+        description="Something went wrong reaching the server. Check your connection and try again."
+        action={
+          <Button variant="outline" onClick={() => refetch()} loading={isRefetching}>
+            Retry
+          </Button>
+        }
+      />
     );
   }
 

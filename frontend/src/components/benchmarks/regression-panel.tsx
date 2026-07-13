@@ -180,8 +180,12 @@ function RegressionFindings({
             {findings.map(([key, f]) => (
               <tr key={key}>
                 <td className="px-3 py-2">{f.label}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs">{f.baseline.toFixed(3)}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs">{f.candidate.toFixed(3)}</td>
+                <td className="px-3 py-2 text-right font-mono text-xs">
+                  {f.baseline != null ? f.baseline.toFixed(3) : "—"}
+                </td>
+                <td className="px-3 py-2 text-right font-mono text-xs">
+                  {f.candidate != null ? f.candidate.toFixed(3) : "—"}
+                </td>
                 <td
                   className={`px-3 py-2 text-right font-mono text-xs ${
                     f.regressed ? "text-destructive" : "text-success"
