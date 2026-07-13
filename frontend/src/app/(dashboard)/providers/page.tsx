@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plug, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { useProjects } from "@/lib/hooks/use-projects";
 
 export default function ProvidersPage() {
   const { data: orgsData, isLoading: orgsLoading } = useOrganizations({ size: 100 });
-  const organizations = orgsData?.content ?? [];
+  const organizations = useMemo(() => orgsData?.content ?? [], [orgsData]);
 
   const [orgId, setOrgId] = useState<string>("");
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function ProvidersPage() {
   }, [orgId, organizations]);
 
   const { data: projectsData, isLoading: projectsLoading } = useProjects(orgId || undefined, { size: 100 });
-  const projects = projectsData?.content ?? [];
+  const projects = useMemo(() => projectsData?.content ?? [], [projectsData]);
 
   const [projectId, setProjectId] = useState<string>("");
   useEffect(() => {

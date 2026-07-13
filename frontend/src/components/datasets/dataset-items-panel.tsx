@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Rows3 } from "lucide-react";
 import {
   Select,
@@ -34,7 +34,7 @@ export function DatasetItemsPanel({
     datasetId,
     { size: 50 },
   );
-  const versions = versionsData?.content ?? [];
+  const versions = useMemo(() => versionsData?.content ?? [], [versionsData]);
 
   const [versionId, setVersionId] = useState<string>("");
   const [page, setPage] = useState(0);

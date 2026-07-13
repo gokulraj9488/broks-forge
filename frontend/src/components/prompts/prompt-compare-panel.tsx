@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, GitCompare, Minus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +30,7 @@ export function PromptComparePanel({
     promptId,
     { size: 100 },
   );
-  const versions = versionsData?.content ?? [];
+  const versions = useMemo(() => versionsData?.content ?? [], [versionsData]);
 
   const [from, setFrom] = useState<string | undefined>();
   const [to, setTo] = useState<string | undefined>();

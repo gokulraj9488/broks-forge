@@ -108,7 +108,7 @@ export function ProvisionTemplateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Use "{template.name}" template</DialogTitle>
+          <DialogTitle>Use &quot;{template.name}&quot; template</DialogTitle>
           <DialogDescription>
             Creates a dataset, prompt, and scoring profile from this template, then runs it against your agent.
           </DialogDescription>

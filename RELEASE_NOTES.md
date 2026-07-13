@@ -1,40 +1,95 @@
 # Brok's Forge v1.0.0 — Release Notes
 
 **The Engineering Platform for AI Agents.**
-_Released 2026-07-01 · Java 21 / Spring Boot 3.4.1 · Next.js 15 / React 19 · PostgreSQL 16 + Flyway · Redis 7_
+_Released 2026-07-14 · Java 21 / Spring Boot 3.4.1 · Next.js 15 / React 19 · PostgreSQL 16 + Flyway · Redis 7_
 
-Brok's Forge 1.0.0 is the first general-availability release. It turns a registry of AI agents
-into a full engineering platform: register an agent, measure it, compare versions, debug a failing
-run, and guard against regressions — all strictly multi-tenant, framework- and provider-agnostic.
+## What is Brok's Forge
+
+Brok's Forge is a multi-tenant platform that turns a registry of AI agents into a full
+engineering workflow: register an agent, measure it against a dataset, compare versions and
+models, debug a failing run, and guard against regressions — all strictly multi-tenant, and
+framework- and provider-agnostic. Version 1.0.0 is the first general-availability release.
 
 ---
 
-## Headline capabilities
+## Core features
 
-- **Register and manage agents** — framework-neutral metadata, deployment versions, encrypted
-  usage credentials, and health checks.
-- **Measure systematically** — versioned immutable datasets, versioned prompts, and an evaluation
-  engine built to scale to millions of results.
-- **Compare and guard** — benchmarks with leaderboards and baseline-vs-candidate regression checks
-  across latency, cost, quality, and token usage.
-- **Understand and explain** — an AI Engineering Advisor, root-cause analysis, an Engineering
-  Knowledge Graph, and a stage-by-stage AI Debugger.
+- **Agent Registry** — framework-neutral agent metadata, deployment versions with activate/
+  rollback, AES-256-GCM-encrypted usage credentials, and health checks.
+- **Provider abstraction** — register a provider (OpenAI, Groq, OpenRouter, Anthropic, Google AI
+  Studio, or native Ollama) once per project and reference it from any agent — test its
+  connection and refresh its available models directly from the UI.
+- **Datasets & Prompts** — versioned, immutable datasets (CSV/JSON/XLSX/ZIP import with
+  column-mapping preview) and a versioned prompt library with `{{variable}}` templating,
+  activate/rollback, and version comparison.
+- **Evaluation engine** — `EvaluationJob` → `EvaluationRun` → `EvaluationResult`, scored by a
+  pluggable metric engine, with immutable evaluation-profile versioning and a background
+  execution engine (checkpointing, cancellation, resume) for datasets too large to run
+  synchronously.
+- **Benchmark Gallery** — see below.
+- **Benchmarking & regression** — compare agents/versions/prompts/models/datasets/profiles with
+  leaderboards, and catch baseline-vs-candidate regressions in latency, cost, quality, and tokens.
+- **AI Engineering Advisor** — a recommendation engine (Prompt, Model, Cost, Agent, RAG advisors),
+  root-cause analysis for failed evaluations and regressions, an Engineering Knowledge Graph, and
+  a stage-by-stage AI Debugger execution timeline.
 - **Operate with confidence** — analytics with trends, JSON/CSV/HTML reports, global search, a
-  unified dashboard, and an ADMIN-guarded Prometheus metrics endpoint.
+  dashboard with quick actions and provider health, and an ADMIN-guarded Prometheus endpoint.
 
 ---
 
-## What's inside — the four phases
+## Supported providers
 
-| Phase | Theme | Migrations | Highlights |
-| ----- | ----- | ---------- | ---------- |
-| **P1** | Foundation | `V1`..`V5` | Auth (JWT + refresh rotation, BCrypt), users, organizations, projects, API keys, multi-tenant core. |
-| **P2** | Agent Registry | `V6`..`V10` | Agents, versions, AES-256-GCM-encrypted credentials, health checks, tags. |
-| **P3** | Intelligence Layer | `V11`..`V23` | Datasets, prompts, provider-agnostic model SPI, evaluation, benchmark, regression, analytics, report, search, dashboard. |
-| **P4** | AI Engineering Advisor | `V24`..`V25` | Advisor, root-cause, knowledge graph, AI Debugger, tracing seam, Prometheus metrics + structured logging. |
+| Provider | Native or OpenAI-compatible | Notes |
+|---|---|---|
+| **OpenAI** | Native adapter | `/chat/completions` |
+| **Anthropic** | Native adapter | `/messages` |
+| **Google AI Studio (Gemini)** | Native adapter | Model embedded in the URL path |
+| **Groq** | OpenAI-compatible | |
+| **OpenRouter** | OpenAI-compatible | |
+| **DeepSeek** | OpenAI-compatible | |
+| **Ollama** | Native adapter | Trusted for `localhost`/`127.0.0.1`/`host.docker.internal` without extra config — see [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) |
+| **Custom REST** | Generic envelope | Any agent's own wrapper endpoint |
 
-See [CHANGELOG.md](./CHANGELOG.md) for the itemized list and the
-[Roadmap](./docs/ROADMAP.md) for what's next.
+Adding a provider is a code-only change behind the `ModelInvoker`/`ProviderAdapter` interfaces —
+no other provider's behavior changes.
+
+## Supported metrics
+
+`EXACT_MATCH` · `CONTAINS` · `REGEX_MATCH` · `JSON_VALID` · `NON_EMPTY` · `LENGTH` ·
+`SEMANTIC_SIMILARITY` · `LLM_JUDGE` · `HALLUCINATION_DETECTION` · `CITATION_VERIFICATION` ·
+`CUSTOM` (dispatches to a named `CustomMetricEvaluator` bean — the no-enum-change extension
+point) · `LATENCY` · `COST` · `TOKEN_COUNT`.
+
+## Benchmark Gallery
+
+Eight curated templates remove the "blank project" problem for new users. Each provisions a
+starter dataset, prompt, and evaluation profile with recommended metrics, then runs an evaluation
+against your chosen agent in one click:
+
+| Template | Difficulty | Est. runtime |
+|---|---|---|
+| Customer Support | Easy | ~2 min |
+| RAG | Medium | ~3 min |
+| Coding | Medium | ~2 min |
+| Reasoning | Medium | ~2 min |
+| Hallucination | Medium | ~2 min |
+| Safety | Hard | ~2 min |
+| Summarization | Easy | ~2 min |
+| Translation | Easy | ~2 min |
+
+Templates using judge-family metrics (LLM Judge, Hallucination Detection, Citation Verification,
+Semantic Similarity) ask you to pick a judge/embedding provider at import time — everything
+provisioned is an ordinary, fully-editable Dataset/Prompt/Profile afterward.
+
+---
+
+## Deployment targets
+
+- **Docker Compose** — the reference environment; `docker compose up --build` orchestrates the
+  backend, frontend, PostgreSQL, and Redis.
+- **Railway** (backend) + **Vercel** (frontend) — the recommended production path. See
+  [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for the full walkthrough, required environment
+  variables, and a post-deploy verification checklist.
 
 ---
 
@@ -74,7 +129,7 @@ The frontend is built with the public build arg **`NEXT_PUBLIC_API_BASE_URL`**
 docker compose up --build
 ```
 
-On startup, Flyway applies migrations `V1`..`V25` and the backend boots under
+On startup, Flyway applies migrations `V1`..`V40` and the backend boots under
 `ddl-auto=validate`. Once up:
 
 - **Web app:** <http://localhost:3000>
@@ -87,10 +142,10 @@ On startup, Flyway applies migrations `V1`..`V25` and the backend boots under
 ## Required accounts / keys
 
 **None beyond the two secrets above.** Brok's Forge ships provider-agnostic: no third-party API
-key is required to run the platform. The model SPI supports OpenAI, Anthropic, Groq, Ollama,
-Gemini, OpenRouter, and DeepSeek, but you only supply a provider key when you actually register an
-agent that calls one. Those usage secrets are stored encrypted (AES-256-GCM) and are write-only
-over the API.
+key is required to run the platform, and native Ollama support means you can evaluate against a
+local model with zero API keys at all. You only supply a provider credential when you actually
+register a provider that calls a hosted service — those secrets are stored encrypted
+(AES-256-GCM) and are write-only over the API.
 
 ---
 
@@ -100,23 +155,25 @@ These are accepted, documented trade-offs for 1.0, each with a path forward
 (see [docs/SECURITY_GUIDE.md §15](./docs/SECURITY_GUIDE.md#15-known-limitations--hardening-roadmap)
 and the [Roadmap](./docs/ROADMAP.md)):
 
-- **Synchronous evaluation executor** — evaluation jobs run synchronously today behind a
-  queue-ready seam; async workers / durable queues land in a later phase (P7).
-- **No telemetry exporters wired** — the `TraceRecorder` SPI and `ExecutionStage` vocabulary exist,
-  but no OpenTelemetry exporters are connected yet, so some AI Debugger stages report
-  `NOT_INSTRUMENTED`. Live tracing arrives in P5.
-- **No rate limiting yet** — the `RATE_LIMITED` `ErrorCode` is reserved; per-principal / per-IP
-  limits are planned.
+- **SSRF guard does not fully stop DNS rebinding** — the guard resolves a hostname once at
+  validation and again when the HTTP client connects; IP pinning through the client stack is the
+  planned defense-in-depth (deferred rather than rushed across all seven call sites).
+- **No telemetry exporters wired** — the `TraceRecorder` SPI and `ExecutionStage` vocabulary
+  exist, but no OpenTelemetry exporters are connected yet, so some AI Debugger stages report
+  `NOT_INSTRUMENTED`. Live tracing arrives in Phase 5.
+- **Dataset version-numbering race** — concurrent version imports on the same dataset aren't
+  protected by an optimistic lock.
+- **No unit tests for advisor/regression business logic** — covered by integration tests, but the
+  core scoring math itself lacks dedicated unit coverage.
 - **Encryption key in process env** — production should move to KMS / envelope encryption; the
   versioned ciphertext format already supports key rotation.
-- **SSRF guard does not fully stop DNS rebinding** — IP pinning / egress proxy is the planned
-  defense-in-depth.
 
 ---
 
 ## Documentation & links
 
 - [README and docs index](./docs)
+- [Deployment Guide](./docs/DEPLOYMENT.md) · [Master Architecture](./docs/MASTER_ARCHITECTURE.md)
 - [Contributing](./CONTRIBUTING.md) · [Code of Conduct](./CODE_OF_CONDUCT.md) · [Support](./SUPPORT.md)
 - [Security Policy](./SECURITY.md) · [Security Guide](./docs/SECURITY_GUIDE.md)
 - [Changelog](./CHANGELOG.md) · [Roadmap](./docs/ROADMAP.md)
