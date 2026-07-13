@@ -26,6 +26,22 @@ class HealthProbePlannerTest {
     }
 
     @Test
+    @DisplayName("Ollama's native /api/chat validates via GET .../api/tags, never /v1/models")
+    void ollamaNativeUsesApiTags() {
+        HealthProbePlanner.ProbePlan plan =
+                HealthProbePlanner.plan("http://localhost:11434/api/chat", AgentFramework.CUSTOM_REST, LlmProvider.OLLAMA);
+        assertThat(plan.strategy()).isEqualTo(HealthProbeStrategy.GET_MODELS);
+        assertThat(plan.method()).isEqualTo(HttpMethod.GET);
+        assertThat(plan.url()).isEqualTo("http://localhost:11434/api/tags");
+
+        // Provider detected purely from a localhost host (no stored provider on the agent version)
+        // still resolves to /api/tags, not the OpenAI-compatible fallback.
+        HealthProbePlanner.ProbePlan detected =
+                HealthProbePlanner.plan("http://localhost:11434/api/chat", AgentFramework.CUSTOM_REST, null);
+        assertThat(detected.url()).isEqualTo("http://localhost:11434/api/tags");
+    }
+
+    @Test
     @DisplayName("Anthropic /messages and Gemini generateContent derive their models list")
     void anthropicAndGemini() {
         assertModels("https://api.anthropic.com/v1/messages",
@@ -73,6 +89,23 @@ class HealthProbePlannerTest {
         assertThat(HealthProbePlanner.detectProvider("api.openai.com")).isEqualTo(LlmProvider.OPENAI);
         assertThat(HealthProbePlanner.detectProvider("api.anthropic.com")).isEqualTo(LlmProvider.ANTHROPIC);
         assertThat(HealthProbePlanner.detectProvider("example.com")).isNull();
+    }
+
+    @Test
+    @DisplayName("requiresModelField covers every adapter shape whose body requires \"model\"")
+    void requiresModelFieldCoversAllModelBodyShapes() {
+        assertThat(HealthProbePlanner.requiresModelField("https://api.groq.com/openai/v1/chat/completions")).isTrue();
+        assertThat(HealthProbePlanner.requiresModelField("https://api.anthropic.com/v1/messages")).isTrue();
+        assertThat(HealthProbePlanner.requiresModelField("http://host.docker.internal:11434/api/chat")).isTrue();
+        assertThat(HealthProbePlanner.requiresModelField("http://localhost:11434/api/chat")).isTrue();
+    }
+
+    @Test
+    @DisplayName("requiresModelField is false for Google AI Studio (model is in the URL path) and generic REST")
+    void requiresModelFieldExcludesUrlEmbeddedAndGenericShapes() {
+        assertThat(HealthProbePlanner.requiresModelField(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent")).isFalse();
+        assertThat(HealthProbePlanner.requiresModelField("https://my-agent.example.com/invoke")).isFalse();
     }
 
     private void assertModels(String endpoint, String expectedUrl) {

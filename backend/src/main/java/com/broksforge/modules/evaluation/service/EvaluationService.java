@@ -8,16 +8,18 @@ import com.broksforge.common.web.PageResponse;
 import com.broksforge.config.properties.EvaluationProperties;
 import com.broksforge.modules.agent.service.AgentInvocationService;
 import com.broksforge.modules.agent.service.AgentInvocationTarget;
+import com.broksforge.modules.agent.service.HealthProbePlanner;
 import com.broksforge.modules.dataset.service.DatasetRow;
 import com.broksforge.modules.dataset.service.DatasetService;
 import com.broksforge.modules.dataset.service.DatasetVersionRef;
 import com.broksforge.modules.evaluation.domain.EvaluationJob;
+import com.broksforge.modules.evaluation.domain.EvaluationJobEventType;
 import com.broksforge.modules.evaluation.domain.EvaluationProfile;
+import com.broksforge.modules.evaluation.domain.EvaluationProfileVersion;
 import com.broksforge.modules.evaluation.domain.EvaluationRun;
 import com.broksforge.modules.evaluation.domain.EvaluationRunStatus;
 import com.broksforge.modules.evaluation.domain.EvaluationStatus;
 import com.broksforge.modules.evaluation.domain.EvaluationTargetType;
-import com.broksforge.modules.evaluation.domain.MetricSpec;
 import com.broksforge.modules.evaluation.repository.EvaluationJobRepository;
 import com.broksforge.modules.evaluation.repository.EvaluationJobSpecifications;
 import com.broksforge.modules.evaluation.repository.EvaluationProfileRepository;
@@ -30,7 +32,6 @@ import com.broksforge.modules.evaluation.web.dto.EvaluationJobResponse;
 import com.broksforge.modules.evaluation.web.dto.EvaluationJobSummaryResponse;
 import com.broksforge.modules.evaluation.web.dto.EvaluationResultResponse;
 import com.broksforge.modules.evaluation.web.dto.EvaluationRunResponse;
-import com.broksforge.modules.model.ModelTarget;
 import com.broksforge.modules.organization.domain.OrganizationRole;
 import com.broksforge.modules.organization.service.OrganizationAccessService;
 import com.broksforge.modules.project.service.ProjectService;
@@ -45,6 +46,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -61,6 +63,7 @@ public class EvaluationService {
     private final EvaluationRunRepository runRepository;
     private final EvaluationResultRepository resultRepository;
     private final EvaluationProfileRepository profileRepository;
+    private final EvaluationProfileService profileService;
     private final EvaluationAccessGuard accessGuard;
     private final OrganizationAccessService accessService;
     private final ProjectService projectService;
@@ -69,6 +72,9 @@ public class EvaluationService {
     private final PromptService promptService;
     private final EvaluationJobExecutor executor;
     private final EvaluationJobLifecycle lifecycle;
+    private final EvaluationPlanBuilder planBuilder;
+    private final EvaluationBackgroundRunner backgroundRunner;
+    private final EvaluationJobEventService eventService;
     private final EvaluationMapper mapper;
     private final EvaluationProperties properties;
 
@@ -76,6 +82,7 @@ public class EvaluationService {
                              EvaluationRunRepository runRepository,
                              EvaluationResultRepository resultRepository,
                              EvaluationProfileRepository profileRepository,
+                             EvaluationProfileService profileService,
                              EvaluationAccessGuard accessGuard,
                              OrganizationAccessService accessService,
                              ProjectService projectService,
@@ -84,12 +91,16 @@ public class EvaluationService {
                              PromptService promptService,
                              EvaluationJobExecutor executor,
                              EvaluationJobLifecycle lifecycle,
+                             EvaluationPlanBuilder planBuilder,
+                             EvaluationBackgroundRunner backgroundRunner,
+                             EvaluationJobEventService eventService,
                              EvaluationMapper mapper,
                              EvaluationProperties properties) {
         this.jobRepository = jobRepository;
         this.runRepository = runRepository;
         this.resultRepository = resultRepository;
         this.profileRepository = profileRepository;
+        this.profileService = profileService;
         this.accessGuard = accessGuard;
         this.accessService = accessService;
         this.projectService = projectService;
@@ -98,6 +109,9 @@ public class EvaluationService {
         this.promptService = promptService;
         this.executor = executor;
         this.lifecycle = lifecycle;
+        this.planBuilder = planBuilder;
+        this.backgroundRunner = backgroundRunner;
+        this.eventService = eventService;
         this.mapper = mapper;
         this.properties = properties;
     }
@@ -122,8 +136,33 @@ public class EvaluationService {
                     actorId, organizationId, projectId, request.promptId(), request.promptVersionId());
             promptVersionId = promptVersion.id();
         }
+        EvaluationProfileVersion profileVersion = null;
         if (request.profileId() != null) {
-            accessGuard.requireReadableProfile(organizationId, projectId, request.profileId(), actorId);
+            profileVersion = profileService.getVersionForExecution(
+                    actorId, organizationId, projectId, request.profileId(), null);
+        }
+
+        // Resolution precedence: (1) the job's own override, (2) the agent's active version's
+        // model, (3) the linked provider's default model. A hosted-provider endpoint (OpenAI-
+        // compatible /chat/completions, Anthropic /messages, Ollama's native /api/chat) requires
+        // one in the wire request, so an unresolvable model fails validation now rather than
+        // surfacing as a provider HTTP 400 partway through the run. A plain CUSTOM_REST wrapper
+        // agent never needs one — it decides its own model — so this never blocks a job that
+        // doesn't require it.
+        String effectiveModel = trimToNull(request.model()) != null ? trimToNull(request.model()) : target.fallbackModel();
+        if (HealthProbePlanner.requiresModelField(target.endpointUrl())) {
+            if (effectiveModel == null) {
+                throw new BadRequestException(ErrorCode.EVALUATION_CONFIG_INVALID,
+                        "This agent's endpoint requires a model, and none is set. Set a model on this "
+                                + "evaluation job, on the agent's active version, or as the linked provider's "
+                                + "default model.");
+            }
+            if (HealthProbePlanner.looksLikeProviderName(effectiveModel)) {
+                throw new BadRequestException(ErrorCode.EVALUATION_CONFIG_INVALID,
+                        "Model must be a provider model identifier (for example: llama-3.3-70b-versatile, "
+                                + "gemini-2.5-flash, gpt-4.1, claude-sonnet-4), not the provider name ('"
+                                + effectiveModel + "').");
+            }
         }
 
         EvaluationJob job = new EvaluationJob();
@@ -140,8 +179,12 @@ public class EvaluationService {
         job.setPromptId(request.promptId());
         job.setPromptVersionId(promptVersionId);
         job.setProfileId(request.profileId());
+        if (profileVersion != null) {
+            job.setProfileVersionId(profileVersion.getId());
+            job.setProfileVersionNumber(profileVersion.getVersionNumber());
+        }
         job.setProvider(request.provider());
-        job.setModel(trimToNull(request.model()));
+        job.setModel(effectiveModel);
         if (request.parameters() != null) {
             job.getParameters().putAll(request.parameters());
         }
@@ -152,13 +195,26 @@ public class EvaluationService {
                 saved.getId(), saved.getName(), projectId, actorId);
 
         if (Boolean.TRUE.equals(request.autoRun())) {
-            return run(actorId, organizationId, projectId, saved.getId());
+            try {
+                return run(actorId, organizationId, projectId, saved.getId());
+            } catch (RuntimeException e) {
+                // Auto-run failed before anything executed (e.g. a validation error) — remove the
+                // job rather than leave an orphaned PENDING row the user never asked to create.
+                log.warn("Auto-run failed for evaluation job {}; discarding it (create+run is atomic)",
+                        saved.getId(), e);
+                lifecycle.discardUnrun(saved.getId());
+                throw e;
+            }
         }
         return mapper.toJobResponse(saved);
     }
 
     /**
-     * Executes a PENDING job. The outbound model calls happen outside any transaction.
+     * Executes a PENDING job. Datasets at or below {@code max-items-per-job} run synchronously on
+     * this thread (unchanged Phase 3 behaviour: the response reflects the terminal state). Larger
+     * datasets are executed in the background — this call returns immediately with the job in
+     * RUNNING state; poll {@link #get} for progress (see {@code EvaluationJobResponse}'s
+     * completedItems/failedItems/totalItems) until it reaches a terminal status.
      */
     public EvaluationJobResponse run(UUID actorId, UUID organizationId, UUID projectId, UUID jobId) {
         EvaluationJob job = accessGuard.requireManageableJob(organizationId, projectId, jobId, actorId,
@@ -168,15 +224,39 @@ public class EvaluationService {
                     "Evaluation job is not in a runnable (PENDING) state");
         }
 
-        EvaluationPlan plan = buildPlan(actorId, job);
-        lifecycle.markRunning(jobId);
-        try {
-            EvaluationOutcome outcome = executor.execute(plan);
-            lifecycle.complete(jobId, outcome);
-        } catch (RuntimeException e) {
-            log.error("Evaluation job {} failed during execution", jobId, e);
-            lifecycle.fail(jobId, e.getMessage());
+        if (job.getTotalItems() <= properties.maxItemsPerJob()) {
+            EvaluationPlan plan = planBuilder.buildPlan(actorId, job);
+            lifecycle.markRunning(jobId);
+            try {
+                EvaluationOutcome outcome = executor.execute(plan);
+                lifecycle.complete(jobId, outcome);
+            } catch (RuntimeException e) {
+                log.error("Evaluation job {} failed during execution", jobId, e);
+                lifecycle.fail(jobId, e.getMessage());
+            }
+            return mapper.toJobResponse(reload(organizationId, projectId, jobId));
         }
+
+        lifecycle.queueForBackground(jobId, properties.batchSize());
+        eventService.record(jobId, organizationId, EvaluationJobEventType.QUEUED,
+                "Queued for background execution: %d items, batch size %d".formatted(
+                        job.getTotalItems(), properties.batchSize()));
+        backgroundRunner.runAsync(jobId, 1);
+        return mapper.toJobResponse(reload(organizationId, projectId, jobId));
+    }
+
+    /**
+     * Resumes a job that ended FAILED/CANCELLED with items still outstanding, or a RUNNING job
+     * whose background pass appears stalled. Items that already succeeded are skipped — only
+     * outstanding rows are (re)executed, in a new pass recorded with an incremented attempt number.
+     */
+    public EvaluationJobResponse resume(UUID actorId, UUID organizationId, UUID projectId, UUID jobId) {
+        EvaluationJob job = accessGuard.requireManageableJob(organizationId, projectId, jobId, actorId,
+                OrganizationRole.MEMBER);
+        int attempt = lifecycle.resumeForBackground(jobId);
+        eventService.record(jobId, organizationId, EvaluationJobEventType.RESUMED,
+                "Resumed by %s (pass %d)".formatted(actorId, attempt));
+        backgroundRunner.runAsync(jobId, attempt);
         return mapper.toJobResponse(reload(organizationId, projectId, jobId));
     }
 
@@ -193,6 +273,25 @@ public class EvaluationService {
     @Transactional(readOnly = true)
     public EvaluationJobResponse get(UUID actorId, UUID organizationId, UUID projectId, UUID jobId) {
         return mapper.toJobResponse(accessGuard.requireReadableJob(organizationId, projectId, jobId, actorId));
+    }
+
+    /**
+     * Published for callers that need several jobs by id in one round-trip instead of calling
+     * {@link #get} per id (e.g. a benchmark leaderboard scoring each of its entries). Tenant-scoped
+     * exactly like {@code get}: a ambiguous id — foreign, deleted, or simply not found — is silently
+     * absent from the map rather than throwing, since the caller is resolving a best-effort batch,
+     * not asserting a single resource exists.
+     */
+    @Transactional(readOnly = true)
+    public Map<UUID, EvaluationJobResponse> getMany(UUID actorId, UUID organizationId, UUID projectId,
+                                                     List<UUID> jobIds) {
+        accessService.requireMembership(organizationId, actorId);
+        if (jobIds == null || jobIds.isEmpty()) {
+            return Map.of();
+        }
+        return jobRepository.findByIdInAndProjectIdAndOrganizationIdAndDeletedFalse(jobIds, projectId, organizationId)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(EvaluationJob::getId, mapper::toJobResponse));
     }
 
     /**
@@ -275,50 +374,12 @@ public class EvaluationService {
         return resultRepository.tallyByMetric(jobId);
     }
 
-    // ----------------------------------------------------------------------
-    // Plan building
-    // ----------------------------------------------------------------------
-
-    private EvaluationPlan buildPlan(UUID actorId, EvaluationJob job) {
-        AgentInvocationTarget target = agentInvocationService.resolveTarget(
-                actorId, job.getOrganizationId(), job.getProjectId(), job.getAgentId());
-
-        List<DatasetRow> items = datasetService.loadExecutionItems(
-                actorId, job.getOrganizationId(), job.getProjectId(), job.getDatasetId(), job.getDatasetVersionId());
-        if (items.isEmpty()) {
-            throw new BadRequestException(ErrorCode.EVALUATION_CONFIG_INVALID,
-                    "The pinned dataset version has no items");
-        }
-        if (items.size() > properties.maxItemsPerJob()) {
-            throw new BadRequestException(ErrorCode.EVALUATION_CONFIG_INVALID,
-                    ("Dataset has %d rows, exceeding the synchronous limit of %d; reduce the dataset or raise "
-                            + "broksforge.evaluation.max-items-per-job")
-                            .formatted(items.size(), properties.maxItemsPerJob()));
-        }
-
-        String template = null;
-        if (job.getPromptId() != null) {
-            PromptVersionResponse promptVersion = promptService.getVersionForExecution(
-                    actorId, job.getOrganizationId(), job.getProjectId(), job.getPromptId(), job.getPromptVersionId());
-            template = promptVersion.template();
-        }
-
-        List<MetricSpec> metrics = List.of();
-        java.math.BigDecimal passThreshold = null;
-        if (job.getProfileId() != null) {
-            EvaluationProfile profile = profileRepository
-                    .findByIdAndProjectIdAndOrganizationIdAndDeletedFalse(
-                            job.getProfileId(), job.getProjectId(), job.getOrganizationId())
-                    .orElseThrow(() -> new BadRequestException(ErrorCode.EVALUATION_PROFILE_INVALID,
-                            "The job's evaluation profile no longer exists"));
-            metrics = profile.getMetrics();
-            passThreshold = profile.getPassThreshold();
-        }
-
-        ModelTarget modelTarget = new ModelTarget(target.endpointUrl(), target.headers());
-        return new EvaluationPlan(job.getId(), job.getOrganizationId(), job.getProjectId(),
-                job.getProvider(), job.getModel(), job.getParameters(), modelTarget, template, metrics,
-                passThreshold, items);
+    /** Published for the root-cause engine: per-metric, per-status counts of metrics that never executed. */
+    @Transactional(readOnly = true)
+    public List<MetricExecutionFailureTally> metricExecutionFailureBreakdown(UUID actorId, UUID organizationId,
+                                                                             UUID projectId, UUID jobId) {
+        accessGuard.requireReadableJob(organizationId, projectId, jobId, actorId);
+        return resultRepository.tallyExecutionFailuresByMetric(jobId);
     }
 
     private EvaluationJob reload(UUID organizationId, UUID projectId, UUID jobId) {

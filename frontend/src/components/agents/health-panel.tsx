@@ -16,6 +16,11 @@ import { getApiErrorMessage } from "@/lib/api/client";
 import { formatDateTime } from "@/lib/utils";
 import { HEALTH_PROBE_STRATEGY_LABELS } from "@/lib/api/agents";
 
+/** POST_COMPLETION is the only probe strategy that issues a POST; everything else is a GET. */
+function probeMethod(strategy: string): "GET" | "POST" {
+  return strategy === "POST_COMPLETION" ? "POST" : "GET";
+}
+
 export function HealthPanel({
   organizationId,
   projectId,
@@ -98,9 +103,20 @@ export function HealthPanel({
               Last checked {formatDateTime(data?.lastCheckedAt)}
             </p>
             {lastProbe?.probeStrategy && (
-              <p className="text-xs text-muted-foreground">
-                Probe: {HEALTH_PROBE_STRATEGY_LABELS[lastProbe.probeStrategy]}
-              </p>
+              <div className="mt-2 space-y-1 rounded-md border border-border bg-muted/30 p-2.5 font-mono text-[11px] leading-relaxed">
+                <p className="break-all text-foreground">
+                  {probeMethod(lastProbe.probeStrategy)} {lastProbe.probeUrl ?? HEALTH_PROBE_STRATEGY_LABELS[lastProbe.probeStrategy]}
+                </p>
+                <p className={lastProbe.success ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}>
+                  {lastProbe.success ? "✓" : "✗"} {lastProbe.httpStatus != null ? `HTTP ${lastProbe.httpStatus}` : "No response"}
+                  {lastProbe.latencyMs != null && ` · ${lastProbe.latencyMs}ms`}
+                </p>
+                {!lastProbe.success && lastProbe.failureReason && (
+                  <p className="whitespace-pre-wrap break-words text-muted-foreground">
+                    Reason: {lastProbe.failureReason}
+                  </p>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>

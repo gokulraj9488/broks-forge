@@ -89,6 +89,11 @@ public final class HealthProbePlanner {
         if (modelsUrl != null) {
             return new ProbePlan(HttpMethod.GET, modelsUrl, null, HealthProbeStrategy.GET_MODELS);
         }
+        if (effectiveProvider == LlmProvider.OLLAMA) {
+            // Ollama has no OpenAI-compatible /v1/models guarantee on its native route; its own
+            // model listing endpoint is /api/tags, regardless of the registered path shape.
+            return new ProbePlan(HttpMethod.GET, base + "/api/tags", null, HealthProbeStrategy.GET_MODELS);
+        }
         if (effectiveProvider != null && HOSTED_LLM_PROVIDERS.contains(effectiveProvider)) {
             // Known provider host but an unrecognised path: fall back to the OpenAI-compatible default.
             return new ProbePlan(HttpMethod.GET, base + "/v1/models", null, HealthProbeStrategy.GET_MODELS);
@@ -96,6 +101,24 @@ public final class HealthProbePlanner {
 
         // 4. Generic / unknown target.
         return new ProbePlan(HttpMethod.GET, endpointUrl, null, HealthProbeStrategy.GET_ROOT);
+    }
+
+    /**
+     * Resolves the effective {@link LlmProvider} for {@code endpointUrl}: the explicit
+     * {@code provider} when known, otherwise a best-effort detection from the endpoint's host.
+     * Shared by callers that need to know "is this really Ollama?" for reasons beyond probe
+     * planning (e.g. {@link com.broksforge.common.security.OutboundUrlGuard}'s narrow
+     * trusted-local-Ollama bypass) without duplicating the detection logic.
+     */
+    public static LlmProvider effectiveProvider(String endpointUrl, LlmProvider provider) {
+        if (provider != null) {
+            return provider;
+        }
+        try {
+            return detectProvider(URI.create(endpointUrl).getHost());
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     /**
@@ -122,6 +145,69 @@ public final class HealthProbePlanner {
     }
 
     /**
+     * Maps a detected {@link LlmProvider} to the short, lowercase key used to look up
+     * provider-specific configuration (e.g. {@code broksforge.providers.default-max-tokens.<key>}).
+     * Both Gemini and Vertex map to {@code "google"}, and Azure OpenAI to {@code "azure"}, since
+     * configuration is keyed by vendor rather than by API variant.
+     */
+    public static String providerConfigKey(LlmProvider provider) {
+        if (provider == null) {
+            return null;
+        }
+        return switch (provider) {
+            case GOOGLE_GEMINI, GOOGLE_VERTEX -> "google";
+            case AZURE_OPENAI -> "azure";
+            default -> provider.name().toLowerCase(Locale.ROOT);
+        };
+    }
+
+    /**
+     * True when {@code endpointUrl} matches a hosted LLM provider's request shape whose wire
+     * protocol requires a {@code model} field in the body: OpenAI-compatible chat-completions
+     * (OpenAI, Groq, OpenRouter, Mistral, DeepSeek, Azure OpenAI, ...), Anthropic's
+     * {@code /messages}, or Ollama's native {@code /api/chat}. Every matching {@code ProviderAdapter}
+     * (see {@code OpenAiCompatibleAdapter}/{@code AnthropicAdapter}/{@code OllamaAdapter}) only
+     * adds {@code "model"} to the payload when one is resolved, so an unresolved model is silently
+     * dropped rather than rejected client-side — this is what lets both {@code AgentEndpointInvoker}
+     * (fail fast before the HTTP call) and evaluation-job creation (require a resolvable model up
+     * front) catch the gap instead of discovering it from the provider's own HTTP 400 mid-run.
+     * Google AI Studio is deliberately excluded — its adapter embeds the model in the URL path, not
+     * the body.
+     */
+    public static boolean requiresModelField(String endpointUrl) {
+        try {
+            String path = URI.create(endpointUrl).getPath();
+            if (path == null) {
+                return false;
+            }
+            String lower = path.toLowerCase(Locale.ROOT);
+            return lower.endsWith("/chat/completions") || lower.endsWith("/messages") || lower.endsWith("/api/chat");
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    /** Provider/vendor names users mistakenly type into a model field instead of a real model id. */
+    private static final Set<String> PROVIDER_NAME_LOOKALIKES = Set.of(
+            "openai", "groq", "openrouter", "anthropic", "claude", "gemini", "google", "googlegemini",
+            "mistral", "mistralai", "deepseek", "cohere", "azure", "azureopenai", "ollama", "vertex",
+            "vertexai", "huggingface", "together", "togetherai", "perplexity", "xai", "grok");
+
+    /**
+     * True when {@code model} is a bare provider/vendor name ("Groq", "OpenAI", "Claude", ...)
+     * rather than an actual model identifier ("llama-3.3-70b-versatile", "gpt-4o-mini", ...).
+     * Purely a spelling heuristic — it cannot know whether a syntactically model-shaped string is
+     * one the provider actually serves, since that requires calling the provider.
+     */
+    public static boolean looksLikeProviderName(String model) {
+        if (model == null || model.isBlank()) {
+            return false;
+        }
+        String normalized = model.strip().toLowerCase(Locale.ROOT).replaceAll("[\\s_-]", "");
+        return PROVIDER_NAME_LOOKALIKES.contains(normalized);
+    }
+
+    /**
      * Derives the provider's models-list URL from an LLM invocation URL, using the well-known
      * conventions. Returns {@code null} if the path is not a recognised LLM invocation path.
      */
@@ -130,6 +216,11 @@ public final class HealthProbePlanner {
             return null;
         }
         String lower = path.toLowerCase(Locale.ROOT);
+        // Ollama's native chat route: .../api/chat -> .../api/tags (never /v1/models — that's the
+        // OpenAI-compatibility shim, not the native API this platform's Ollama adapter speaks).
+        if (lower.endsWith("/api/chat")) {
+            return base + path.substring(0, path.length() - "/api/chat".length()) + "/api/tags";
+        }
         // OpenAI-compatible: .../chat/completions -> .../models (OpenAI, Groq, OpenRouter, Mistral,
         // DeepSeek, Together, Ollama-OpenAI, Azure OpenAI, …).
         if (lower.endsWith("/chat/completions")) {
