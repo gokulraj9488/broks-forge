@@ -18,7 +18,7 @@ const keys = {
     ["organizations", o, "projects", p, "prompts", pr] as const,
   versions: (o: string, p: string, pr: string) =>
     ["organizations", o, "projects", p, "prompts", pr, "versions"] as const,
-  compare: (o: string, p: string, pr: string, from: number, to: number) =>
+  compare: (o: string, p: string, pr: string, from: string, to: string) =>
     ["organizations", o, "projects", p, "prompts", pr, "compare", from, to] as const,
 };
 
@@ -147,24 +147,24 @@ export function usePromptCompare(
   organizationId: string | undefined,
   projectId: string | undefined,
   promptId: string | undefined,
-  from: number | undefined,
-  to: number | undefined,
+  from: string | undefined,
+  to: string | undefined,
 ) {
   return useQuery({
     queryKey: keys.compare(
       organizationId ?? "",
       projectId ?? "",
       promptId ?? "",
-      from ?? -1,
-      to ?? -1,
+      from ?? "",
+      to ?? "",
     ),
     queryFn: () =>
       promptsApi.compare(
         organizationId as string,
         projectId as string,
         promptId as string,
-        from as number,
-        to as number,
+        from as string,
+        to as string,
       ),
     enabled:
       !!organizationId &&

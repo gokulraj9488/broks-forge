@@ -32,14 +32,14 @@ export function PromptComparePanel({
   );
   const versions = versionsData?.content ?? [];
 
-  const [from, setFrom] = useState<number | undefined>();
-  const [to, setTo] = useState<number | undefined>();
+  const [from, setFrom] = useState<string | undefined>();
+  const [to, setTo] = useState<string | undefined>();
 
   useEffect(() => {
     if (from != null || versions.length < 2) return;
     const sorted = [...versions].sort((a, b) => a.versionNumber - b.versionNumber);
-    setFrom(sorted[sorted.length - 2].versionNumber);
-    setTo(sorted[sorted.length - 1].versionNumber);
+    setFrom(sorted[sorted.length - 2].id);
+    setTo(sorted[sorted.length - 1].id);
   }, [versions, from]);
 
   const { data, isLoading, isError } = usePromptCompare(
@@ -69,10 +69,7 @@ export function PromptComparePanel({
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">From</span>
-          <Select
-            value={from != null ? String(from) : ""}
-            onValueChange={(v) => setFrom(Number(v))}
-          >
+          <Select value={from ?? ""} onValueChange={setFrom}>
             <SelectTrigger
               className="h-8 w-auto min-w-[8rem] text-xs"
               aria-label="From version"
@@ -81,7 +78,7 @@ export function PromptComparePanel({
             </SelectTrigger>
             <SelectContent>
               {versions.map((v) => (
-                <SelectItem key={v.id} value={String(v.versionNumber)}>
+                <SelectItem key={v.id} value={v.id}>
                   v{v.versionNumber}
                 </SelectItem>
               ))}
@@ -91,10 +88,7 @@ export function PromptComparePanel({
         <ArrowRight className="h-4 w-4 text-muted-foreground" />
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">To</span>
-          <Select
-            value={to != null ? String(to) : ""}
-            onValueChange={(v) => setTo(Number(v))}
-          >
+          <Select value={to ?? ""} onValueChange={setTo}>
             <SelectTrigger
               className="h-8 w-auto min-w-[8rem] text-xs"
               aria-label="To version"
@@ -103,7 +97,7 @@ export function PromptComparePanel({
             </SelectTrigger>
             <SelectContent>
               {versions.map((v) => (
-                <SelectItem key={v.id} value={String(v.versionNumber)}>
+                <SelectItem key={v.id} value={v.id}>
                   v{v.versionNumber}
                 </SelectItem>
               ))}
@@ -126,7 +120,7 @@ export function PromptComparePanel({
                 {data.identicalTemplate ? "Templates identical" : "Templates differ"}
               </Badge>
               <span className="text-sm text-muted-foreground">
-                Comparing v{data.from} → v{data.to}
+                Comparing v{data.from.versionNumber} → v{data.to.versionNumber}
               </span>
             </CardContent>
           </Card>

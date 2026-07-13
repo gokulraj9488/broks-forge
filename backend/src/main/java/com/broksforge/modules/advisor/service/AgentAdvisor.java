@@ -141,7 +141,7 @@ public class AgentAdvisor {
                 .confidence(Confidence.HIGH)
                 .severity(Severity.MEDIUM)
                 .evidence("Auth type: NONE")
-                .knowledgeKey("MISSING_HEALTHCHECK")
+                .knowledgeKey("MISSING_AUTH")
                 .build());
     }
 
@@ -160,7 +160,7 @@ public class AgentAdvisor {
                 .confidence(Confidence.HIGH)
                 .severity(Severity.HIGH)
                 .evidence("Endpoint scheme: http://")
-                .knowledgeKey("MISSING_HEALTHCHECK")
+                .knowledgeKey("INSECURE_TRANSPORT")
                 .build());
     }
 }

@@ -43,7 +43,7 @@ public class DatasetAccessGuard {
 
     public void ensureNotArchived(Dataset dataset) {
         if (dataset.isArchived()) {
-            throw new ResourceConflictException(ErrorCode.AGENT_ARCHIVED,
+            throw new ResourceConflictException(ErrorCode.DATASET_ARCHIVED,
                     "Dataset is archived; unarchive it before making changes");
         }
     }

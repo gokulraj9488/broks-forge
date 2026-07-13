@@ -37,7 +37,11 @@ public class EvaluationAnalyticsService {
     @Transactional(readOnly = true)
     public EvaluationAnalyticsSummary summary(UUID actorId, UUID organizationId, UUID projectId, Instant from) {
         accessService.requireMembership(organizationId, actorId);
-        long jobCount = jobRepository.countByProjectIdAndDeletedFalse(projectId);
+        // Scoped by BOTH organizationId and projectId — countByProjectIdAndDeletedFalse alone would
+        // leak another organization's job count to any member who supplies its projectId, since
+        // requireMembership only confirms actorId belongs to the (correct) organizationId, never
+        // that projectId actually belongs to it.
+        long jobCount = jobRepository.countByOrganizationIdAndProjectIdAndDeletedFalse(organizationId, projectId);
         EvaluationRunAggregate aggregate = runRepository.aggregate(organizationId, projectId, from);
 
         long runCount = nullToZero(aggregate.runCount());

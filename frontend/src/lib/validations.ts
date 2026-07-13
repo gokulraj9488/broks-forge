@@ -115,39 +115,66 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
-export const agentSchema = z.object({
-  name: z.string().min(2, "At least 2 characters").max(120),
-  slug,
-  description: z.string().max(1000).optional(),
-  endpointUrl: z
-    .string()
-    .min(1, "Endpoint URL is required")
-    .max(2048)
-    .refine(isHttpUrl, "Must be a valid http(s) URL without embedded credentials"),
-  visibility: z.enum(["PRIVATE", "ORGANIZATION", "PUBLIC"]),
-  framework: z.enum([
-    "SPRING_AI",
-    "LANGGRAPH",
-    "LANGCHAIN",
-    "CREWAI",
-    "AUTOGEN",
-    "PYDANTIC_AI",
-    "SEMANTIC_KERNEL",
-    "LLAMA_INDEX",
-    "CUSTOM_REST",
-    "OTHER",
-  ]),
-  language: z.enum(["JAVA", "PYTHON", "NODE", "TYPESCRIPT", "GO", "RUST", "CSHARP", "OTHER"]),
-  authType: z.enum(["NONE", "API_KEY", "BEARER_TOKEN", "BASIC_AUTH", "CUSTOM_HEADER"]),
-  streaming: z.boolean().optional(),
-  memory: z.boolean().optional(),
-  rag: z.boolean().optional(),
-  toolCalling: z.boolean().optional(),
-  structuredOutput: z.boolean().optional(),
-  reasoning: z.boolean().optional(),
-  multiAgent: z.boolean().optional(),
-  tags: z.string().max(500).optional(),
-});
+export const agentSchema = z
+  .object({
+    name: z.string().min(2, "At least 2 characters").max(120),
+    slug,
+    description: z.string().max(1000).optional(),
+    // Required unless providerId is set (the provider's base URL, or endpointOverride, is used
+    // instead) — see the superRefine below, which mirrors the backend's own relaxed validation
+    // (RegisterAgentRequest.endpointUrl is no longer @NotBlank; either endpointUrl or providerId
+    // must be present).
+    endpointUrl: z.string().max(2048).optional(),
+    providerId: z.string().optional(),
+    modelOverride: z.string().max(128).optional(),
+    endpointOverride: z.string().max(2048).optional(),
+    visibility: z.enum(["PRIVATE", "ORGANIZATION", "PUBLIC"]),
+    framework: z.enum([
+      "SPRING_AI",
+      "LANGGRAPH",
+      "LANGCHAIN",
+      "CREWAI",
+      "AUTOGEN",
+      "PYDANTIC_AI",
+      "SEMANTIC_KERNEL",
+      "LLAMA_INDEX",
+      "CUSTOM_REST",
+      "OTHER",
+    ]),
+    language: z.enum(["JAVA", "PYTHON", "NODE", "TYPESCRIPT", "GO", "RUST", "CSHARP", "OTHER"]),
+    authType: z.enum(["NONE", "API_KEY", "BEARER_TOKEN", "BASIC_AUTH", "CUSTOM_HEADER"]),
+    streaming: z.boolean().optional(),
+    memory: z.boolean().optional(),
+    rag: z.boolean().optional(),
+    toolCalling: z.boolean().optional(),
+    structuredOutput: z.boolean().optional(),
+    reasoning: z.boolean().optional(),
+    multiAgent: z.boolean().optional(),
+    tags: z.string().max(500).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.providerId) {
+      if (!data.endpointUrl || data.endpointUrl.trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Endpoint URL is required unless a provider is selected",
+          path: ["endpointUrl"],
+        });
+      } else if (!isHttpUrl(data.endpointUrl)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Must be a valid http(s) URL without embedded credentials",
+          path: ["endpointUrl"],
+        });
+      }
+    } else if (data.endpointOverride && !isHttpUrl(data.endpointOverride)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Must be a valid http(s) URL without embedded credentials",
+        path: ["endpointOverride"],
+      });
+    }
+  });
 export type AgentValues = z.infer<typeof agentSchema>;
 
 export const agentVersionSchema = z.object({
@@ -159,6 +186,9 @@ export const agentVersionSchema = z.object({
   provider: z.enum([
     "OPENAI",
     "ANTHROPIC",
+    "GROQ",
+    "OPENROUTER",
+    "DEEPSEEK",
     "AZURE_OPENAI",
     "AWS_BEDROCK",
     "GOOGLE_VERTEX",

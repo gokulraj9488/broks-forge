@@ -70,17 +70,26 @@ public class KnowledgeGraphService {
                 .orElseThrow(() -> new ApiException(ErrorCode.KNOWLEDGE_PATTERN_NOT_FOUND,
                         "Knowledge node '" + nodeKey + "' not found"));
 
-        Map<UUID, KnowledgeNode> byId = nodeRepository.findAll().stream()
+        List<KnowledgeEdge> outgoing = edgeRepository.findBySourceNodeId(node.getId());
+        List<KnowledgeEdge> incoming = edgeRepository.findByTargetNodeId(node.getId());
+
+        // Only the neighbor nodes this one is actually connected to are needed here — not
+        // every node in the graph (a full-table scan that scaled with total graph size
+        // regardless of how many edges this node has).
+        List<UUID> neighborIds = new ArrayList<>();
+        outgoing.forEach(edge -> neighborIds.add(edge.getTargetNodeId()));
+        incoming.forEach(edge -> neighborIds.add(edge.getSourceNodeId()));
+        Map<UUID, KnowledgeNode> byId = nodeRepository.findAllById(neighborIds).stream()
                 .collect(Collectors.toMap(KnowledgeNode::getId, Function.identity()));
 
         List<KnowledgeNeighborResponse> neighbors = new ArrayList<>();
-        for (KnowledgeEdge edge : edgeRepository.findBySourceNodeId(node.getId())) {
+        for (KnowledgeEdge edge : outgoing) {
             KnowledgeNode other = byId.get(edge.getTargetNodeId());
             if (other != null) {
                 neighbors.add(new KnowledgeNeighborResponse(edge.getRelation(), "OUTGOING", toResponse(other)));
             }
         }
-        for (KnowledgeEdge edge : edgeRepository.findByTargetNodeId(node.getId())) {
+        for (KnowledgeEdge edge : incoming) {
             KnowledgeNode other = byId.get(edge.getSourceNodeId());
             if (other != null) {
                 neighbors.add(new KnowledgeNeighborResponse(edge.getRelation(), "INCOMING", toResponse(other)));

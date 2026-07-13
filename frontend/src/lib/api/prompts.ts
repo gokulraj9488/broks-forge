@@ -44,8 +44,9 @@ export interface PromptVersionResponse {
 }
 
 export interface PromptCompareResponse {
-  from: number;
-  to: number;
+  promptId: string;
+  from: PromptVersionResponse;
+  to: PromptVersionResponse;
   addedVariables: string[];
   removedVariables: string[];
   commonVariables: string[];
@@ -184,12 +185,12 @@ export const promptsApi = {
     organizationId: string,
     projectId: string,
     promptId: string,
-    from: number,
-    to: number,
+    fromVersionId: string,
+    toVersionId: string,
   ) =>
     apiClient
       .get<PromptCompareResponse>(`${base(organizationId, projectId)}/${promptId}/compare`, {
-        params: { from, to },
+        params: { from: fromVersionId, to: toVersionId },
       })
       .then((r) => r.data),
 };

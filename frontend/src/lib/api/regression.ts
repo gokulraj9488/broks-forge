@@ -16,9 +16,11 @@ export interface RegressionCheckSummaryResponse {
 
 export interface RegressionFinding {
   label: string;
-  baseline: number;
-  candidate: number;
-  deltaPct: number;
+  // Null when the metric wasn't reported by one of the two jobs (e.g. no score metric
+  // configured, or all runs failed before latency capture) — never assume non-null.
+  baseline: number | null;
+  candidate: number | null;
+  deltaPct: number | null;
   regressed: boolean;
   lowerIsBetter: boolean;
 }
