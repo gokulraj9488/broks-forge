@@ -18,6 +18,8 @@ public record EvaluationProfileResponse(
         UUID ownerId,
         List<MetricSpecDto> metrics,
         BigDecimal passThreshold,
+        boolean enabled,
+        int currentVersionNumber,
         Instant createdAt,
         Instant updatedAt
 ) {

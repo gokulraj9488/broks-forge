@@ -1,7 +1,9 @@
 package com.broksforge.modules.agent.service;
 
+import com.broksforge.common.exception.BadRequestException;
 import com.broksforge.common.exception.ErrorCode;
 import com.broksforge.common.exception.ResourceConflictException;
+import com.broksforge.common.exception.ResourceNotFoundException;
 import com.broksforge.common.util.SlugGenerator;
 import com.broksforge.common.web.PageResponse;
 import com.broksforge.modules.agent.domain.Agent;
@@ -22,6 +24,8 @@ import com.broksforge.modules.agent.web.dto.UpdateAgentRequest;
 import com.broksforge.modules.organization.domain.OrganizationRole;
 import com.broksforge.modules.organization.service.OrganizationAccessService;
 import com.broksforge.modules.project.service.ProjectService;
+import com.broksforge.modules.provider.domain.Provider;
+import com.broksforge.modules.provider.repository.ProviderRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -56,6 +60,7 @@ public class AgentService {
     private final OrganizationAccessService accessService;
     private final ProjectService projectService;
     private final AgentMapper mapper;
+    private final ProviderRepository providerRepository;
 
     public AgentService(AgentRepository agentRepository,
                         AgentTagRepository tagRepository,
@@ -63,7 +68,8 @@ public class AgentService {
                         AgentAccessGuard accessGuard,
                         OrganizationAccessService accessService,
                         ProjectService projectService,
-                        AgentMapper mapper) {
+                        AgentMapper mapper,
+                        ProviderRepository providerRepository) {
         this.agentRepository = agentRepository;
         this.tagRepository = tagRepository;
         this.credentialRepository = credentialRepository;
@@ -71,6 +77,7 @@ public class AgentService {
         this.accessService = accessService;
         this.projectService = projectService;
         this.mapper = mapper;
+        this.providerRepository = providerRepository;
     }
 
     @Transactional
@@ -90,9 +97,10 @@ public class AgentService {
         agent.setVisibility(request.visibility());
         agent.setFramework(request.framework());
         agent.setLanguage(request.language());
-        agent.setEndpointUrl(request.endpointUrl().trim());
         agent.setAuthType(request.authType());
         applyCapabilities(agent.getCapabilities(), request.capabilities());
+        applyProviderLink(agent, organizationId, projectId, request.providerId(),
+                request.modelOverride(), request.endpointOverride(), request.endpointUrl());
 
         Agent saved = agentRepository.save(agent);
         List<String> tags = replaceTags(saved, request.tags());
@@ -161,6 +169,12 @@ public class AgentService {
         if (request.capabilities() != null) {
             applyCapabilities(agent.getCapabilities(), request.capabilities());
         }
+        if (request.providerId() != null) {
+            applyProviderLink(agent, organizationId, projectId, request.providerId(),
+                    request.modelOverride(), request.endpointOverride(), null);
+        } else if (StringUtils.hasText(request.modelOverride())) {
+            agent.setModelOverride(request.modelOverride().trim());
+        }
 
         List<String> tags = request.tags() != null ? replaceTags(agent, request.tags()) : loadTags(agentId);
         log.info("Agent {} updated in project {} by {}", agentId, projectId, actorId);
@@ -196,6 +210,40 @@ public class AgentService {
     // ----------------------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------------------
+
+    /**
+     * Links {@code agent} to a Provider (Provider abstraction milestone) and resolves its
+     * effective endpoint/model once, at write time: {@code endpointOverride} if given, else the
+     * provider's {@code baseUrl}; {@code modelOverride} if given, else the provider's
+     * {@code defaultModel}. Resolving inheritance here — rather than at every read — means
+     * {@link Agent#getEndpointUrl()} always holds the real value every existing consumer
+     * (invocation, health checks, evaluation) already reads unchanged.
+     *
+     * <p>{@code fallbackEndpointUrl} is the request's own {@code endpointUrl} field, used only
+     * when there is no provider link at all (the pre-existing, still-fully-supported path) — at
+     * least one of a provider link or an explicit endpoint is required.</p>
+     */
+    private void applyProviderLink(Agent agent, UUID organizationId, UUID projectId, UUID providerId,
+                                   String modelOverride, String endpointOverride, String fallbackEndpointUrl) {
+        if (providerId == null) {
+            if (agent.getId() == null && !StringUtils.hasText(fallbackEndpointUrl)) {
+                throw new BadRequestException(ErrorCode.INVALID_ENDPOINT_URL,
+                        "Either endpointUrl or providerId is required");
+            }
+            if (StringUtils.hasText(fallbackEndpointUrl)) {
+                agent.setEndpointUrl(fallbackEndpointUrl.trim());
+            }
+            return;
+        }
+        Provider provider = providerRepository
+                .findByIdAndProjectIdAndOrganizationIdAndDeletedFalse(providerId, projectId, organizationId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Provider", providerId));
+
+        agent.setProviderId(providerId);
+        agent.setModelOverride(trimToNull(modelOverride));
+        agent.setEndpointOverride(trimToNull(endpointOverride));
+        agent.setEndpointUrl(StringUtils.hasText(endpointOverride) ? endpointOverride.trim() : provider.getBaseUrl());
+    }
 
     private void applyCapabilities(AgentCapabilities target, AgentCapabilitiesDto dto) {
         if (dto == null) {

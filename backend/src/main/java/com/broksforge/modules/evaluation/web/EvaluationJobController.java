@@ -90,6 +90,16 @@ public class EvaluationJobController {
                 SecurityUtils.requireCurrentUserId(), organizationId, projectId, jobId));
     }
 
+    @PostMapping("/{jobId}/resume")
+    @Operation(summary = "Resume a failed/cancelled/stalled job",
+            description = "Re-executes only the items that don't already have a succeeded run, in a new pass.")
+    public ResponseEntity<EvaluationJobResponse> resume(@PathVariable UUID organizationId,
+                                                        @PathVariable UUID projectId,
+                                                        @PathVariable UUID jobId) {
+        return ResponseEntity.ok(evaluationService.resume(
+                SecurityUtils.requireCurrentUserId(), organizationId, projectId, jobId));
+    }
+
     @PostMapping("/{jobId}/cancel")
     @Operation(summary = "Cancel a pending or running job")
     public ResponseEntity<EvaluationJobResponse> cancel(@PathVariable UUID organizationId,

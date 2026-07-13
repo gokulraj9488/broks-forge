@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TabsBar } from "@/components/ui/tabs-bar";
 import { JobStatusBadge } from "@/components/common/eval-badges";
-import { MeterBar } from "@/components/common/stat-card";
+import { MeterBar, StatCard } from "@/components/common/stat-card";
 import { JobSummary } from "@/components/evaluations/job-summary";
 import { JobActions } from "@/components/evaluations/job-actions";
 import { RunsPanel } from "@/components/evaluations/runs-panel";
@@ -17,7 +17,7 @@ import { RootCausePanel } from "@/components/rootcause/root-cause-panel";
 import { useEvaluationJob } from "@/lib/hooks/use-evaluation-jobs";
 import { useOrganization } from "@/lib/hooks/use-organizations";
 import { formatDateTime } from "@/lib/utils";
-import { formatNumber } from "@/lib/format";
+import { formatEta, formatNumber } from "@/lib/format";
 import type { EvaluationJobResponse } from "@/lib/api/evaluation-jobs";
 
 type Tab = "overview" | "runs" | "root-cause";
@@ -59,7 +59,21 @@ function Config({ job }: { job: EvaluationJobResponse }) {
         <Detail label="Provider">{job.provider ?? "Agent default"}</Detail>
         <Detail label="Model">{job.model ?? "Agent default"}</Detail>
         <Detail label="Profile">
-          {job.profileId ? <span className="font-mono text-xs">{job.profileId.slice(0, 8)}</span> : "None"}
+          {job.profileId ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Link
+                href={`/organizations/${job.organizationId}/projects/${job.projectId}/evaluations/profiles/${job.profileId}`}
+                className="font-mono text-xs text-primary hover:underline"
+              >
+                {job.profileId.slice(0, 8)}
+              </Link>
+              {job.profileVersionNumber != null && (
+                <span className="text-xs text-muted-foreground">(v{job.profileVersionNumber})</span>
+              )}
+            </span>
+          ) : (
+            "None"
+          )}
         </Detail>
         <Detail label="Created">{formatDateTime(job.createdAt)}</Detail>
         <Detail label="Completed">{formatDateTime(job.completedAt)}</Detail>
@@ -107,7 +121,16 @@ export default function EvaluationJobDetailPage() {
   }
 
   const active = job.status === "RUNNING" || job.status === "PENDING";
-  const progress = job.totalItems > 0 ? job.completedItems / job.totalItems : 0;
+  const processed = job.completedItems + job.failedItems;
+  const progress = job.totalItems > 0 ? processed / job.totalItems : 0;
+  const remaining = Math.max(0, job.totalItems - processed);
+  // Derived client-side from real, already-polled fields — never a separate/fabricated value.
+  const etaMs = (() => {
+    if (!job.startedAt || processed <= 0 || remaining <= 0) return null;
+    const elapsedMs = Date.now() - new Date(job.startedAt).getTime();
+    if (elapsedMs <= 0) return null;
+    return (remaining * elapsedMs) / processed;
+  })();
 
   return (
     <div className="space-y-6">
@@ -148,14 +171,20 @@ export default function EvaluationJobDetailPage() {
 
       {active && (
         <Card>
-          <CardContent className="space-y-2 p-5">
+          <CardContent className="space-y-4 p-5">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                Progress · {formatNumber(job.completedItems)}/{formatNumber(job.totalItems)} items
+                Progress · {formatNumber(processed)}/{formatNumber(job.totalItems)} items
               </span>
               <span className="font-medium">{Math.round(progress * 100)}%</span>
             </div>
             <MeterBar value={progress} />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatCard label="Completed" value={formatNumber(job.completedItems)} />
+              <StatCard label="Failed" value={formatNumber(job.failedItems)} />
+              <StatCard label="Remaining" value={formatNumber(remaining)} />
+              <StatCard label="ETA" value={etaMs != null ? formatEta(etaMs) : "—"} />
+            </div>
           </CardContent>
         </Card>
       )}

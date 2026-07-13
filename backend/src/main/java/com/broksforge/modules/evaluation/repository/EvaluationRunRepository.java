@@ -26,6 +26,34 @@ public interface EvaluationRunRepository extends JpaRepository<EvaluationRun, UU
 
     long countByEvaluationJobId(UUID evaluationJobId);
 
+    long countByEvaluationJobIdAndStatus(UUID evaluationJobId, EvaluationRunStatus status);
+
+    /**
+     * Item ids that already have a succeeded run for this job, across any attempt — the
+     * skip-list a resumed/retried background job uses to avoid re-invoking rows that already
+     * produced a result.
+     */
+    @Query("SELECT DISTINCT r.datasetItemId FROM EvaluationRun r WHERE r.evaluationJobId = :jobId AND r.status = :status")
+    java.util.Set<UUID> findItemIdsByEvaluationJobIdAndStatus(
+            @Param("jobId") UUID jobId, @Param("status") EvaluationRunStatus status);
+
+    /** Job-scoped aggregate for the final summary of a job executed in batches (no in-memory tally). */
+    @Query("""
+            SELECT new com.broksforge.modules.evaluation.repository.EvaluationRunAggregate(
+                COUNT(r),
+                SUM(CASE WHEN r.passed = true THEN 1L ELSE 0L END),
+                AVG(r.latencyMs),
+                SUM(r.totalTokens),
+                SUM(r.cost))
+            FROM EvaluationRun r
+            WHERE r.evaluationJobId = :jobId AND r.status = :status
+            """)
+    EvaluationRunAggregate aggregateForJob(@Param("jobId") UUID jobId, @Param("status") EvaluationRunStatus status);
+
+    /** Average score across succeeded runs for a job (kept separate: score isn't in {@link EvaluationRunAggregate}). */
+    @Query("SELECT AVG(r.score) FROM EvaluationRun r WHERE r.evaluationJobId = :jobId AND r.status = :status")
+    java.math.BigDecimal averageScoreForJob(@Param("jobId") UUID jobId, @Param("status") EvaluationRunStatus status);
+
     /**
      * Project-scoped aggregate over runs in a time window. Project scoping is applied
      * via a subquery on jobs, so the runs table stays free of a project column.

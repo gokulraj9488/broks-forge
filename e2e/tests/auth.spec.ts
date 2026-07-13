@@ -8,7 +8,7 @@ test.describe("Authentication", () => {
     await page.getByLabel("First name").fill("Ada");
     await page.getByLabel("Last name").fill("Lovelace");
     await page.getByLabel("Email").fill(email);
-    await page.getByLabel("Password").fill(PASSWORD);
+    await page.locator("#password").fill(PASSWORD);
     await page.getByRole("button", { name: "Create account" }).click();
     await expect(page).toHaveURL(/\/dashboard/);
   });
@@ -17,7 +17,7 @@ test.describe("Authentication", () => {
     const user = await registerViaApi(request);
     await page.goto("/login");
     await page.getByLabel("Email").fill(user.email);
-    await page.getByLabel("Password").fill(user.password);
+    await page.locator("#password").fill(user.password);
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/dashboard/);
   });
@@ -26,7 +26,7 @@ test.describe("Authentication", () => {
     const user = await registerViaApi(request);
     await page.goto("/login");
     await page.getByLabel("Email").fill(user.email);
-    await page.getByLabel("Password").fill("TotallyWrong!1");
+    await page.locator("#password").fill("TotallyWrong!1");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(/\/login/);
     await expect(page.getByText(/unable to sign in|invalid|incorrect|credentials/i)).toBeVisible();
@@ -39,6 +39,41 @@ test.describe("Authentication", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
+  test("logout clears all client-side session state (tokens, activity clock, query cache)", async ({
+    page,
+    signedInUser,
+  }) => {
+    await page.locator("header button").last().click();
+    await page.getByRole("menuitem", { name: "Log out" }).click();
+    await expect(page).toHaveURL(/\/login/);
+
+    // OWASP session-termination: no auth artifact should survive logout in localStorage.
+    const authRaw = await page.evaluate(() => localStorage.getItem("broksforge.auth"));
+    expect(authRaw).not.toBeNull();
+    const auth = JSON.parse(authRaw as string);
+    expect(auth.state.accessToken).toBeNull();
+    expect(auth.state.refreshToken).toBeNull();
+    expect(auth.state.user).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem("broksforge.lastActivityAt"))).toBeNull();
+
+    // The login form itself starts empty — no leaked identity from the ended session.
+    await expect(page.getByLabel("Email")).toHaveValue("");
+    await expect(page.locator("#password")).toHaveValue("");
+  });
+
+  test("browser refresh after logout does not restore the session", async ({ page, signedInUser }) => {
+    await page.locator("header button").last().click();
+    await page.getByRole("menuitem", { name: "Log out" }).click();
+    await expect(page).toHaveURL(/\/login/);
+
+    await page.reload();
+    await expect(page).toHaveURL(/\/login/);
+
+    // A direct hit on a protected route after logout must not resurrect the dashboard.
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/\/login/);
+  });
+
   test("forgot password returns a generic confirmation (no account enumeration)", async ({ page }) => {
     await page.goto("/forgot-password");
     await page.getByLabel("Email").fill(uniqueEmail());
@@ -48,8 +83,11 @@ test.describe("Authentication", () => {
 
   test("reset-password with an invalid token surfaces an error", async ({ page }) => {
     await page.goto("/reset-password?token=invalid-token-123");
-    await page.getByLabel(/new password|password/i).first().fill(PASSWORD);
-    await page.getByRole("button", { name: /reset|set|save|update/i }).first().click();
+    // The form has both a "New password" and a "Confirm password" field; fill both so client-side
+    // validation passes and the request actually reaches the API (which rejects the bad token).
+    await page.locator("#newPassword").fill(PASSWORD);
+    await page.locator("#confirmPassword").fill(PASSWORD);
+    await page.getByRole("button", { name: "Reset password" }).click();
     await expect(page.getByText(/invalid|expired|unable/i)).toBeVisible();
   });
 

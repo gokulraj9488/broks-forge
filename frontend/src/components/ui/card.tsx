@@ -5,6 +5,9 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
+      // Marks this element for the branded cursor's subtle hover glow (components/brand/brand-cursor.tsx).
+      // A plain data attribute — no behavioural change to Card itself.
+      data-cursor-glow=""
       className={cn(
         "rounded-xl border border-border bg-card text-card-foreground shadow-sm",
         className,

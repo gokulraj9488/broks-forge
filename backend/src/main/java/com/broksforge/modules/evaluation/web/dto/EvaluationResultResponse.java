@@ -1,6 +1,7 @@
 package com.broksforge.modules.evaluation.web.dto;
 
 import com.broksforge.modules.evaluation.domain.EvaluationMetricType;
+import com.broksforge.modules.evaluation.domain.MetricExecutionStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -11,9 +12,10 @@ public record EvaluationResultResponse(
         UUID id,
         EvaluationMetricType metricType,
         String metricLabel,
-        boolean passed,
+        Boolean passed,
         BigDecimal score,
         BigDecimal threshold,
-        String detail
+        String detail,
+        MetricExecutionStatus executionStatus
 ) {
 }

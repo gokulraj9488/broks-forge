@@ -84,6 +84,14 @@ public class EvaluationJob extends SoftDeletableEntity {
     @Column(name = "profile_id")
     private UUID profileId;
 
+    /** The pinned {@code EvaluationProfileVersion} — resolved once at job creation, never changes afterward. */
+    @Column(name = "profile_version_id")
+    private UUID profileVersionId;
+
+    /** Denormalized snapshot of the pinned version's number, so the UI can show "v3" with no extra join. */
+    @Column(name = "profile_version_number")
+    private Integer profileVersionNumber;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", length = 48)
     private LlmProvider provider;
@@ -116,6 +124,26 @@ public class EvaluationJob extends SoftDeletableEntity {
 
     @Column(name = "error_message", length = 1000)
     private String errorMessage;
+
+    /** Higher runs first when the background runner has more queued jobs than free slots. */
+    @Column(name = "priority", nullable = false)
+    private int priority = 0;
+
+    /** Set when the job is accepted for background execution, before a worker slot is free. */
+    @Column(name = "queued_at")
+    private Instant queuedAt;
+
+    /** Heartbeat updated after every checkpoint; used to detect a stalled/crashed run. */
+    @Column(name = "last_progress_at")
+    private Instant lastProgressAt;
+
+    /** Page size used to stream this job's dataset rows; null for jobs run synchronously. */
+    @Column(name = "batch_size")
+    private Integer batchSize;
+
+    /** Number of times this job has been resumed/retried after an interruption or failure. */
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount = 0;
 
     public boolean isRunnable() {
         return status == EvaluationStatus.PENDING;

@@ -38,6 +38,15 @@ import { getApiErrorMessage } from "@/lib/api/client";
 import { PROVIDER_OPTIONS, type LlmProvider } from "@/lib/api/agents";
 import { agentNeedsCredentialSetup } from "@/lib/agent-readiness";
 
+// Provider/vendor names users sometimes type into the Model field instead of a real
+// model identifier — mirrors HealthProbePlanner.looksLikeProviderName on the backend,
+// so the mistake is caught in the dialog instead of after an EvaluationJob is created.
+const PROVIDER_NAME_LOOKALIKES = new Set([
+  "openai", "groq", "openrouter", "anthropic", "claude", "gemini", "google", "googlegemini",
+  "mistral", "mistralai", "deepseek", "cohere", "azure", "azureopenai", "ollama", "vertex",
+  "vertexai", "huggingface", "together", "togetherai", "perplexity", "xai", "grok",
+]);
+
 const schema = z.object({
   name: z.string().min(1, "Name is required").max(120),
   agentId: z.string().min(1, "Select an agent"),
@@ -45,7 +54,14 @@ const schema = z.object({
   promptId: z.string().optional(),
   profileId: z.string().optional(),
   provider: z.string().optional(),
-  model: z.string().optional(),
+  model: z
+    .string()
+    .optional()
+    .refine(
+      (value) => !value || !PROVIDER_NAME_LOOKALIKES.has(value.trim().toLowerCase().replace(/[\s_-]/g, "")),
+      "Model must be a provider model identifier (for example: llama-3.3-70b-versatile, gemini-2.5-flash, "
+        + "gpt-4.1, claude-sonnet-4), not the provider name.",
+    ),
   autoRun: z.boolean().optional(),
 });
 
@@ -74,7 +90,7 @@ export function CreateJobDialog({
   const agents = agentsData?.content ?? [];
   const datasets = datasetsData?.content ?? [];
   const prompts = promptsData?.content ?? [];
-  const profiles = profilesData?.content ?? [];
+  const profiles = (profilesData?.content ?? []).filter((p) => p.enabled);
 
   const {
     register,
@@ -271,8 +287,13 @@ export function CreateJobDialog({
                   )}
                 />
               </Field>
-              <Field label="Model" htmlFor="ej-model" error={errors.model?.message} hint="Optional override">
-                <Input id="ej-model" placeholder="claude-opus-4-8" {...register("model")} />
+              <Field
+                label="Model"
+                htmlFor="ej-model"
+                error={errors.model?.message}
+                hint="Optional override — a provider model identifier, not the provider name (e.g. llama-3.3-70b-versatile, gemini-2.5-flash, gpt-4.1, claude-sonnet-4)"
+              >
+                <Input id="ej-model" placeholder="e.g. llama-3.3-70b-versatile" {...register("model")} />
               </Field>
             </div>
 

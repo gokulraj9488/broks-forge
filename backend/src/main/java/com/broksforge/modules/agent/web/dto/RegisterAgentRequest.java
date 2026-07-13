@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Request to register a new agent. Server-controlled fields (owner, organization,
@@ -46,8 +47,8 @@ public record RegisterAgentRequest(
         @NotNull(message = "Language is required")
         AgentLanguage language,
 
-        @Schema(example = "https://agents.example.com/support")
-        @NotBlank(message = "Endpoint URL is required")
+        @Schema(description = "Required unless providerId is set (the provider's base URL, or endpointOverride, "
+                + "is used instead)", example = "https://agents.example.com/support")
         @ValidEndpointUrl
         String endpointUrl,
 
@@ -59,6 +60,18 @@ public record RegisterAgentRequest(
 
         @Schema(description = "Optional labels for organising and filtering agents")
         @Size(max = 25, message = "An agent may have at most 25 tags")
-        Set<@Size(max = 64) String> tags
+        Set<@Size(max = 64) String> tags,
+
+        @Schema(description = "Optional Provider to inherit base URL/default model/headers/capabilities from "
+                + "(Provider abstraction milestone)")
+        UUID providerId,
+
+        @Schema(description = "Overrides the linked provider's default model; ignored without providerId")
+        @Size(max = 128)
+        String modelOverride,
+
+        @Schema(description = "Overrides the linked provider's base URL; ignored without providerId")
+        @ValidEndpointUrl
+        String endpointOverride
 ) {
 }

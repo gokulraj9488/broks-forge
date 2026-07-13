@@ -3,15 +3,18 @@
 import { Fragment, useState } from "react";
 import { Bug, ChevronDown, ChevronRight, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from "@/components/ui/pagination";
-import { PassBadge, RunStatusBadge } from "@/components/common/eval-badges";
+import { PassBadge, RunStatusBadge, EXECUTION_STATUS_LABEL } from "@/components/common/eval-badges";
 import { RunResults } from "@/components/evaluations/run-results";
 import { ExecutionTimeline } from "@/components/debugger/execution-timeline";
-import { useEvaluationRuns } from "@/lib/hooks/use-evaluation-jobs";
+import { useEvaluationRuns, useEvaluationRunResults } from "@/lib/hooks/use-evaluation-jobs";
+import { METRIC_TYPE_LABELS, type MetricType } from "@/lib/api/evaluation-profiles";
 import { formatCost, formatLatency, formatNumber, formatScore } from "@/lib/format";
+import type { EvaluationRunResponse } from "@/lib/api/evaluation-jobs";
 
 const PAGE_SIZE = 20;
 
@@ -30,7 +33,7 @@ export function RunsPanel({
   const [expanded, setExpanded] = useState<string | null>(null);
   const [debugRun, setDebugRun] = useState<string | null>(null);
 
-  const { data, isLoading, isError } = useEvaluationRuns(
+  const { data, isLoading, isError, refetch, isRefetching } = useEvaluationRuns(
     organizationId,
     projectId,
     jobId,
@@ -50,7 +53,18 @@ export function RunsPanel({
   }
 
   if (isError) {
-    return <EmptyState icon={ListChecks} title="Couldn't load runs" description="Please try again." />;
+    return (
+      <EmptyState
+        icon={ListChecks}
+        title="Couldn't load runs"
+        description="Something went wrong reaching the server. Check your connection and try again."
+        action={
+          <Button variant="outline" onClick={() => refetch()} loading={isRefetching}>
+            Retry
+          </Button>
+        }
+      />
+    );
   }
 
   if (runs.length === 0) {
@@ -73,6 +87,7 @@ export function RunsPanel({
                 <th className="w-10 px-3 py-2.5" />
                 <th className="w-12 px-2 py-2.5 font-medium">#</th>
                 <th className="px-3 py-2.5 font-medium">Status</th>
+                <th className="px-2 py-2.5 text-right font-medium">Retries</th>
                 <th className="px-3 py-2.5 font-medium">Result</th>
                 <th className="px-3 py-2.5 text-right font-medium">Score</th>
                 <th className="px-3 py-2.5 text-right font-medium">Latency</th>
@@ -107,8 +122,16 @@ export function RunsPanel({
                       <td className="px-3 py-2.5">
                         <RunStatusBadge status={run.status} />
                       </td>
+                      <td className="px-2 py-2.5 text-right font-mono text-xs text-muted-foreground">
+                        {run.attempt > 1 ? `${run.attempt - 1}` : "—"}
+                      </td>
                       <td className="px-3 py-2.5">
-                        <PassBadge passed={run.passed} />
+                        <RunMetricSummary
+                          organizationId={organizationId}
+                          projectId={projectId}
+                          jobId={jobId}
+                          run={run}
+                        />
                       </td>
                       <td className="px-3 py-2.5 text-right font-mono text-xs">{formatScore(run.score)}</td>
                       <td className="px-3 py-2.5 text-right font-mono text-xs">{formatLatency(run.latencyMs)}</td>
@@ -119,7 +142,7 @@ export function RunsPanel({
                     </tr>
                     {open && (
                       <tr className="bg-muted/20">
-                        <td colSpan={8} className="px-4 py-4">
+                        <td colSpan={9} className="px-4 py-4">
                           <div className="space-y-4">
                             {run.error && (
                               <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -130,8 +153,11 @@ export function RunsPanel({
                               <div>
                                 <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                   Input
+                                  <span className="ml-2 font-normal normal-case text-muted-foreground/70">
+                                    Full rendered prompt — template + dataset input
+                                  </span>
                                 </p>
-                                <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-background p-3 text-xs">
+                                <pre className="max-h-[28rem] overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-background p-3 text-xs">
                                   {run.input}
                                 </pre>
                               </div>
@@ -198,6 +224,53 @@ export function RunsPanel({
         totalElements={data?.totalElements ?? runs.length}
         onPageChange={setPage}
       />
+    </div>
+  );
+}
+
+/**
+ * Collapsed-row result summary: a mini badge per configured metric so the timeline immediately
+ * reveals *why* a run failed — "Authentication Error · LLM Judge" instead of a bare "Fail" that
+ * reads as a quality problem when the metric never even ran.
+ */
+function RunMetricSummary({
+  organizationId,
+  projectId,
+  jobId,
+  run,
+}: {
+  organizationId: string;
+  projectId: string;
+  jobId: string;
+  run: EvaluationRunResponse;
+}) {
+  const { data, isLoading } = useEvaluationRunResults(organizationId, projectId, jobId, run.id);
+
+  if (run.status !== "SUCCEEDED" || isLoading || !data || data.length === 0) {
+    return <PassBadge passed={run.passed} />;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {data.map((r, i) => {
+        const label = r.metricLabel || METRIC_TYPE_LABELS[r.metricType as MetricType] || r.metricType;
+        if (r.executionStatus !== "COMPLETED") {
+          return (
+            <Badge key={i} variant="warning" className="gap-1 text-[11px]">
+              <span aria-hidden>⚠</span>
+              {EXECUTION_STATUS_LABEL[r.executionStatus] ?? r.executionStatus}
+              <span className="font-normal opacity-70">· {label}</span>
+            </Badge>
+          );
+        }
+        return (
+          <Badge key={i} variant={r.passed ? "success" : "destructive"} className="gap-1 text-[11px]">
+            <span aria-hidden>{r.passed ? "✔" : "✖"}</span>
+            {r.passed ? "Passed" : "Failed"}
+            <span className="font-normal opacity-70">· {label}</span>
+          </Badge>
+        );
+      })}
     </div>
   );
 }

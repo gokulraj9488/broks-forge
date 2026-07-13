@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Upload } from "lucide-react";
+import { FileText, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,9 +26,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DatasetUploadDropzone } from "@/components/datasets/dataset-upload-dropzone";
 import { useCreateDatasetVersion } from "@/lib/hooks/use-datasets";
 import { getApiErrorMessage } from "@/lib/api/client";
 import { DATASET_FORMAT_OPTIONS } from "@/lib/api/datasets";
+import { cn } from "@/lib/utils";
 
 const schema = z.object({
   format: z.enum(["CSV", "JSON"]),
@@ -55,6 +57,7 @@ export function UploadVersionDialog({
   datasetId: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"upload" | "paste">("upload");
   const create = useCreateDatasetVersion(organizationId, projectId, datasetId);
   const {
     register,
@@ -102,9 +105,49 @@ export function UploadVersionDialog({
         <DialogHeader>
           <DialogTitle>Upload a new version</DialogTitle>
           <DialogDescription>
-            Paste CSV or JSON content. Map which columns hold the input and the expected output.
+            {mode === "upload"
+              ? "Drag & drop a CSV, JSON, XLSX or ZIP file, or paste content instead."
+              : "Paste CSV or JSON content. Map which columns hold the input and the expected output."}
           </DialogDescription>
         </DialogHeader>
+
+        <div className="flex gap-1 rounded-md bg-muted p-1 text-sm">
+          <button
+            type="button"
+            onClick={() => setMode("upload")}
+            className={cn(
+              "flex-1 rounded-sm px-3 py-1.5 font-medium transition-colors",
+              mode === "upload" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <Upload className="mr-1.5 inline h-3.5 w-3.5" />
+            Upload file
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("paste")}
+            className={cn(
+              "flex-1 rounded-sm px-3 py-1.5 font-medium transition-colors",
+              mode === "paste" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <FileText className="mr-1.5 inline h-3.5 w-3.5" />
+            Paste content
+          </button>
+        </div>
+
+        {mode === "upload" ? (
+          <DatasetUploadDropzone
+            organizationId={organizationId}
+            projectId={projectId}
+            datasetId={datasetId}
+            onUploaded={(result) => {
+              if (result.status === "COMPLETED" || result.status === "DUPLICATE") {
+                setOpen(false);
+              }
+            }}
+          />
+        ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Format" htmlFor="dv-format" error={errors.format?.message} required>
@@ -162,6 +205,7 @@ export function UploadVersionDialog({
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

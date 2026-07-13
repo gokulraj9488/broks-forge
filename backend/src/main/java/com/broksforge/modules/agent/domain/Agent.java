@@ -86,6 +86,27 @@ public class Agent extends SoftDeletableEntity {
     @Column(name = "current_active_version_id")
     private UUID currentActiveVersionId;
 
+    /**
+     * Optional link to a {@code Provider} (Provider abstraction milestone): when set, this
+     * agent inherits the provider's base URL, default model, headers and capabilities unless
+     * it sets its own {@link #modelOverride}/{@link #endpointOverride}. Inheritance is resolved
+     * once, at write time (see {@code ProviderService}/{@code AgentService}) — {@link #endpointUrl}
+     * always holds the effective, already-resolved value, so every existing consumer
+     * ({@code AgentEndpointInvoker}, {@code HealthProbePlanner}, evaluation execution) keeps
+     * reading it exactly as before. {@code null} for agents not linked to a provider — fully
+     * backward compatible with every agent registered before this milestone.
+     */
+    @Column(name = "provider_id")
+    private UUID providerId;
+
+    /** Agent-level model override when linked to a {@link #providerId}; null inherits the provider's default. */
+    @Column(name = "model_override", length = 128)
+    private String modelOverride;
+
+    /** Agent-level endpoint override when linked to a {@link #providerId}; null inherits the provider's base URL. */
+    @Column(name = "endpoint_override", length = 2048)
+    private String endpointOverride;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "health_status", nullable = false, length = 32)
     private AgentHealthStatus healthStatus = AgentHealthStatus.UNKNOWN;

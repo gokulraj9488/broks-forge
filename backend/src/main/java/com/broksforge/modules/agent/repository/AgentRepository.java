@@ -14,4 +14,6 @@ public interface AgentRepository extends JpaRepository<Agent, UUID>, JpaSpecific
     Optional<Agent> findByIdAndProjectIdAndOrganizationIdAndDeletedFalse(UUID id, UUID projectId, UUID organizationId);
 
     boolean existsByProjectIdAndSlugIgnoreCaseAndDeletedFalse(UUID projectId, String slug);
+
+    int countByProviderIdAndDeletedFalse(UUID providerId);
 }

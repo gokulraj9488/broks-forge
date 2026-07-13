@@ -32,6 +32,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -141,10 +142,15 @@ public class BenchmarkService {
         String metricKey = benchmark.getMetricKey();
         boolean higherIsBetter = SummaryMetrics.higherIsBetter(metricKey);
 
+        List<BenchmarkEntry> entries = entryRepository.findByBenchmarkIdOrderByCreatedAtAsc(benchmarkId);
+        // One batched lookup instead of one evaluationService.get() call per entry (see getMany's javadoc).
+        Map<UUID, EvaluationJobResponse> jobsById = evaluationService.getMany(actorId, organizationId, projectId,
+                entries.stream().map(BenchmarkEntry::getEvaluationJobId).toList());
+
         List<Scored> scored = new ArrayList<>();
         List<Scored> unscored = new ArrayList<>();
-        for (BenchmarkEntry entry : entryRepository.findByBenchmarkIdOrderByCreatedAtAsc(benchmarkId)) {
-            EvaluationJobResponse job = tryLoadJob(actorId, organizationId, projectId, entry.getEvaluationJobId());
+        for (BenchmarkEntry entry : entries) {
+            EvaluationJobResponse job = jobsById.get(entry.getEvaluationJobId());
             Double score = job == null ? null : SummaryMetrics.value(job.summary(), metricKey);
             Scored row = new Scored(entry, job, score);
             (score == null ? unscored : scored).add(row);
@@ -180,14 +186,6 @@ public class BenchmarkService {
         entry.setEvaluationJobId(job.id());
         entry.setLabel(StringUtils.hasText(label) ? label.trim() : job.name());
         entryRepository.save(entry);
-    }
-
-    private EvaluationJobResponse tryLoadJob(UUID actorId, UUID organizationId, UUID projectId, UUID jobId) {
-        try {
-            return evaluationService.get(actorId, organizationId, projectId, jobId);
-        } catch (ResourceNotFoundException e) {
-            return null;
-        }
     }
 
     private LeaderboardRow toRow(int rank, Scored s) {

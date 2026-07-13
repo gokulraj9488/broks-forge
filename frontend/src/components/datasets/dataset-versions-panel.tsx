@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UploadVersionDialog } from "@/components/datasets/upload-version-dialog";
+import { DatasetUploadHistory } from "@/components/datasets/dataset-upload-history";
 import { useDatasetVersions } from "@/lib/hooks/use-datasets";
 import { formatDateTime } from "@/lib/utils";
 import { formatNumber } from "@/lib/format";
@@ -49,6 +50,10 @@ export function DatasetVersionsPanel({
           <UploadVersionDialog organizationId={organizationId} projectId={projectId} datasetId={datasetId} />
         )}
       </div>
+
+      {canManage && (
+        <DatasetUploadHistory organizationId={organizationId} projectId={projectId} datasetId={datasetId} />
+      )}
 
       {isError ? (
         <EmptyState icon={Layers} title="Couldn't load versions" description="Please try again." />

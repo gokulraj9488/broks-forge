@@ -12,6 +12,7 @@ import com.broksforge.modules.evaluation.web.dto.EvaluationResultResponse;
 import com.broksforge.modules.evaluation.web.dto.EvaluationRunResponse;
 import com.broksforge.modules.evaluation.web.dto.MetricSpecDto;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface EvaluationMapper {
@@ -20,6 +21,7 @@ public interface EvaluationMapper {
 
     EvaluationJobSummaryResponse toJobSummary(EvaluationJob job);
 
+    @Mapping(source = "latestVersionNumber", target = "currentVersionNumber")
     EvaluationProfileResponse toProfileResponse(EvaluationProfile profile);
 
     MetricSpecDto toMetricSpecDto(MetricSpec spec);

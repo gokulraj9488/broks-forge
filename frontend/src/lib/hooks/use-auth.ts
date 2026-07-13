@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authApi, type RegisterPayload } from "@/lib/api/auth";
 import { usersApi, type UpdateProfilePayload } from "@/lib/api/users";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import { clearActivity } from "@/lib/session-activity";
 
 export const ME_QUERY_KEY = ["me"] as const;
 
@@ -68,6 +69,7 @@ export function useLogout() {
     },
     onSettled: () => {
       clearAuth();
+      clearActivity();
       queryClient.clear();
     },
   });

@@ -1,39 +1,50 @@
 package com.broksforge.modules.evaluation.service.metric;
 
 import com.broksforge.modules.evaluation.domain.EvaluationMetricType;
+import com.broksforge.modules.evaluation.domain.MetricExecutionStatus;
 import com.broksforge.modules.evaluation.domain.MetricSpec;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 /**
- * Scores a model output against a set of {@link MetricSpec}s. The engine is pure
- * (no persistence, no I/O) and deterministic, so it is trivially unit-testable and
- * reusable by benchmarking. Adding a metric is a code-only change: add an
- * {@link EvaluationMetricType} constant and a branch here.
+ * Scores a model output against a set of {@link MetricSpec}s. The engine itself is a thin,
+ * pure dispatcher: it holds no per-metric logic and never needs a code change to add a metric
+ * — each {@link EvaluationMetric} is a self-registering {@code @Component}, looked up here by
+ * {@link EvaluationMetricType} (the same registry pattern as {@code ProviderAdapterRegistry}).
+ *
+ * <p>Dispatch is wrapped defensively: unlike the original pure/synchronous metrics, some
+ * pluggable metrics (LLM Judge, Semantic Similarity) make a network call per row. A metric
+ * throwing (timeout, provider error, bad config) must not abort the run or take down every
+ * other metric on that row — it is caught and turned into a failed outcome with the exception
+ * message as evidence.</p>
  */
 @Service
 public class EvaluationMetricEngine {
 
-    private static final BigDecimal PASS = BigDecimal.ONE;
-    private static final BigDecimal FAIL = BigDecimal.ZERO;
-    private static final int MAX_DETAIL = 500;
+    private static final Logger log = LoggerFactory.getLogger(EvaluationMetricEngine.class);
 
-    private final ObjectMapper objectMapper;
+    private final Map<EvaluationMetricType, EvaluationMetric> registry;
 
-    public EvaluationMetricEngine(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public EvaluationMetricEngine(List<EvaluationMetric> metrics) {
+        Map<EvaluationMetricType, EvaluationMetric> byType = new EnumMap<>(EvaluationMetricType.class);
+        for (EvaluationMetric metric : metrics) {
+            byType.put(metric.type(), metric);
+        }
+        this.registry = byType;
     }
 
     /**
      * Evaluates every spec against the context. When {@code specs} is empty a sensible
      * default rubric is used (non-empty output, plus exact-match when a reference exists).
+     * This zero-config fallback is intentionally kept to the two purely local/synchronous
+     * metrics — never a network-dependent one — so every pre-existing job with no metrics
+     * configured keeps behaving exactly as before.
      */
     public List<MetricOutcome> evaluate(List<MetricSpec> specs, MetricContext context) {
         List<MetricSpec> effective = (specs == null || specs.isEmpty()) ? defaultSpecs(context) : specs;
@@ -54,179 +65,22 @@ public class EvaluationMetricEngine {
     }
 
     private MetricOutcome evaluateOne(MetricSpec spec, MetricContext ctx) {
-        return switch (spec.type()) {
-            case EXACT_MATCH -> exactMatch(spec, ctx);
-            case CONTAINS -> contains(spec, ctx);
-            case REGEX_MATCH -> regexMatch(spec, ctx);
-            case JSON_VALID -> jsonValid(spec, ctx);
-            case NON_EMPTY -> nonEmpty(spec, ctx);
-            case LENGTH -> length(spec, ctx);
-            case LATENCY -> latency(spec, ctx);
-            case COST -> cost(spec, ctx);
-            case TOKEN_COUNT -> tokenCount(spec, ctx);
-        };
-    }
-
-    // ---- Quality metrics -------------------------------------------------
-
-    private MetricOutcome exactMatch(MetricSpec spec, MetricContext ctx) {
-        if (ctx.expectedOutput() == null) {
-            return pass(spec, "No expected output to compare against");
-        }
-        boolean caseSensitive = boolParam(spec, "caseSensitive", false);
-        String a = nullToEmpty(ctx.output()).trim();
-        String b = ctx.expectedOutput().trim();
-        boolean ok = caseSensitive ? a.equals(b) : a.equalsIgnoreCase(b);
-        return outcome(spec, ok, null, ok ? "Output matches expected" : "Output differs from expected");
-    }
-
-    private MetricOutcome contains(MetricSpec spec, MetricContext ctx) {
-        String needle = strParam(spec, "value");
-        if (needle == null) {
-            needle = ctx.expectedOutput();
-        }
-        if (needle == null || needle.isEmpty()) {
-            return pass(spec, "No substring to search for");
-        }
-        boolean caseSensitive = boolParam(spec, "caseSensitive", false);
-        String haystack = nullToEmpty(ctx.output());
-        boolean ok = caseSensitive
-                ? haystack.contains(needle)
-                : haystack.toLowerCase().contains(needle.toLowerCase());
-        return outcome(spec, ok, null, ok ? "Output contains expected substring" : "Substring not found");
-    }
-
-    private MetricOutcome regexMatch(MetricSpec spec, MetricContext ctx) {
-        String pattern = strParam(spec, "pattern");
-        if (pattern == null || pattern.isEmpty()) {
-            return outcome(spec, false, null, "No regex pattern configured");
+        EvaluationMetric metric = registry.get(spec.type());
+        if (metric == null) {
+            return new MetricOutcome(spec.type(), labelOf(spec), null, null, spec.threshold(),
+                    "No metric implementation registered for " + spec.type(), MetricExecutionStatus.INFRASTRUCTURE_ERROR);
         }
         try {
-            boolean fullMatch = boolParam(spec, "fullMatch", false);
-            Pattern compiled = Pattern.compile(pattern);
-            var matcher = compiled.matcher(nullToEmpty(ctx.output()));
-            boolean ok = fullMatch ? matcher.matches() : matcher.find();
-            return outcome(spec, ok, null, ok ? "Output matches pattern" : "Output does not match pattern");
-        } catch (PatternSyntaxException e) {
-            return outcome(spec, false, null, "Invalid regex pattern");
-        }
-    }
-
-    private MetricOutcome jsonValid(MetricSpec spec, MetricContext ctx) {
-        String output = ctx.output();
-        if (output == null || output.isBlank()) {
-            return outcome(spec, false, null, "Output is empty");
-        }
-        try {
-            objectMapper.readTree(output);
-            return outcome(spec, true, null, "Output is valid JSON");
+            return metric.evaluate(spec, ctx);
         } catch (Exception e) {
-            return outcome(spec, false, null, "Output is not valid JSON");
+            log.warn("Metric {} failed to evaluate: {}", spec.type(), e.getMessage());
+            String detail = "Metric evaluation failed: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+            return new MetricOutcome(spec.type(), labelOf(spec), null, null, spec.threshold(),
+                    detail.length() <= 500 ? detail : detail.substring(0, 500), MetricExecutionStatus.INFRASTRUCTURE_ERROR);
         }
     }
 
-    private MetricOutcome nonEmpty(MetricSpec spec, MetricContext ctx) {
-        boolean ok = ctx.output() != null && !ctx.output().isBlank();
-        return outcome(spec, ok, null, ok ? "Output is non-empty" : "Output is empty");
-    }
-
-    private MetricOutcome length(MetricSpec spec, MetricContext ctx) {
-        int len = nullToEmpty(ctx.output()).length();
-        Integer min = intParam(spec, "min");
-        Integer max = intParam(spec, "max");
-        boolean ok = (min == null || len >= min) && (max == null || len <= max);
-        return outcome(spec, ok, null, "Output length " + len
-                + " (min=" + (min == null ? "-" : min) + ", max=" + (max == null ? "-" : max) + ")");
-    }
-
-    // ---- Performance / cost metrics --------------------------------------
-
-    private MetricOutcome latency(MetricSpec spec, MetricContext ctx) {
-        BigDecimal threshold = spec.threshold();
-        Long measured = ctx.latencyMs();
-        if (threshold == null) {
-            return outcome(spec, true, null, "Latency " + (measured == null ? "n/a" : measured + "ms"));
-        }
-        boolean ok = measured == null || BigDecimal.valueOf(measured).compareTo(threshold) <= 0;
-        return outcome(spec, ok, threshold,
-                "Latency " + (measured == null ? "n/a" : measured + "ms") + " vs <= " + threshold + "ms");
-    }
-
-    private MetricOutcome cost(MetricSpec spec, MetricContext ctx) {
-        BigDecimal threshold = spec.threshold();
-        BigDecimal measured = ctx.cost();
-        if (threshold == null || measured == null) {
-            return outcome(spec, true, threshold, "Cost " + (measured == null ? "not reported" : measured.toPlainString()));
-        }
-        boolean ok = measured.compareTo(threshold) <= 0;
-        return outcome(spec, ok, threshold, "Cost " + measured.toPlainString() + " vs <= " + threshold.toPlainString());
-    }
-
-    private MetricOutcome tokenCount(MetricSpec spec, MetricContext ctx) {
-        BigDecimal threshold = spec.threshold();
-        Integer measured = ctx.totalTokens();
-        if (threshold == null || measured == null) {
-            return outcome(spec, true, threshold, "Tokens " + (measured == null ? "not reported" : measured));
-        }
-        boolean ok = BigDecimal.valueOf(measured).compareTo(threshold) <= 0;
-        return outcome(spec, ok, threshold, "Tokens " + measured + " vs <= " + threshold);
-    }
-
-    // ---- Helpers ---------------------------------------------------------
-
-    private MetricOutcome pass(MetricSpec spec, String detail) {
-        return outcome(spec, true, null, detail);
-    }
-
-    private MetricOutcome outcome(MetricSpec spec, boolean passed, BigDecimal threshold, String detail) {
-        return new MetricOutcome(
-                spec.type(),
-                spec.label() != null ? spec.label() : spec.type().name(),
-                passed,
-                passed ? PASS : FAIL,
-                threshold,
-                truncate(detail));
-    }
-
-    private String strParam(MetricSpec spec, String key) {
-        Object value = spec.paramsOrEmpty().get(key);
-        return value == null ? null : String.valueOf(value);
-    }
-
-    private Integer intParam(MetricSpec spec, String key) {
-        Object value = spec.paramsOrEmpty().get(key);
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        if (value instanceof String s && !s.isBlank()) {
-            try {
-                return Integer.parseInt(s.trim());
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    private boolean boolParam(MetricSpec spec, String key, boolean defaultValue) {
-        Object value = spec.paramsOrEmpty().get(key);
-        if (value instanceof Boolean b) {
-            return b;
-        }
-        if (value instanceof String s) {
-            return Boolean.parseBoolean(s);
-        }
-        return defaultValue;
-    }
-
-    private String nullToEmpty(String value) {
-        return value == null ? "" : value;
-    }
-
-    private String truncate(String detail) {
-        if (detail == null) {
-            return null;
-        }
-        return detail.length() <= MAX_DETAIL ? detail : detail.substring(0, MAX_DETAIL);
+    private String labelOf(MetricSpec spec) {
+        return spec.label() != null ? spec.label() : spec.type().name();
     }
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider, useTheme } from "next-themes";
 import { Toaster } from "sonner";
+import { BrandCursor } from "@/components/brand/brand-cursor";
 
 /** Toasts must follow the active theme, so useTheme is read inside ThemeProvider. */
 function ThemedToaster() {
@@ -41,6 +42,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         {children}
+        <BrandCursor />
         <ThemedToaster />
       </ThemeProvider>
     </QueryClientProvider>

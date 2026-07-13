@@ -39,17 +39,30 @@ export function formatNumber(value: number | null | undefined): string {
 }
 
 /** Format a USD cost; uses more precision for tiny amounts. */
-export function formatCost(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return DASH;
-  if (value === 0) return "$0.00";
-  if (value < 0.01) return `$${value.toFixed(4)}`;
-  return `$${value.toFixed(2)}`;
+export function formatCost(value: number | string | null | undefined): string {
+  const num = typeof value === "string" ? Number(value) : value;
+  if (num == null || Number.isNaN(num)) return DASH;
+  if (num === 0) return "$0.00";
+  if (num < 0.01) return `$${num.toFixed(4)}`;
+  return `$${num.toFixed(2)}`;
 }
 
 /** Format a score (0..1) to two decimals, e.g. 0.92 -> "0.92". */
 export function formatScore(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return DASH;
   return value.toFixed(2);
+}
+
+/** Format a duration in ms as a rough ETA, e.g. 1_092_000 -> "18m 12s". */
+export function formatEta(ms: number | null | undefined): string {
+  if (ms == null || Number.isNaN(ms) || ms < 0) return DASH;
+  const totalSeconds = Math.round(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
 }
 
 /** Turn an ENUM_LIKE_TOKEN into "Enum like token". */

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, Download, Play, Trash2 } from "lucide-react";
+import { Ban, Download, Play, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -35,11 +35,23 @@ export function JobActions({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const active = job.status === "RUNNING" || job.status === "PENDING";
-  const canRun = job.status === "PENDING" || job.status === "FAILED" || job.status === "CANCELLED";
+  const canRun = job.status === "PENDING";
+  // A failed/cancelled job, or a completed job with some failed items, resumes only the
+  // outstanding rows (see EvaluationService#resume) — /run only accepts a PENDING job.
+  const canResume =
+    job.status === "FAILED" ||
+    job.status === "CANCELLED" ||
+    (job.status === "COMPLETED" && job.failedItems > 0);
 
   const run = () =>
     action.mutate("run", {
       onSuccess: () => toast.success("Evaluation started"),
+      onError: (error) => toast.error(getApiErrorMessage(error)),
+    });
+
+  const resume = () =>
+    action.mutate("resume", {
+      onSuccess: () => toast.success("Evaluation resumed"),
       onError: (error) => toast.error(getApiErrorMessage(error)),
     });
 
@@ -78,7 +90,13 @@ export function JobActions({
       {canManage && canRun && (
         <Button size="sm" onClick={run} loading={action.isPending}>
           <Play className="h-4 w-4" />
-          {job.status === "PENDING" ? "Run" : "Re-run"}
+          Run
+        </Button>
+      )}
+      {canManage && canResume && (
+        <Button size="sm" onClick={resume} loading={action.isPending}>
+          <RotateCcw className="h-4 w-4" />
+          Resume
         </Button>
       )}
       {canManage && active && (

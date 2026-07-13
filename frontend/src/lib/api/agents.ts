@@ -32,6 +32,9 @@ export type AgentLifecycleStatus = "ACTIVE" | "ARCHIVED";
 export type LlmProvider =
   | "OPENAI"
   | "ANTHROPIC"
+  | "GROQ"
+  | "OPENROUTER"
+  | "DEEPSEEK"
   | "AZURE_OPENAI"
   | "AWS_BEDROCK"
   | "GOOGLE_VERTEX"
@@ -80,6 +83,9 @@ export interface AgentResponse {
   endpointUrl: string;
   authType: AgentAuthType;
   currentActiveVersionId: string | null;
+  providerId: string | null;
+  modelOverride: string | null;
+  endpointOverride: string | null;
   healthStatus: AgentHealthStatus;
   lastHealthCheckAt: string | null;
   status: AgentLifecycleStatus;
@@ -194,10 +200,15 @@ export interface RegisterAgentPayload {
   visibility: AgentVisibility;
   framework: AgentFramework;
   language: AgentLanguage;
-  endpointUrl: string;
+  /** Required unless providerId is set — the provider's base URL (or endpointOverride) is used instead. */
+  endpointUrl?: string;
   authType: AgentAuthType;
   capabilities?: AgentCapabilities;
   tags?: string[];
+  /** Links to a Provider (Provider abstraction milestone) to inherit its base URL/default model from. */
+  providerId?: string;
+  modelOverride?: string;
+  endpointOverride?: string;
 }
 
 export type UpdateAgentPayload = Partial<RegisterAgentPayload>;
@@ -432,6 +443,9 @@ export const AUTH_TYPE_OPTIONS: { value: AgentAuthType; label: string }[] = [
 export const PROVIDER_OPTIONS: { value: LlmProvider; label: string }[] = [
   { value: "OPENAI", label: "OpenAI" },
   { value: "ANTHROPIC", label: "Anthropic" },
+  { value: "GROQ", label: "Groq" },
+  { value: "OPENROUTER", label: "OpenRouter" },
+  { value: "DEEPSEEK", label: "DeepSeek" },
   { value: "AZURE_OPENAI", label: "Azure OpenAI" },
   { value: "AWS_BEDROCK", label: "AWS Bedrock" },
   { value: "GOOGLE_VERTEX", label: "Google Vertex" },
