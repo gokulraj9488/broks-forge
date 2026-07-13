@@ -606,6 +606,45 @@ Two layers (see [./adr/0004-ssrf-protection-for-agent-endpoints.md](./adr/0004-s
   `AgentHealthProperties` / `AGENT_HEALTH_ALLOW_PRIVATE_TARGETS=true` for local dev). The guard runs
   for **every** outbound call — health checks **and** the Phase 3 `AgentEndpointInvoker`.
 
+#### Native Ollama trust model (narrow, explicit bypass)
+
+`OutboundUrlGuard` carries one narrow, explicit exception to the default-deny policy: **native
+Ollama providers** (`LlmProvider.OLLAMA`) are trusted to reach `localhost`, `127.0.0.1` and
+`host.docker.internal` **without** requiring `BROKSFORGE_MODEL_ALLOW_PRIVATE_TARGETS=true`. This is
+not a global SSRF guard disable — it is asserted explicitly, per call site, from
+`provider.getType() == LlmProvider.OLLAMA`, **never** inferred from the URL alone. A Custom REST
+provider pointed at `localhost` is still blocked; remote providers (OpenAI, Groq, OpenRouter,
+Anthropic, Google) are unaffected. The rationale is that a self-hosted Ollama instance running on the
+same host/network as the platform is a first-class, expected deployment shape (unlike an arbitrary
+user-supplied Custom REST URL), so trusting it to be local is a deliberate product decision, not a
+guard weakening.
+
+Seven call sites assert the bypass explicitly: `AgentHealthCheckExecutor`,
+`CredentialConnectionTester`, `AgentEndpointInvoker`, `EmbeddingService`, `ChatModelDiscoveryService`,
+`EmbeddingModelDiscoveryService`, `JudgeInvocationService`. Regression coverage confirms: Ollama on
+`host.docker.internal`/`localhost`/`127.0.0.1` is trusted; Custom REST on `localhost` is still
+blocked; remote providers are unaffected.
+
+As part of the same change, health checks for native Ollama now correctly probe `GET /api/tags`
+(model listing) instead of `GET /api/chat`, which returns HTTP 405 for a bare health probe — the
+probe target now matches what `/api/chat`-rooted Ollama base URLs actually expose for a lightweight
+liveness check.
+
+**Known gap, deferred:** `OutboundUrlGuard` resolves a hostname once to validate it, then a second
+time when the HTTP client actually connects. An attacker-controlled DNS record could in principle
+rebind between the two lookups (TOCTOU). Closing this fully means pinning the resolved IP through the
+HTTP client stack across all seven call sites, which was judged too large a change to land untested in
+this pass — see [ROADMAP.md → V1.1](./ROADMAP.md) where it is tracked as an explicitly deferred
+hardening item.
+
+#### Provider test-connection / refresh-models
+
+`ProviderController` exposes `POST /{providerId}/test-connection`, backed by the same
+`CredentialConnectionTester` used internally, and returns `probeStrategy` + `probeUrl` so the caller
+sees exactly what was probed (e.g. `GET_MODELS · http://host.docker.internal:11434/api/tags`). It is
+provider-aware — a native Ollama provider is probed at `/api/tags`, not `/api/chat` — and subject to
+the same `OutboundUrlGuard` trust rules above.
+
 ### Mass-assignment prevention
 
 Request DTOs are Java `record`s that **omit every server-controlled field** (ids, tenancy keys,
@@ -685,6 +724,24 @@ schema change.
 | `TOKEN_COUNT` | tokens under threshold |
 | `NON_EMPTY` | output is non-empty |
 
+### Model resolution precedence
+
+Which model an evaluation job actually calls is resolved by `AgentInvocationTarget.fallbackModel()`
+(used by `EvaluationService.create()`) in a fixed precedence order, so a job never silently drops the
+model field from its outbound request:
+
+1. an **evaluation-level model override** supplied in the create-job request, if present;
+2. otherwise the **agent version's model override**, if set;
+3. otherwise the **linked Provider's configured default model** (e.g. `defaultModel: llama3.2:1b`) —
+   this is the new fallback added this pass.
+
+`AgentEndpointInvoker` additionally does a defense-in-depth check: if the target endpoint's health
+probe strategy (`HealthProbePlanner.requiresModelField`) requires a model field and none resolved
+through the precedence above, the invoker **fails validation before making any HTTP call**, with a
+clear error — it never sends a request with a silently-missing model field. Verified live: an
+Ollama provider configured only with `defaultModel: llama3.2:1b` (no override anywhere else) resolved
+correctly and completed the job, with no `BROKSFORGE_MODEL_ALLOW_PRIVATE_TARGETS` env var set.
+
 ### Statuses
 
 `EvaluationJobStatus`: `PENDING → RUNNING → COMPLETED | FAILED | CANCELLED`. Runs carry their own
@@ -725,6 +782,50 @@ Comparison axes (`BenchmarkComparisonType`):
 Benchmarks are **built from `EvaluationJob` summaries**, not by re-running anything — they read the
 precomputed aggregates. A benchmark therefore produces a **leaderboard / ranking / performance
 report** cheaply, and re-renders instantly as referenced jobs complete.
+
+### Benchmark Gallery (V1) — curated one-click templates
+
+The Benchmark Gallery is a **new V1 feature**, distinct from the comparison/leaderboard `Benchmark`
+concept above: it is a guided starting point that provisions a working end-to-end example (dataset +
+prompt + profile + a live evaluation run) in one API call, rather than a way to compare jobs that
+already exist.
+
+- **`BenchmarkGalleryCatalog`** — a **static catalog, no persistence**. This is a new concept for the
+  codebase: a backend-side "template". Every other "preset" elsewhere in the platform (e.g.
+  evaluation-profile presets) is frontend-only; the gallery catalog is the first backend-defined
+  template registry.
+- **`BenchmarkGalleryService`** / **`BenchmarkGalleryController`** — exposed at
+  `GET/POST /api/v1/organizations/{orgId}/projects/{projectId}/benchmark-gallery/templates` and
+  `.../provision`.
+- **8 curated templates**: Customer Support, RAG, Coding, Reasoning, Hallucination, Safety,
+  Summarization, Translation.
+- **Provisioning one template does five things in a single API call**, each an ordinary write
+  through the owning module's existing service (nothing gallery-specific in the target tables):
+  1. a starter **Dataset** (3 real curated items) imported as a **Dataset Version**;
+  2. a **Prompt** with an active **Prompt Version** containing the template text;
+  3. an **Evaluation Profile** with the metrics recommended for that template (e.g. RAG uses
+     `SEMANTIC_SIMILARITY` + `CITATION_VERIFICATION` + `HALLUCINATION_DETECTION`);
+  4. resolution of the caller's chosen agent;
+  5. an **Evaluation Job**, auto-run against that agent.
+- **Judge-family metrics need a provider at provision time, not baked into the catalog.** Templates
+  that use judge-family metrics (`LLM_JUDGE`, `HALLUCINATION_DETECTION`, `CITATION_VERIFICATION`,
+  `SEMANTIC_SIMILARITY`) require the caller to pick a judge/embedding provider when provisioning; the
+  metric params get that `providerId`/model filled in dynamically at provision time.
+- **After provisioning, the artifacts are ordinary editable entities** — the dataset, prompt and
+  profile are not special or gallery-owned; they can be edited, versioned or deleted like anything
+  else created by hand.
+- **Deliberately not wrapped in one outer `@Transactional`.** Each of the five provisioning steps
+  commits independently, exactly as if a client had called five endpoints sequentially in turn. This
+  was a deliberate fix, not the original design: an outer transaction caused a real
+  `DataIntegrityViolationException` (FK violation on `evaluation_runs.evaluation_job_id`) during live
+  testing, because the evaluation job's async auto-run reads the job row back in its **own**
+  transaction and raced the outer transaction's commit. Removing the outer `@Transactional` fixed it.
+- Verified live end-to-end multiple times against a real Ollama instance: dataset/prompt/profile
+  provisioned, the evaluation job ran real model calls, and the `LLM_JUDGE` metric worked using the
+  same Ollama model as judge.
+- **Frontend:** a new "Gallery" tab (now the default tab) on the Benchmarks page
+  (`app/(dashboard)/benchmarks/page.tsx`), `benchmark-gallery-panel.tsx` (template cards) and
+  `provision-template-dialog.tsx` (agent + judge/embedding provider picker).
 
 ---
 
@@ -951,6 +1052,14 @@ a single thing to link to. Recommendations are **computed on read and never pers
 | `CostAdvisor` | recent `EvaluationJobResponse`s | wasted spend from failures, token bloat, spend concentration |
 | `AgentAdvisor` | an `AgentResponse` + its jobs | stale/absent health checks, high failure rates, latency spikes, weak auth, insecure transport |
 | `RagAdvisor` | an `AgentResponse` | declared RAG config: chunk size, overlap, similarity threshold, top-k, embedding model (empty if RAG off) |
+
+`AgentAdvisor` was found, during live Phase 1 smoke testing (not a pre-existing known issue), to have
+three distinct recommendation types — the plaintext-HTTP-transport warning, the missing-authentication
+warning, and the missing-healthcheck warning — all incorrectly sharing the single `knowledgeKey`
+`"MISSING_HEALTHCHECK"`, which corrupted knowledge-graph observation tracking (the key is what
+distinguishes finding types for `recordObservation`). Fixed: `auth()` now uses `"MISSING_AUTH"` and
+`transport()` now uses `"INSECURE_TRANSPORT"`, each finding type reporting to its own knowledge-graph
+key.
 
 **`AdvisorService`** (the only component that loads data) injects the five sub-advisors plus the
 published services `EvaluationService`, `AgentService`, `PromptService` and `KnowledgeGraphService`. It
@@ -1287,6 +1396,26 @@ live per-stage span recording. See
 - **Operability built in.** Actuator health, custom system health and correlation/request ids make the
   running system observable from day one (export pipeline pending, per
   [Observability](#observability)).
+
+### Deployment architecture: Railway (backend) + Vercel (frontend)
+
+Beyond the reference Docker Compose environment, the platform also has a documented production
+deployment split across two managed platforms: Railway hosts Postgres, Redis and the Spring Boot API
+(via the existing multi-stage `backend/Dockerfile` — no Dockerfile changes needed), and Vercel hosts
+the Next.js frontend. The full walkthrough — provisioning, environment variables, secrets, rollback —
+lives in **[./DEPLOYMENT.md](./DEPLOYMENT.md)**; the load-bearing architectural facts are:
+
+- **`server.port` changed from a hardcoded `8080` to `${PORT:8080}`** in `application.yml`, so
+  Railway's injected `PORT` environment variable is honoured. Docker Compose is unaffected — it never
+  sets `PORT`, so the app still defaults to `8080` there.
+- **CORS is already environment-driven** (`BROKSFORGE_SECURITY_CORS_ALLOWED_ORIGINS`) — no code
+  changes were needed to point it at a production Vercel origin.
+- **`next.config.mjs`'s `output: "standalone"` is harmless on Vercel** — Vercel builds and serves the
+  frontend with its own build output regardless of that setting.
+- **The `prod` Spring profile (`application-prod.yml`) requires SMTP env vars and fails fast without
+  them**; the existing `docker` profile (Docker Compose) uses a console `LoggingEmailService` and
+  needs no SMTP configuration at all — these are two genuinely different profiles, not the same
+  behaviour under two names.
 
 ---
 
