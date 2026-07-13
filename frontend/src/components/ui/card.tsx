@@ -9,7 +9,8 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
       // A plain data attribute — no behavioural change to Card itself.
       data-cursor-glow=""
       className={cn(
-        "rounded-xl border border-border bg-card text-card-foreground shadow-sm",
+        "rounded-xl border border-border/60 bg-card text-card-foreground shadow-sm",
+        "transition-[box-shadow,border-color] duration-200",
         className,
       )}
       {...props}

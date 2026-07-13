@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Rows3 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -13,6 +12,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from "@/components/ui/pagination";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDatasetItems, useDatasetVersions } from "@/lib/hooks/use-datasets";
 
 const PAGE_SIZE = 20;
@@ -102,38 +102,34 @@ export function DatasetItemsPanel({
         <EmptyState icon={Rows3} title="No items in this version" />
       ) : (
         <>
-          <Card>
-            <CardContent className="overflow-x-auto p-0">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="w-12 px-4 py-2.5 font-medium">#</th>
-                    <th className="px-4 py-2.5 font-medium">Input</th>
-                    <th className="px-4 py-2.5 font-medium">Expected output</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {items.map((item) => (
-                    <tr key={item.id} className="align-top">
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{item.sequence}</td>
-                      <td className="max-w-[28rem] px-4 py-3">
-                        <p className="line-clamp-3 whitespace-pre-wrap break-words">{item.input}</p>
-                      </td>
-                      <td className="max-w-[28rem] px-4 py-3">
-                        {item.expectedOutput ? (
-                          <p className="line-clamp-3 whitespace-pre-wrap break-words text-muted-foreground">
-                            {item.expectedOutput}
-                          </p>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-12">#</TableHead>
+                <TableHead>Input</TableHead>
+                <TableHead>Expected output</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => (
+                <TableRow key={item.id} className="align-top">
+                  <TableCell className="font-mono text-xs text-muted-foreground">{item.sequence}</TableCell>
+                  <TableCell className="max-w-[28rem]">
+                    <p className="line-clamp-3 whitespace-pre-wrap break-words">{item.input}</p>
+                  </TableCell>
+                  <TableCell className="max-w-[28rem]">
+                    {item.expectedOutput ? (
+                      <p className="line-clamp-3 whitespace-pre-wrap break-words text-muted-foreground">
+                        {item.expectedOutput}
+                      </p>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
           <Pagination
             page={data?.page ?? 0}
             totalPages={data?.totalPages ?? 1}

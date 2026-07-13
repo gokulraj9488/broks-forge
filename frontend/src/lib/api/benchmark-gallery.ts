@@ -12,6 +12,8 @@ export type GalleryTemplateKey =
   | "SUMMARIZATION"
   | "TRANSLATION";
 
+export type GalleryTemplateDifficulty = "EASY" | "MEDIUM" | "HARD";
+
 export interface GalleryTemplateResponse {
   key: GalleryTemplateKey;
   name: string;
@@ -21,6 +23,8 @@ export interface GalleryTemplateResponse {
   metrics: EvaluationMetric[];
   requiresJudgeProvider: boolean;
   requiresEmbeddingProvider: boolean;
+  estimatedRuntimeMinutes: number;
+  difficulty: GalleryTemplateDifficulty;
 }
 
 export interface ProvisionGalleryBenchmarkPayload {

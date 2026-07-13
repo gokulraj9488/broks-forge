@@ -3,15 +3,15 @@
 @tailwind utilities;
 
 /*
- * Brok's Forge palette:
- *   sage     #99B898  hsl(118 18% 66%)
- *   peach    #FECEAB  hsl(25 98% 83%)
- *   coral    #FF847C  hsl(4 100% 74%)
- *   danger   #E84A5F  hsl(352 77% 60%)
- *   charcoal #2A363B  hsl(198 17% 20%)
+ * Brok's Forge palette (V1 professional refresh — GitHub / Google / Vercel inspired):
+ *   primary (Google Blue)     #1A73E8  hsl(217 83% 51%)
+ *   success (GitHub Green)    #1A7F37  hsl(137 66% 30%)  ·  dark #3FB950  hsl(134 44% 55%)
+ *   warning (Google Amber)    #F9AB00  hsl(41 100% 49%)
+ *   danger  (Material Red)    #F44336  hsl(4 90% 58%)
+ *   neutral (GitHub Gray)     light border #D0D7DE · dark bg #0D1117
  *
- * The exact swatches are used where contrast allows (fills, dark-mode primary,
- * selection, accents); text-sized uses ride the same hue at a lightness that
+ * The exact swatches are used where contrast allows (dark-mode fills, chart
+ * colors, accents); text-sized uses ride the same hue at a lightness that
  * clears WCAG AA against the mode's background.
  */
 @layer base {
@@ -19,90 +19,90 @@
     color-scheme: light;
 
     --background: 0 0% 100%;
-    --foreground: 198 17% 20%; /* charcoal #2A363B */
+    --foreground: 210 15% 16%; /* GitHub-style near-black slate */
 
     --card: 0 0% 100%;
-    --card-foreground: 198 17% 20%;
+    --card-foreground: 210 15% 16%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 198 17% 20%;
+    --popover-foreground: 210 15% 16%;
 
-    --primary: 118 20% 38%; /* deep sage — #99B898 darkened for AA on white */
+    --primary: 217 83% 45%; /* Google Blue #1A73E8, deepened for AA on white */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 25 98% 83%; /* peach #FECEAB */
-    --secondary-foreground: 198 17% 20%;
+    --secondary: 210 20% 96%; /* neutral surface */
+    --secondary-foreground: 210 15% 16%;
 
-    --muted: 110 12% 95%;
-    --muted-foreground: 200 8% 42%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 210 9% 45%;
 
-    --accent: 25 70% 92%; /* soft peach hover wash */
-    --accent-foreground: 198 17% 20%;
+    --accent: 214 100% 97%; /* soft blue hover wash */
+    --accent-foreground: 210 15% 16%;
 
-    --destructive: 352 77% 51%; /* danger #E84A5F deepened for AA text on white */
+    --destructive: 4 74% 47%; /* Material Red #F44336, deepened for AA text on white */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 130 35% 34%;
+    --success: 137 66% 28%; /* GitHub Green #1A7F37 */
     --success-foreground: 0 0% 100%;
 
-    --warning: 32 85% 36%;
+    --warning: 38 92% 38%; /* Google Amber #F9AB00, deepened for AA text on white */
     --warning-foreground: 0 0% 100%;
 
-    --border: 120 8% 88%;
-    --input: 120 8% 85%;
-    --ring: 118 20% 38%;
+    --border: 214 20% 88%;
+    --input: 214 20% 85%;
+    --ring: 217 83% 45%;
 
-    --chart-1: 118 18% 56%; /* sage */
-    --chart-2: 25 90% 70%; /* peach */
-    --chart-3: 4 90% 66%; /* coral */
-    --chart-4: 352 70% 55%; /* danger */
-    --chart-5: 200 20% 45%; /* slate charcoal */
+    --chart-1: 217 83% 51%; /* Google Blue */
+    --chart-2: 137 55% 40%; /* GitHub Green */
+    --chart-3: 41 100% 49%; /* Google Amber */
+    --chart-4: 4 90% 58%; /* Material Red */
+    --chart-5: 210 9% 45%; /* neutral gray */
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
   }
 
   .dark {
     color-scheme: dark;
 
-    --background: 198 18% 12%; /* deep charcoal, one step below #2A363B */
-    --foreground: 40 20% 96%;
+    --background: 215 28% 7%; /* GitHub-dark bg, near #0D1117 */
+    --foreground: 210 20% 92%;
 
-    --card: 198 17% 17%;
-    --card-foreground: 40 20% 96%;
+    --card: 213 20% 10%; /* GitHub-dark surface, near #161B22 */
+    --card-foreground: 210 20% 92%;
 
-    --popover: 198 17% 15%;
-    --popover-foreground: 40 20% 96%;
+    --popover: 213 20% 10%;
+    --popover-foreground: 210 20% 92%;
 
-    --primary: 118 18% 66%; /* sage #99B898 exact */
-    --primary-foreground: 198 18% 12%;
+    --primary: 213 94% 68%; /* lightened Google Blue for dark-bg AA */
+    --primary-foreground: 215 28% 10%;
 
-    --secondary: 24 22% 25%; /* peach-tinted surface */
-    --secondary-foreground: 25 98% 83%; /* peach #FECEAB exact */
+    --secondary: 215 14% 20%;
+    --secondary-foreground: 210 20% 92%;
 
-    --muted: 198 14% 22%;
-    --muted-foreground: 200 12% 68%;
+    --muted: 215 14% 18%;
+    --muted-foreground: 210 10% 65%;
 
-    --accent: 198 15% 26%; /* lightened charcoal hover wash */
-    --accent-foreground: 40 20% 96%;
+    --accent: 215 14% 22%;
+    --accent-foreground: 210 20% 92%;
 
-    --destructive: 352 85% 70%; /* danger lifted for AA text on charcoal */
-    --destructive-foreground: 198 18% 12%;
+    --destructive: 4 90% 68%; /* lightened Material Red for dark-bg AA */
+    --destructive-foreground: 215 28% 10%;
 
-    --success: 130 28% 62%;
-    --success-foreground: 198 18% 12%;
+    --success: 134 44% 55%; /* GitHub Green (dark), near #3FB950 */
+    --success-foreground: 215 28% 10%;
 
-    --warning: 35 80% 66%;
-    --warning-foreground: 198 18% 12%;
+    --warning: 41 95% 60%; /* lightened Google Amber for dark-bg AA */
+    --warning-foreground: 215 28% 10%;
 
-    --border: 198 12% 26%;
-    --input: 198 12% 30%;
-    --ring: 118 18% 66%;
+    --border: 215 14% 21%;
+    --input: 215 14% 24%;
+    --ring: 213 94% 68%;
 
-    --chart-1: 118 18% 66%; /* sage #99B898 exact */
-    --chart-2: 25 98% 83%; /* peach #FECEAB exact */
-    --chart-3: 4 100% 74%; /* coral #FF847C exact */
-    --chart-4: 352 77% 60%; /* danger #E84A5F exact */
-    --chart-5: 200 25% 65%; /* slate charcoal */
+    --chart-1: 213 94% 68%;
+    --chart-2: 134 44% 55%;
+    --chart-3: 41 95% 60%;
+    --chart-4: 4 90% 68%;
+    --chart-5: 210 10% 65%;
   }
 }
 
@@ -116,9 +116,9 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Coral text selection — same brand accent in both themes. */
+  /* Blue text selection — same brand accent in both themes. */
   ::selection {
-    background: hsl(4 100% 74% / 0.4);
+    background: hsl(217 83% 51% / 0.25);
     color: inherit;
   }
 
@@ -126,8 +126,8 @@
   .auth-backdrop {
     background-color: hsl(var(--background));
     background-image:
-      radial-gradient(60rem 60rem at 50% -20%, hsl(118 18% 66% / 0.22), transparent 60%),
-      radial-gradient(40rem 30rem at 85% 10%, hsl(4 100% 74% / 0.08), transparent 60%),
+      radial-gradient(60rem 60rem at 50% -20%, hsl(217 83% 51% / 0.16), transparent 60%),
+      radial-gradient(40rem 30rem at 85% 10%, hsl(41 100% 49% / 0.06), transparent 60%),
       linear-gradient(to right, hsl(var(--border) / 0.4) 1px, transparent 1px),
       linear-gradient(to bottom, hsl(var(--border) / 0.4) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 3rem 3rem, 3rem 3rem;

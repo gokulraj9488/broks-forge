@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CreateRegressionDialog } from "@/components/benchmarks/create-regression-dialog";
 import {
   useDeleteRegressionCheck,
@@ -165,44 +166,40 @@ function RegressionFindings({
   return (
     <div className="mt-4 space-y-2">
       <p className="text-xs text-muted-foreground">Tolerance ± {data.tolerancePct}%</p>
-      <div className="overflow-x-auto rounded-md border border-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <th className="px-3 py-2 font-medium">Metric</th>
-              <th className="px-3 py-2 text-right font-medium">Baseline</th>
-              <th className="px-3 py-2 text-right font-medium">Candidate</th>
-              <th className="px-3 py-2 text-right font-medium">Δ</th>
-              <th className="px-3 py-2 text-right font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {findings.map(([key, f]) => (
-              <tr key={key}>
-                <td className="px-3 py-2">{f.label}</td>
-                <td className="px-3 py-2 text-right font-mono text-xs">
-                  {f.baseline != null ? f.baseline.toFixed(3) : "—"}
-                </td>
-                <td className="px-3 py-2 text-right font-mono text-xs">
-                  {f.candidate != null ? f.candidate.toFixed(3) : "—"}
-                </td>
-                <td
-                  className={`px-3 py-2 text-right font-mono text-xs ${
-                    f.regressed ? "text-destructive" : "text-success"
-                  }`}
-                >
-                  {formatDelta(f.deltaPct)}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <Badge variant={f.regressed ? "destructive" : "success"}>
-                    {f.regressed ? "Regressed" : "OK"}
-                  </Badge>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead>Metric</TableHead>
+            <TableHead className="text-right">Baseline</TableHead>
+            <TableHead className="text-right">Candidate</TableHead>
+            <TableHead className="text-right">Δ</TableHead>
+            <TableHead className="text-right">Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {findings.map(([key, f]) => (
+            <TableRow key={key}>
+              <TableCell>{f.label}</TableCell>
+              <TableCell className="text-right font-mono text-xs">
+                {f.baseline != null ? f.baseline.toFixed(3) : "—"}
+              </TableCell>
+              <TableCell className="text-right font-mono text-xs">
+                {f.candidate != null ? f.candidate.toFixed(3) : "—"}
+              </TableCell>
+              <TableCell
+                className={`text-right font-mono text-xs ${f.regressed ? "text-destructive" : "text-success"}`}
+              >
+                {formatDelta(f.deltaPct)}
+              </TableCell>
+              <TableCell className="text-right">
+                <Badge variant={f.regressed ? "destructive" : "success"}>
+                  {f.regressed ? "Regressed" : "OK"}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }

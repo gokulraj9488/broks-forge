@@ -367,6 +367,17 @@ frontend/
         └── (schemas)                    # Zod schemas shared by React Hook Form
 ```
 
+**Design system (V1 polish pass):** all theming is CSS-variable-driven in `app/globals.css`
+(`--primary`, `--success`, `--warning`, `--destructive`, `--border`, etc., consumed as `hsl(var(--x))`
+by every `components/ui/*` primitive) — the V1 color refresh (Google Blue primary, GitHub Green
+success, Google Amber warning, Material Red danger, GitHub-gray neutrals, replacing the earlier sage/
+peach/coral palette) was a variable-value change only, so it cascades to the entire app without
+touching component code. `components/ui/table.tsx` is a new shared `Table`/`TableHeader`/`TableRow`/
+`TableCell` primitive (sticky header, hover rows) that replaced three previously hand-rolled
+`&lt;table&gt;` implementations (`regression-panel.tsx`, `dataset-items-panel.tsx`, `runs-panel.tsx`).
+The sidebar (`layout/sidebar-nav.tsx`) is grouped by workflow (Workspace → Build → Evaluate → Observe
+→ Settings) rather than as a flat list of entities.
+
 ---
 
 ## Database Strategy
@@ -826,6 +837,11 @@ already exist.
 - **Frontend:** a new "Gallery" tab (now the default tab) on the Benchmarks page
   (`app/(dashboard)/benchmarks/page.tsx`), `benchmark-gallery-panel.tsx` (template cards) and
   `provision-template-dialog.tsx` (agent + judge/embedding provider picker).
+- **V1 polish (additive, non-breaking):** `GalleryTemplateResponse` gained two read-only fields —
+  `estimatedRuntimeMinutes` (int) and `difficulty` (`EASY`/`MEDIUM`/`HARD`, hard-coded per template in
+  the catalog, no new persistence) — surfaced as a clock icon + a color-coded difficulty badge on
+  each gallery card, alongside a template-specific icon (e.g. `Headset` for Customer Support,
+  `ShieldCheck` for Safety) instead of one generic icon for every card.
 
 ---
 
