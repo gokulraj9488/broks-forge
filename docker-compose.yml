@@ -66,6 +66,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: broksforge-backend:1.0.0
     container_name: broksforge-backend
     restart: unless-stopped
     depends_on:
@@ -121,6 +122,7 @@ services:
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
         NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES: ${NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES:-30}
+    image: broksforge-frontend:1.0.0
     container_name: broksforge-frontend
     restart: unless-stopped
     depends_on:

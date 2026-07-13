@@ -168,7 +168,7 @@ export default function AboutPage() {
       </section>
 
       <p className="text-xs text-muted-foreground">
-        Brok&apos;s Forge is an open-source portfolio project · Apache-2.0 licensed.
+        Brok&apos;s Forge v1.0.0 is an open-source portfolio project · Apache-2.0 licensed.
       </p>
     </div>
   );

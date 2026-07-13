@@ -14,13 +14,26 @@ import { cn } from "@/lib/utils";
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center border-b border-border px-5">
+      {/* Logo: pinned, never scrolls. */}
+      <div className="flex h-16 shrink-0 items-center border-b border-border px-5">
         <Link href="/dashboard" onClick={onNavigate}>
           <Logo />
         </Link>
       </div>
-      <SidebarNav onNavigate={onNavigate} />
-      <div className="space-y-1.5 border-t border-border p-4">
+
+      {/* Only the nav list scrolls — logo and footer stay pinned, and every group/item
+          stays reachable no matter how tall the list grows. The gradient overlays give a
+          subtle "more content below/above" fade, similar to GitHub/Google Cloud Console. */}
+      <div className="relative min-h-0 flex-1">
+        <div className="h-full overflow-y-auto">
+          <SidebarNav onNavigate={onNavigate} />
+        </div>
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-4 bg-gradient-to-b from-card to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-card to-transparent" />
+      </div>
+
+      {/* Footer: pinned, never scrolls. */}
+      <div className="shrink-0 space-y-1.5 border-t border-border p-4">
         <p className="text-[11px] text-muted-foreground">
           Need help? <ContactDeveloperLink className="text-[11px]" />
         </p>

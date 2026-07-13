@@ -69,7 +69,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-1 flex-col gap-5 px-3 py-4">
+    <nav className="flex flex-1 flex-col gap-6 px-3 py-5">
       {NAV_GROUPS.map((group, groupIndex) => (
         <div key={group.label || `group-${groupIndex}`} className="flex flex-col gap-1">
           {group.label && (

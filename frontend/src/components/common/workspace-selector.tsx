@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ export function WorkspaceSelector({
   children: (selection: WorkspaceSelection) => React.ReactNode;
 }) {
   const { data: orgsData, isLoading: orgsLoading } = useOrganizations({ size: 100 });
-  const organizations = orgsData?.content ?? [];
+  const organizations = useMemo(() => orgsData?.content ?? [], [orgsData]);
 
   const [orgId, setOrgId] = useState<string>("");
   useEffect(() => {
@@ -47,7 +47,7 @@ export function WorkspaceSelector({
   const { data: projectsData, isLoading: projectsLoading } = useProjects(orgId || undefined, {
     size: 100,
   });
-  const projects = projectsData?.content ?? [];
+  const projects = useMemo(() => projectsData?.content ?? [], [projectsData]);
 
   const [projectId, setProjectId] = useState<string>("");
   useEffect(() => {
