@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,7 +26,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { InheritedProviderPanel } from "@/components/providers/inherited-provider-panel";
 import { useCreateAgent } from "@/lib/hooks/use-agents";
+import { useProviders } from "@/lib/hooks/use-providers";
 import { getApiErrorMessage } from "@/lib/api/client";
 import {
   AUTH_TYPE_OPTIONS,
@@ -35,6 +37,10 @@ import {
   VISIBILITY_OPTIONS,
 } from "@/lib/api/agents";
 import { agentSchema, type AgentValues } from "@/lib/validations";
+
+// Radix Select forbids value=""; map the "no provider" option through this sentinel so the
+// form state (and the submitted payload) still uses undefined/"".
+const NO_PROVIDER = "none";
 
 const CAPABILITIES: { key: keyof AgentValues; label: string }[] = [
   { key: "streaming", label: "Streaming" },
@@ -56,11 +62,15 @@ export function RegisterAgentDialog({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const create = useCreateAgent(organizationId, projectId);
+  const { data: providersData } = useProviders(organizationId, projectId, { size: 100 });
+  const providers = providersData?.content ?? [];
   const {
     register,
     control,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<AgentValues>({
     resolver: zodResolver(agentSchema),
@@ -72,6 +82,20 @@ export function RegisterAgentDialog({
     },
   });
 
+  const providerId = watch("providerId");
+  const selectedProvider = providers.find((p) => p.id === providerId);
+
+  // Authentication is no longer agent-owned once a Provider is linked — it's inherited from the
+  // Provider's own stored key (see AgentCredentialService.resolveAuthHeaders). Force the field
+  // back to NONE so there is never stale/conflicting agent-level auth configuration sitting
+  // alongside a provider link.
+  useEffect(() => {
+    if (providerId) {
+      setValue("authType", "NONE");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providerId]);
+
   const onSubmit = (values: AgentValues) => {
     const tags = values.tags
       ? values.tags.split(",").map((t) => t.trim()).filter(Boolean)
@@ -82,7 +106,10 @@ export function RegisterAgentDialog({
         name: values.name,
         slug: values.slug || undefined,
         description: values.description || undefined,
-        endpointUrl: values.endpointUrl,
+        endpointUrl: values.providerId ? undefined : values.endpointUrl,
+        providerId: values.providerId || undefined,
+        modelOverride: values.providerId ? values.modelOverride || undefined : undefined,
+        endpointOverride: values.providerId ? values.endpointOverride || undefined : undefined,
         visibility: values.visibility,
         framework: values.framework,
         language: values.language,
@@ -140,9 +167,66 @@ export function RegisterAgentDialog({
             </Field>
           </div>
 
-          <Field label="Endpoint URL" htmlFor="agent-endpoint" error={errors.endpointUrl?.message} required>
-            <Input id="agent-endpoint" placeholder="https://agents.example.com/support" {...register("endpointUrl")} />
+          <Field
+            label="Provider"
+            htmlFor="agent-provider"
+            hint="Optional — inherit connection details from a registered provider instead of a custom endpoint"
+          >
+            <Controller
+              control={control}
+              name="providerId"
+              render={({ field }) => (
+                <Select
+                  value={field.value || NO_PROVIDER}
+                  onValueChange={(v) => field.onChange(v === NO_PROVIDER ? "" : v)}
+                >
+                  <SelectTrigger id="agent-provider" onBlur={field.onBlur}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_PROVIDER}>No provider (custom endpoint)</SelectItem>
+                    {providers.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </Field>
+
+          {providerId ? (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  label="Model override"
+                  htmlFor="agent-model-override"
+                  error={errors.modelOverride?.message}
+                  hint={selectedProvider?.defaultModel ? `Inherits "${selectedProvider.defaultModel}"` : "Optional"}
+                >
+                  <Input id="agent-model-override" placeholder="Optional" {...register("modelOverride")} />
+                </Field>
+                <Field
+                  label="Endpoint override"
+                  htmlFor="agent-endpoint-override"
+                  error={errors.endpointOverride?.message}
+                  hint={`Inherits "${selectedProvider?.baseUrl ?? ""}"`}
+                >
+                  <Input id="agent-endpoint-override" placeholder="Optional" {...register("endpointOverride")} />
+                </Field>
+              </div>
+              {selectedProvider && <InheritedProviderPanel provider={selectedProvider} />}
+            </>
+          ) : (
+            <Field label="Endpoint URL" htmlFor="agent-endpoint" error={errors.endpointUrl?.message} required>
+              <Input
+                id="agent-endpoint"
+                placeholder="https://agents.example.com/support"
+                {...register("endpointUrl")}
+              />
+            </Field>
+          )}
 
           <Field label="Description" htmlFor="agent-description" error={errors.description?.message}>
             <Textarea id="agent-description" placeholder="What does this agent do?" {...register("description")} />
@@ -209,27 +293,39 @@ export function RegisterAgentDialog({
                 )}
               />
             </Field>
-            <Field label="Authentication" htmlFor="agent-auth" error={errors.authType?.message} required>
-              <Controller
-                control={control}
-                name="authType"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="agent-auth" onBlur={field.onBlur}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AUTH_TYPE_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={o.value}>
-                          {o.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </Field>
+            {providerId ? (
+              <Field label="Authentication" hint="No longer agent-owned once a provider is linked">
+                <div className="flex h-9 items-center rounded-md border border-dashed border-border bg-muted/40 px-3 text-sm text-muted-foreground">
+                  Inherited from provider ({selectedProvider?.name ?? "…"})
+                </div>
+              </Field>
+            ) : (
+              <Field label="Authentication" htmlFor="agent-auth" error={errors.authType?.message} required>
+                <Controller
+                  control={control}
+                  name="authType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="agent-auth" onBlur={field.onBlur}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AUTH_TYPE_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </Field>
+            )}
           </div>
+          <p className="text-xs text-muted-foreground">
+            Framework and language are descriptive metadata only — they don&apos;t affect connectivity or
+            how requests are sent to the provider.
+          </p>
 
           <Field label="Capabilities">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

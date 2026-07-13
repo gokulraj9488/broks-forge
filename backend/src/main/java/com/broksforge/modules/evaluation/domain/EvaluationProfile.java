@@ -64,4 +64,16 @@ public class EvaluationProfile extends SoftDeletableEntity {
     /** Minimum overall pass-rate (0..1) for a run to be considered passing; null = all metrics must pass. */
     @Column(name = "pass_threshold", precision = 7, scale = 4)
     private BigDecimal passThreshold;
+
+    /** Whether this profile may currently be selected for new evaluation jobs. */
+    @Column(name = "enabled", nullable = false)
+    private boolean enabled = true;
+
+    /** Highest {@code EvaluationProfileVersion.versionNumber} created for this profile so far. */
+    @Column(name = "latest_version_number", nullable = false)
+    private int latestVersionNumber = 0;
+
+    /** The version whose metrics/passThreshold new jobs pin to; null only before the first version exists. */
+    @Column(name = "current_version_id")
+    private UUID currentVersionId;
 }

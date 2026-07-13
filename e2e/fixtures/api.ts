@@ -101,7 +101,10 @@ export async function apiRegisterAgent(
 /** A ready-to-use project scope (user + org + project) for tests that need an authenticated area. */
 export async function seedProjectScope(request: APIRequestContext) {
   const user = await registerViaApi(request);
-  const org = await apiCreateOrganization(request, user.token, "E2E Org");
+  // Organization slugs are GLOBALLY unique (schema constraint uq_organizations_slug), so a fixed
+  // name collides (409) with orgs left by prior runs / parallel tests. Use a unique name per scope.
+  const orgName = `E2E Org ${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
+  const org = await apiCreateOrganization(request, user.token, orgName);
   const project = await apiCreateProject(request, user.token, org.id, "E2E Project");
   return { user, org, project };
 }

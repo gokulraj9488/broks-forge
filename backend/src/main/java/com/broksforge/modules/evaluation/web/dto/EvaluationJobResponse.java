@@ -25,6 +25,8 @@ public record EvaluationJobResponse(
         UUID promptId,
         UUID promptVersionId,
         UUID profileId,
+        UUID profileVersionId,
+        Integer profileVersionNumber,
         LlmProvider provider,
         String model,
         Map<String, Object> parameters,
@@ -35,6 +37,11 @@ public record EvaluationJobResponse(
         Instant completedAt,
         Map<String, Object> summary,
         String errorMessage,
+        int priority,
+        Instant queuedAt,
+        Instant lastProgressAt,
+        Integer batchSize,
+        int retryCount,
         Instant createdAt,
         Instant updatedAt
 ) {

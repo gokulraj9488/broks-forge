@@ -49,10 +49,12 @@ public class EvaluationResult extends BaseEntity {
     @Column(name = "metric_label", length = 120)
     private String metricLabel;
 
-    @Column(name = "passed", nullable = false)
-    private boolean passed;
+    /** Null when {@link #executionStatus} isn't {@link MetricExecutionStatus#COMPLETED} — the metric never ran. */
+    @Column(name = "passed")
+    private Boolean passed;
 
-    @Column(name = "score", nullable = false, precision = 7, scale = 4)
+    /** Null when {@link #executionStatus} isn't {@link MetricExecutionStatus#COMPLETED} — the metric never ran. */
+    @Column(name = "score", precision = 7, scale = 4)
     private BigDecimal score;
 
     @Column(name = "threshold", precision = 18, scale = 6)
@@ -60,4 +62,8 @@ public class EvaluationResult extends BaseEntity {
 
     @Column(name = "detail", length = 1000)
     private String detail;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "execution_status", nullable = false, length = 40)
+    private MetricExecutionStatus executionStatus = MetricExecutionStatus.COMPLETED;
 }

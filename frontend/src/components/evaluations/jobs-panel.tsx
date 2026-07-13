@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { FlaskConical, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -34,7 +35,7 @@ export function JobsPanel({
   const [status, setStatus] = useState<EvaluationJobStatus | "">("");
   const [page, setPage] = useState(0);
 
-  const { data, isLoading, isError } = useEvaluationJobs(organizationId, projectId, {
+  const { data, isLoading, isError, refetch, isRefetching } = useEvaluationJobs(organizationId, projectId, {
     q: q.trim() || undefined,
     status: status || undefined,
     page,
@@ -90,7 +91,16 @@ export function JobsPanel({
           ))}
         </div>
       ) : isError ? (
-        <EmptyState icon={FlaskConical} title="Couldn't load evaluations" description="Please try again." />
+        <EmptyState
+          icon={FlaskConical}
+          title="Couldn't load evaluations"
+          description="Something went wrong reaching the server. Check your connection and try again."
+          action={
+            <Button variant="outline" onClick={() => refetch()} loading={isRefetching}>
+              Retry
+            </Button>
+          }
+        />
       ) : jobs.length === 0 ? (
         <EmptyState
           icon={FlaskConical}

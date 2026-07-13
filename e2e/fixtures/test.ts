@@ -13,7 +13,10 @@ type Fixtures = {
 export async function loginViaUi(page: Page, email: string, password: string): Promise<void> {
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
+  // Target the password <input> by id. getByLabel("Password") is ambiguous (it also matches the
+  // "Show password" toggle button), and exact:true misses because the required marker makes the
+  // accessible name "Password *". The stable id is the unambiguous locator.
+  await page.locator("#password").fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await page.waitForURL("**/dashboard", { timeout: 15_000 });
 }

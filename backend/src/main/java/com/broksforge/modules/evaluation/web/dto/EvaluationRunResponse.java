@@ -11,6 +11,8 @@ import java.util.UUID;
 public record EvaluationRunResponse(
         UUID id,
         int sequence,
+        @Schema(description = "1 for the first try; N means the row was retried N-1 times "
+                + "(background retry on 429/5xx, or a later resumed pass)") int attempt,
         EvaluationRunStatus status,
         UUID datasetItemId,
         String input,

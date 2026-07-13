@@ -37,17 +37,53 @@ export interface EvaluationJobSummaryResponse {
   completedAt: string | null;
 }
 
+export interface EvaluationKpis {
+  passed: number;
+  failed: number;
+  skipped: number;
+}
+
+export interface ExecutionKpis {
+  succeeded: number;
+  authenticationErrors: number;
+  providerErrors: number;
+  rateLimited: number;
+  modelNotFound: number;
+  timeouts: number;
+  infrastructureErrors: number;
+}
+
+export interface MetricBreakdownEntry {
+  total: number;
+  completed: number;
+  passed: number;
+  failed: number;
+  executionErrors: Record<string, number>;
+}
+
 export interface EvaluationJobSummaryStats {
   totalRuns: number;
   succeeded: number;
   failed: number;
+  /** @deprecated run-level pass count — use evaluation.passed instead */
   passed: number;
+  /** @deprecated run-level pass rate — use evaluation instead */
   passRate: number;
   avgLatencyMs: number;
   totalTokens: number;
   totalCost: number;
+  /** Average of only metrics that actually completed — never averages in an unavailable metric as 0. */
   avgScore: number;
+  completedMetricCount: number;
+  unavailableMetricCount: number;
+  /** Quality verdict — independent of provider/execution health. */
+  evaluation: EvaluationKpis;
+  /** Metric-level provider-call health, aggregated job-wide. */
+  execution: ExecutionKpis;
+  /** @deprecated per-metric pass rate over completed outcomes only — use metricBreakdown instead */
   metricPassRates: Record<string, number>;
+  /** Every configured metric type, including ones that never completed a single time. */
+  metricBreakdown: Record<string, MetricBreakdownEntry>;
 }
 
 export interface EvaluationJobResponse {
@@ -63,6 +99,8 @@ export interface EvaluationJobResponse {
   promptId: string | null;
   promptVersionId: string | null;
   profileId: string | null;
+  profileVersionId: string | null;
+  profileVersionNumber: number | null;
   provider: LlmProvider | null;
   model: string | null;
   parameters: Record<string, unknown> | null;
@@ -71,6 +109,9 @@ export interface EvaluationJobResponse {
   failedItems: number;
   summary: EvaluationJobSummaryStats | null;
   errorMessage: string | null;
+  startedAt: string | null;
+  lastProgressAt: string | null;
+  retryCount: number;
   createdAt: string;
   completedAt: string | null;
 }
@@ -78,6 +119,8 @@ export interface EvaluationJobResponse {
 export interface EvaluationRunResponse {
   id: string;
   sequence: number;
+  /** 1 for the first try; N means the row was retried N-1 times. */
+  attempt: number;
   status: EvaluationRunStatus;
   input: string;
   output: string | null;
@@ -93,13 +136,24 @@ export interface EvaluationRunResponse {
   completedAt: string | null;
 }
 
+export type MetricExecutionStatus =
+  | "COMPLETED"
+  | "AUTHENTICATION_ERROR"
+  | "PROVIDER_UNAVAILABLE"
+  | "RATE_LIMITED"
+  | "MODEL_NOT_FOUND"
+  | "TIMEOUT"
+  | "INFRASTRUCTURE_ERROR";
+
 export interface EvaluationRunResultResponse {
   metricType: MetricType;
   metricLabel: string | null;
-  passed: boolean;
+  /** Null when executionStatus isn't COMPLETED — the metric never ran, so there's nothing to score. */
+  passed: boolean | null;
   score: number | null;
   threshold: number | null;
   detail: string | null;
+  executionStatus: MetricExecutionStatus;
 }
 
 // ---------------------------------------------------------------------------
@@ -173,6 +227,12 @@ export const evaluationJobsApi = {
   cancel: (organizationId: string, projectId: string, jobId: string) =>
     apiClient
       .post<EvaluationJobResponse>(`${base(organizationId, projectId)}/${jobId}/cancel`)
+      .then((r) => r.data),
+
+  /** Re-executes only the items that don't already have a succeeded run, in a new pass. */
+  resume: (organizationId: string, projectId: string, jobId: string) =>
+    apiClient
+      .post<EvaluationJobResponse>(`${base(organizationId, projectId)}/${jobId}/resume`)
       .then((r) => r.data),
 
   listRuns: (

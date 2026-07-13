@@ -90,4 +90,8 @@ public class EvaluationRun extends BaseEntity {
 
     @Column(name = "completed_at")
     private Instant completedAt;
+
+    /** Which execution pass produced this run (1 for the first run, 2+ after a resume/retry). */
+    @Column(name = "attempt", nullable = false)
+    private int attempt = 1;
 }

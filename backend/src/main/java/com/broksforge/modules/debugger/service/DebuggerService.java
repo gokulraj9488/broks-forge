@@ -110,7 +110,7 @@ public class DebuggerService {
         if (!StringUtils.hasText(run.output())) {
             parserStatus = StageStatus.ERROR;
             parserExplanation = "No output was produced to parse.";
-        } else if (jsonResult != null && !jsonResult.passed()) {
+        } else if (jsonResult != null && Boolean.FALSE.equals(jsonResult.passed())) {
             parserStatus = StageStatus.ERROR;
             parserExplanation = "Output failed JSON validation.";
         } else {
@@ -119,10 +119,10 @@ public class DebuggerService {
         stages.add(new TimelineStageResponse(ExecutionStage.PARSER, ExecutionStage.PARSER.label(),
                 parserStatus, offset, 0L,
                 jsonResult == null ? "No structural metric configured" : "JSON_VALID: "
-                        + (jsonResult.passed() ? "passed" : "failed"), parserExplanation));
+                        + (Boolean.TRUE.equals(jsonResult.passed()) ? "passed" : "failed"), parserExplanation));
 
         // OUTPUT — final result and the failing metrics.
-        long failedMetrics = results.stream().filter(r -> !r.passed()).count();
+        long failedMetrics = results.stream().filter(r -> !Boolean.TRUE.equals(r.passed())).count();
         StageStatus outputStatus = Boolean.TRUE.equals(run.passed()) ? StageStatus.OK
                 : (runFailed ? StageStatus.ERROR : StageStatus.WARN);
         String outputDetail = (StringUtils.hasText(run.output())
@@ -156,7 +156,7 @@ public class DebuggerService {
                     : "Run failed during invocation.";
         }
         List<String> failing = results.stream()
-                .filter(r -> !r.passed())
+                .filter(r -> !Boolean.TRUE.equals(r.passed()))
                 .map(r -> r.metricType().name() + (StringUtils.hasText(r.detail()) ? " (" + r.detail() + ")" : ""))
                 .toList();
         if (failing.isEmpty()) {

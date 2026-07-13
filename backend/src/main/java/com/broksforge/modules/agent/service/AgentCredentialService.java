@@ -14,7 +14,11 @@ import com.broksforge.modules.agent.web.dto.CredentialTestResponse;
 import com.broksforge.modules.agent.web.dto.SetAgentCredentialRequest;
 import com.broksforge.modules.agent.web.dto.TestAgentCredentialRequest;
 import com.broksforge.modules.agent.web.dto.UpdateAgentCredentialRequest;
+import com.broksforge.modules.model.adapter.ProviderAdapter;
+import com.broksforge.modules.model.adapter.ProviderAdapterRegistry;
 import com.broksforge.modules.organization.domain.OrganizationRole;
+import com.broksforge.modules.provider.domain.Provider;
+import com.broksforge.modules.provider.repository.ProviderRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,17 +54,23 @@ public class AgentCredentialService {
     private final AgentCredentialMapper mapper;
     private final CredentialEncryptionService encryptionService;
     private final CredentialConnectionTester connectionTester;
+    private final ProviderRepository providerRepository;
+    private final ProviderAdapterRegistry adapterRegistry;
 
     public AgentCredentialService(AgentCredentialRepository credentialRepository,
                                   AgentAccessGuard accessGuard,
                                   AgentCredentialMapper mapper,
                                   CredentialEncryptionService encryptionService,
-                                  CredentialConnectionTester connectionTester) {
+                                  CredentialConnectionTester connectionTester,
+                                  ProviderRepository providerRepository,
+                                  ProviderAdapterRegistry adapterRegistry) {
         this.credentialRepository = credentialRepository;
         this.accessGuard = accessGuard;
         this.mapper = mapper;
         this.encryptionService = encryptionService;
         this.connectionTester = connectionTester;
+        this.providerRepository = providerRepository;
+        this.adapterRegistry = adapterRegistry;
     }
 
     /** Creates a new active credential, deactivating (but retaining) any previous ones — i.e. "replace". */
@@ -198,16 +208,44 @@ public class AgentCredentialService {
      * Produces the HTTP headers required to authenticate against the agent's
      * endpoint, decrypting the active credential. Internal use only (health
      * probes and invocation); never exposed via the API.
+     *
+     * <p>An agent's own credential always wins when one is configured — this preserves every
+     * agent that already worked before the Provider abstraction milestone (including agents
+     * the V36 backfill linked to a provider but which still authenticate with their own,
+     * never-migrated secret). Only when the agent has <em>no</em> credential of its own and is
+     * linked to a Provider does authentication fall back to the Provider's own key, via
+     * {@link #resolveProviderAuthHeaders}.</p>
      */
     @Transactional(readOnly = true)
     public Map<String, String> resolveAuthHeaders(Agent agent) {
         AgentCredential credential = credentialRepository
                 .findFirstByAgentIdAndActiveTrueOrderByCreatedAtDesc(agent.getId())
                 .orElse(null);
-        if (credential == null || credential.getAuthType() == AgentAuthType.NONE) {
+        if (credential != null && credential.getAuthType() != AgentAuthType.NONE) {
+            return buildHeadersFor(credential);
+        }
+        if (agent.getProviderId() != null) {
+            return resolveProviderAuthHeaders(agent.getProviderId());
+        }
+        return Map.of();
+    }
+
+    /**
+     * Builds auth headers from a linked Provider's own stored key, shaped by whichever
+     * {@code ProviderAdapter} recognises the provider's base URL (Anthropic's {@code x-api-key},
+     * Google AI Studio's {@code x-goog-api-key}, ...); falls back to the generic
+     * {@code Authorization: Bearer} shape for a provider no adapter matches (e.g. a
+     * {@code CUSTOM_REST}-style provider).
+     */
+    private Map<String, String> resolveProviderAuthHeaders(UUID providerId) {
+        Provider provider = providerRepository.findById(providerId).orElse(null);
+        if (provider == null || !provider.isEnabled() || provider.getAuthType() == AgentAuthType.NONE
+                || provider.getEncryptedApiKey() == null) {
             return Map.of();
         }
-        return buildHeadersFor(credential);
+        String apiKey = encryptionService.decrypt(provider.getEncryptedApiKey());
+        ProviderAdapter adapter = adapterRegistry.resolve(provider.getBaseUrl());
+        return adapter != null ? adapter.buildAuthHeaders(apiKey) : Map.of("Authorization", "Bearer " + apiKey);
     }
 
     // ----------------------------------------------------------------------

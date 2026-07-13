@@ -21,6 +21,7 @@ import {
   CredentialSetupAlert,
 } from "@/components/agents/agent-onboarding";
 import { AdvisoryReport } from "@/components/advisor/advisory-report";
+import { InheritedProviderPanel } from "@/components/providers/inherited-provider-panel";
 import {
   useAgent,
   useAgentCredentials,
@@ -28,6 +29,7 @@ import {
   useRunHealthCheck,
   useTestCredential,
 } from "@/lib/hooks/use-agents";
+import { useProvider } from "@/lib/hooks/use-providers";
 import { useAgentAdvisory } from "@/lib/hooks/use-advisor";
 import { useOrganization } from "@/lib/hooks/use-organizations";
 import { FRAMEWORK_OPTIONS, type AgentCredentialResponse, type AgentResponse } from "@/lib/api/agents";
@@ -102,16 +104,34 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
   );
 }
 
-function Overview({ agent }: { agent: AgentResponse }) {
+function Overview({
+  agent,
+  organizationId,
+  projectId,
+}: {
+  agent: AgentResponse;
+  organizationId: string;
+  projectId: string;
+}) {
   const enabledCaps = CAPABILITY_LABELS.filter((c) => agent.capabilities[c.key]);
+  const { data: provider } = useProvider(organizationId, projectId, agent.providerId ?? undefined);
+
   return (
     <div className="space-y-6">
       <Card>
         <CardContent className="grid gap-6 p-6 sm:grid-cols-2">
-          <Detail label="Framework">{FRAMEWORK_LABELS[agent.framework] ?? agent.framework}</Detail>
-          <Detail label="Language">{agent.language}</Detail>
+          <Detail label="Framework">
+            {FRAMEWORK_LABELS[agent.framework] ?? agent.framework}
+            <span className="ml-1 text-xs text-muted-foreground">(descriptive only)</span>
+          </Detail>
+          <Detail label="Language">
+            {agent.language}
+            <span className="ml-1 text-xs text-muted-foreground">(descriptive only)</span>
+          </Detail>
           <Detail label="Visibility">{agent.visibility}</Detail>
-          <Detail label="Authentication">{agent.authType.replace(/_/g, " ")}</Detail>
+          <Detail label="Authentication">
+            {agent.providerId ? `Inherited from provider (${provider?.name ?? "…"})` : agent.authType.replace(/_/g, " ")}
+          </Detail>
           <Detail label="Endpoint">
             <a
               href={agent.endpointUrl}
@@ -122,6 +142,9 @@ function Overview({ agent }: { agent: AgentResponse }) {
               {agent.endpointUrl}
               <ExternalLink className="h-3 w-3 shrink-0" />
             </a>
+            {agent.providerId && !agent.endpointOverride && (
+              <span className="ml-1 text-xs text-muted-foreground">(from provider)</span>
+            )}
           </Detail>
           <Detail label="Active version">
             {agent.currentActiveVersionId ? (
@@ -134,6 +157,8 @@ function Overview({ agent }: { agent: AgentResponse }) {
           <Detail label="Updated">{formatDateTime(agent.updatedAt)}</Detail>
         </CardContent>
       </Card>
+
+      {provider && <InheritedProviderPanel provider={provider} />}
 
       <Card>
         <CardContent className="space-y-3 p-6">
@@ -315,7 +340,7 @@ function AgentDetail() {
         {tab === "overview" && (
           <div className="space-y-6">
             {needsCredentialSetup && <CredentialSetupAlert onConfigure={goToCredentials} />}
-            <Overview agent={agent} />
+            <Overview agent={agent} organizationId={orgId} projectId={projectId} />
           </div>
         )}
         {tab === "versions" && (

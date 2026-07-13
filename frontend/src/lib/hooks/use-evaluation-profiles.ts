@@ -1,17 +1,17 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { PageParams } from "@/lib/api/organizations";
 import {
   evaluationProfilesApi,
   type CreateEvaluationProfilePayload,
+  type ListEvaluationProfilesParams,
   type UpdateEvaluationProfilePayload,
 } from "@/lib/api/evaluation-profiles";
 
 const keys = {
   scope: (o: string, p: string) =>
     ["organizations", o, "projects", p, "evaluation-profiles"] as const,
-  list: (o: string, p: string, params: PageParams) =>
+  list: (o: string, p: string, params: ListEvaluationProfilesParams) =>
     ["organizations", o, "projects", p, "evaluation-profiles", "list", params] as const,
   detail: (o: string, p: string, id: string) =>
     ["organizations", o, "projects", p, "evaluation-profiles", id] as const,
@@ -20,7 +20,7 @@ const keys = {
 export function useEvaluationProfiles(
   organizationId: string | undefined,
   projectId: string | undefined,
-  params: PageParams = {},
+  params: ListEvaluationProfilesParams = {},
 ) {
   return useQuery({
     queryKey: keys.list(organizationId ?? "", projectId ?? "", params),
@@ -74,6 +74,26 @@ export function useDeleteEvaluationProfile(organizationId: string, projectId: st
   return useMutation({
     mutationFn: (profileId: string) =>
       evaluationProfilesApi.remove(organizationId, projectId, profileId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.scope(organizationId, projectId) }),
+  });
+}
+
+export function useDuplicateEvaluationProfile(organizationId: string, projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (profileId: string) =>
+      evaluationProfilesApi.duplicate(organizationId, projectId, profileId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.scope(organizationId, projectId) }),
+  });
+}
+
+export function useToggleEvaluationProfileEnabled(organizationId: string, projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ profileId, enabled }: { profileId: string; enabled: boolean }) =>
+      enabled
+        ? evaluationProfilesApi.enable(organizationId, projectId, profileId)
+        : evaluationProfilesApi.disable(organizationId, projectId, profileId),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.scope(organizationId, projectId) }),
   });
 }

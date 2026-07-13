@@ -79,10 +79,11 @@ export function useEvaluationJobAction(
 ) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (action: "run" | "cancel") =>
-      action === "run"
-        ? evaluationJobsApi.run(organizationId, projectId, jobId)
-        : evaluationJobsApi.cancel(organizationId, projectId, jobId),
+    mutationFn: (action: "run" | "cancel" | "resume") => {
+      if (action === "run") return evaluationJobsApi.run(organizationId, projectId, jobId);
+      if (action === "resume") return evaluationJobsApi.resume(organizationId, projectId, jobId);
+      return evaluationJobsApi.cancel(organizationId, projectId, jobId);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.detail(organizationId, projectId, jobId) });
       qc.invalidateQueries({ queryKey: keys.runs(organizationId, projectId, jobId) });

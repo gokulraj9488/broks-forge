@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Copy, KeyRound, Plus, TriangleAlert } from "lucide-react";
@@ -40,10 +40,16 @@ export function CreateApiKeyDialog({
     formState: { errors },
   } = useForm<ApiKeyValues>({ resolver: zodResolver(apiKeySchema) });
 
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+  }, []);
+
   const close = () => {
     setOpen(false);
     setCreated(null);
     setCopied(false);
+    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
     reset();
   };
 
@@ -63,7 +69,8 @@ export function CreateApiKeyDialog({
       await navigator.clipboard.writeText(created.plaintextKey);
       setCopied(true);
       toast.success("Key copied to clipboard");
-      setTimeout(() => setCopied(false), 2000);
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+      copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Couldn't copy — copy it manually");
     }

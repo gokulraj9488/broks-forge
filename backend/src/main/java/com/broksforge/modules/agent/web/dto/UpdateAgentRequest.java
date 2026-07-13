@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Partial update. Null fields are left unchanged. The slug and owner are
@@ -40,6 +41,15 @@ public record UpdateAgentRequest(
 
         @Schema(description = "When provided, replaces the agent's tags wholesale")
         @Size(max = 25, message = "An agent may have at most 25 tags")
-        Set<@Size(max = 64) String> tags
+        Set<@Size(max = 64) String> tags,
+
+        @Schema(description = "When provided, links (or re-links) this agent to a Provider")
+        UUID providerId,
+
+        @Size(max = 128)
+        String modelOverride,
+
+        @ValidEndpointUrl
+        String endpointOverride
 ) {
 }

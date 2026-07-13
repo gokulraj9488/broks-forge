@@ -4,6 +4,8 @@ import com.broksforge.common.web.PageResponse;
 import com.broksforge.modules.dataset.service.DatasetService;
 import com.broksforge.modules.dataset.web.dto.DatasetItemResponse;
 import com.broksforge.modules.dataset.web.dto.DatasetStatsResponse;
+import com.broksforge.modules.dataset.web.dto.DatasetUploadPreviewResponse;
+import com.broksforge.modules.dataset.web.dto.DatasetUploadResponse;
 import com.broksforge.modules.dataset.web.dto.DatasetVersionResponse;
 import com.broksforge.modules.dataset.web.dto.ImportDatasetRequest;
 import com.broksforge.security.SecurityUtils;
@@ -24,7 +26,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
@@ -99,5 +103,66 @@ public class DatasetVersionController {
                                                       @RequestParam(required = false) UUID versionId) {
         return ResponseEntity.ok(datasetService.getStats(
                 SecurityUtils.requireCurrentUserId(), organizationId, projectId, datasetId, versionId));
+    }
+
+    // ----------------------------------------------------------------------
+    // File uploads (CSV / JSON / XLSX / ZIP) — additive to the paste-mode /versions endpoint above
+    // ----------------------------------------------------------------------
+
+    @PostMapping(value = "/uploads", consumes = "multipart/form-data")
+    @Operation(summary = "Upload a dataset file",
+            description = "Parses an uploaded CSV/JSON/XLSX/ZIP file into a new immutable version. "
+                    + "Every attempt is recorded (checksum, size, row/column counts, parser status) "
+                    + "and duplicate content is detected without re-parsing.")
+    public ResponseEntity<DatasetUploadResponse> uploadFile(@PathVariable UUID organizationId,
+                                                            @PathVariable UUID projectId,
+                                                            @PathVariable UUID datasetId,
+                                                            @RequestPart("file") MultipartFile file,
+                                                            @RequestParam(required = false) String description,
+                                                            @RequestParam(required = false) String inputField,
+                                                            @RequestParam(required = false) String expectedOutputField,
+                                                            @RequestParam(required = false)
+                                                            String metadataFields) {
+        DatasetUploadResponse response = datasetService.uploadFile(
+                SecurityUtils.requireCurrentUserId(), organizationId, projectId, datasetId,
+                file, description, inputField, expectedOutputField, metadataFields);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping(value = "/uploads/preview", consumes = "multipart/form-data")
+    @Operation(summary = "Preview a dataset file before importing it",
+            description = "Detects columns and suggests an input/expected-output mapping without creating a "
+                    + "version. Returns every column that could plausibly be the input or the expected output "
+                    + "(so the caller can tell a confident auto-detection from an ambiguous one needing "
+                    + "confirmation) plus the first up to 5 rows.")
+    public ResponseEntity<DatasetUploadPreviewResponse> previewUpload(@PathVariable UUID organizationId,
+                                                                      @PathVariable UUID projectId,
+                                                                      @PathVariable UUID datasetId,
+                                                                      @RequestPart("file") MultipartFile file) {
+        DatasetUploadPreviewResponse response = datasetService.previewUpload(
+                SecurityUtils.requireCurrentUserId(), organizationId, projectId, datasetId, file);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/uploads")
+    @Operation(summary = "List upload history for a dataset")
+    public ResponseEntity<PageResponse<DatasetUploadResponse>> listUploads(
+            @PathVariable UUID organizationId,
+            @PathVariable UUID projectId,
+            @PathVariable UUID datasetId,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(datasetService.listUploads(
+                SecurityUtils.requireCurrentUserId(), organizationId, projectId, datasetId, pageable));
+    }
+
+    @GetMapping("/uploads/{uploadId}")
+    @Operation(summary = "Get one upload's status/result",
+            description = "Polling target for the parser outcome (row/column count, or the error message).")
+    public ResponseEntity<DatasetUploadResponse> getUpload(@PathVariable UUID organizationId,
+                                                           @PathVariable UUID projectId,
+                                                           @PathVariable UUID datasetId,
+                                                           @PathVariable UUID uploadId) {
+        return ResponseEntity.ok(datasetService.getUpload(
+                SecurityUtils.requireCurrentUserId(), organizationId, projectId, datasetId, uploadId));
     }
 }

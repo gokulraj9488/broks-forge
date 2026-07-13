@@ -1,12 +1,15 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AxiosProgressEvent } from "axios";
 import type { PageParams } from "@/lib/api/organizations";
 import {
   datasetsApi,
   type CreateDatasetPayload,
   type CreateDatasetVersionPayload,
   type DatasetFilterParams,
+  type DatasetUploadResponse,
   type UpdateDatasetPayload,
 } from "@/lib/api/datasets";
 
@@ -22,6 +25,8 @@ const keys = {
     ["organizations", o, "projects", p, "datasets", d, "versions", v, "items"] as const,
   stats: (o: string, p: string, d: string, v: string | undefined) =>
     ["organizations", o, "projects", p, "datasets", d, "stats", v ?? "current"] as const,
+  uploads: (o: string, p: string, d: string) =>
+    ["organizations", o, "projects", p, "datasets", d, "uploads"] as const,
 };
 
 export function useDatasets(
@@ -142,6 +147,102 @@ export function useDatasetItems(
         params,
       ),
     enabled: !!organizationId && !!projectId && !!datasetId && !!versionId,
+  });
+}
+
+export function useDatasetUploads(
+  organizationId: string | undefined,
+  projectId: string | undefined,
+  datasetId: string | undefined,
+  params: PageParams = {},
+) {
+  return useQuery({
+    queryKey: [...keys.uploads(organizationId ?? "", projectId ?? "", datasetId ?? ""), params],
+    queryFn: () =>
+      datasetsApi.listUploads(
+        organizationId as string,
+        projectId as string,
+        datasetId as string,
+        params,
+      ),
+    enabled: !!organizationId && !!projectId && !!datasetId,
+  });
+}
+
+/**
+ * Uploads a dataset file with live progress and cancellation. Distinct from
+ * {@link useCreateDatasetVersion} (the untouched paste-mode mutation) — this hook additionally
+ * tracks 0-100 upload progress from axios and exposes `cancel()`, which aborts the in-flight
+ * request via AbortController (the server sees a dropped connection and its transaction rolls
+ * back; no partial dataset state is ever created).
+ */
+export function useUploadDatasetFile(
+  organizationId: string,
+  projectId: string,
+  datasetId: string,
+) {
+  const qc = useQueryClient();
+  const [progress, setProgress] = useState(0);
+  const controllerRef = useRef<AbortController | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: ({
+      file,
+      description,
+      inputField,
+      expectedOutputField,
+      metadataFields,
+    }: {
+      file: File;
+      description?: string;
+      /** Confirmed column mapping — omit to let the server auto-detect (see usePreviewDatasetUpload). */
+      inputField?: string;
+      expectedOutputField?: string;
+      metadataFields?: string[];
+    }) => {
+      setProgress(0);
+      const controller = new AbortController();
+      controllerRef.current = controller;
+      return datasetsApi.uploadFile(organizationId, projectId, datasetId, file, {
+        description,
+        inputField,
+        expectedOutputField,
+        metadataFields,
+        signal: controller.signal,
+        onUploadProgress: (event: AxiosProgressEvent) => {
+          if (event.total) {
+            setProgress(Math.round((event.loaded / event.total) * 100));
+          }
+        },
+      });
+    },
+    onSuccess: (upload: DatasetUploadResponse) => {
+      if (upload.status === "COMPLETED" || upload.status === "DUPLICATE") {
+        qc.invalidateQueries({ queryKey: keys.versions(organizationId, projectId, datasetId) });
+        qc.invalidateQueries({ queryKey: keys.detail(organizationId, projectId, datasetId) });
+      }
+      qc.invalidateQueries({ queryKey: keys.uploads(organizationId, projectId, datasetId) });
+    },
+    onSettled: () => {
+      controllerRef.current = null;
+    },
+  });
+
+  const cancel = useCallback(() => {
+    controllerRef.current?.abort();
+  }, []);
+
+  return { ...mutation, progress, cancel };
+}
+
+/**
+ * Dry-run column-mapping detection for a chosen file. Call before {@link useUploadDatasetFile} so
+ * the UI can skip straight to upload when {@code ambiguous} is false, and show a mapping dialog
+ * (pre-filled from this response) when it is true.
+ */
+export function usePreviewDatasetUpload(organizationId: string, projectId: string, datasetId: string) {
+  return useMutation({
+    mutationFn: (file: File) => datasetsApi.previewUpload(organizationId, projectId, datasetId, file),
   });
 }
 

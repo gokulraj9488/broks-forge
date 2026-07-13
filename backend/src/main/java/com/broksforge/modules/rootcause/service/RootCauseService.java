@@ -2,6 +2,7 @@ package com.broksforge.modules.rootcause.service;
 
 import com.broksforge.config.properties.AdvisorProperties;
 import com.broksforge.modules.evaluation.service.EvaluationService;
+import com.broksforge.modules.evaluation.service.MetricExecutionFailureTally;
 import com.broksforge.modules.evaluation.service.MetricFailureTally;
 import com.broksforge.modules.evaluation.web.dto.EvaluationJobResponse;
 import com.broksforge.modules.evaluation.web.dto.EvaluationRunResponse;
@@ -49,10 +50,12 @@ public class RootCauseService {
         EvaluationJobResponse job = evaluationService.get(actorId, organizationId, projectId, jobId);
         List<MetricFailureTally> tallies =
                 evaluationService.metricFailureBreakdown(actorId, organizationId, projectId, jobId);
+        List<MetricExecutionFailureTally> executionFailures =
+                evaluationService.metricExecutionFailureBreakdown(actorId, organizationId, projectId, jobId);
         List<EvaluationRunResponse> failedRuns = evaluationService.sampleFailedRuns(
                 actorId, organizationId, projectId, jobId, properties.failureSampleSize());
 
-        List<RootCauseFinding> findings = engine.analyzeJob(job, tallies, failedRuns);
+        List<RootCauseFinding> findings = engine.analyzeJob(job, tallies, executionFailures, failedRuns);
 
         List<String> notes = new ArrayList<>();
         notes.add("Analysed job \"%s\" (%d failed item(s) sampled).".formatted(job.name(), failedRuns.size()));

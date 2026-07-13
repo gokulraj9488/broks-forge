@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { authApi } from "@/lib/api/auth";
 import { useAuthStore } from "@/lib/stores/auth-store";
-import { getLastActivity, touchActivity } from "@/lib/session-activity";
+import { clearActivity, getLastActivity, touchActivity } from "@/lib/session-activity";
 
 /**
  * Idle-session timeout in minutes. Build-time configurable via
@@ -58,6 +58,7 @@ export function useIdleTimeout(enabled: boolean): IdleTimeoutState {
     // Best-effort server-side revocation of this session's refresh token.
     if (refreshToken) void authApi.logout(refreshToken).catch(() => undefined);
     clearAuth();
+    clearActivity();
     queryClient.clear();
     router.replace("/login?reason=session-expired");
   }, [queryClient, router]);

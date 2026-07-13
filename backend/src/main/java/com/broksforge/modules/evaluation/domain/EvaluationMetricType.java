@@ -1,10 +1,12 @@
 package com.broksforge.modules.evaluation.domain;
 
 /**
- * The catalogue of supported metric kinds. Each value is scored by the
- * {@code EvaluationMetricEngine}. Adding a metric is a code-only change: add a
- * constant here and a branch in the engine — no schema migration is required, since
- * metric results are stored generically.
+ * The catalogue of supported metric kinds. Each value is scored by an
+ * {@code EvaluationMetric} implementation registered with {@code EvaluationMetricEngine}
+ * (a plugin registry, not a switch) — adding a new metric to this fixed catalogue means
+ * adding a constant here and one {@code @Component} implementation, never a change to the
+ * engine itself. {@link #CUSTOM} is the one type that needs no enum change at all: it
+ * dispatches by {@code params.key} to a named {@code CustomMetricEvaluator} bean.
  *
  * <p>The {@link Category} drives regression analysis (quality vs latency vs cost
  * regressions — see the regression module).</p>
@@ -17,12 +19,22 @@ public enum EvaluationMetricType {
     CONTAINS(Category.QUALITY),
     /** Output matches a regular expression (params.pattern). */
     REGEX_MATCH(Category.QUALITY),
-    /** Output parses as well-formed JSON. */
+    /** Output parses as well-formed JSON; validates against params.schema when present. */
     JSON_VALID(Category.QUALITY),
     /** Output is non-blank. */
     NON_EMPTY(Category.QUALITY),
     /** Output length is within [params.min, params.max] characters. */
     LENGTH(Category.QUALITY),
+    /** Embedding cosine similarity between output and expected output (params.providerId, params.embeddingModel). */
+    SEMANTIC_SIMILARITY(Category.QUALITY),
+    /** A judge model scores the output 0.0-1.0 against a rubric (params.providerId, params.model, params.rubric). */
+    LLM_JUDGE(Category.QUALITY),
+    /** A judge model flags output claims unsupported by params.context/expectedOutput/input. */
+    HALLUCINATION_DETECTION(Category.QUALITY),
+    /** A judge model checks output citations are consistent with params.context/expectedOutput. */
+    CITATION_VERIFICATION(Category.QUALITY),
+    /** Dispatches by params.key to a named CustomMetricEvaluator bean — the true no-enum-change extension point. */
+    CUSTOM(Category.QUALITY),
     /** Invocation latency is within threshold milliseconds. */
     LATENCY(Category.PERFORMANCE),
     /** Invocation cost is within threshold. */

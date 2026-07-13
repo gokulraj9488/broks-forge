@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   Lightbulb,
   Network,
+  Plug,
   Settings,
   Trophy,
 } from "lucide-react";
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { href: "/organizations", label: "Organizations", icon: Building2 },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/agents", label: "Agents", icon: Bot },
+  { href: "/providers", label: "Providers", icon: Plug },
   { href: "/datasets", label: "Datasets", icon: Database },
   { href: "/prompts", label: "Prompts", icon: FileText },
   { href: "/evaluations", label: "Evaluations", icon: FlaskConical },
