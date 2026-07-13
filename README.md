@@ -85,6 +85,7 @@ Modular monolith · Clean Architecture · Built to scale into microservices.
 - **Provider-agnostic model invocation** — a `ModelInvoker` SPI (OpenAI, Anthropic, Groq, Ollama, Gemini, OpenRouter, DeepSeek, …) with a key-free agent-endpoint invoker as the default execution target
 - **Evaluation** — `EvaluationJob` is the top-level aggregate → many runs → many metric results, with reusable profiles, a pluggable metric engine, statuses and a precomputed summary (architected to scale to millions)
 - **Benchmarking** — compare agents / versions / prompts / models / datasets / profiles and render leaderboards
+- **Benchmark Gallery (V1)** — 8 curated one-click templates (Customer Support, RAG, Coding, Reasoning, Hallucination, Safety, Summarization, Translation), each provisioning a starter dataset, prompt, and evaluation profile, then auto-running against your agent — removes the "blank project" problem for new users
 - **Regression detection** — latency / cost / quality / token regressions of a candidate vs a baseline job
 - **Analytics** — cost, latency, token and usage analytics with daily trends
 - **Reports** — JSON / CSV / HTML exports (PDF-ready), with CSV-injection & XSS-safe rendering
@@ -114,7 +115,7 @@ Modular monolith · Clean Architecture · Built to scale into microservices.
 - Agent detail with Overview / Versions / Health / Credentials / Settings tabs
 - Datasets, Prompts, Evaluations, Benchmarks and Analytics workspaces with detail views (Phase 3)
 - Advisor and Knowledge workspaces, per-run AI Debugger timeline, and root-cause panels on evaluations (Phase 4)
-- Dark-first design inspired by Linear / Vercel / Cursor, fully responsive
+- Dark-first design inspired by GitHub / Google AI Studio / Vercel, fully responsive — Google Blue primary, GitHub Green success, Google Amber warning, Material Red danger; sidebar grouped by workflow (Workspace → Build → Evaluate → Observe → Settings) instead of a flat entity list
 - Protected routes, transparent token refresh, optimistic data layer
 
 ---

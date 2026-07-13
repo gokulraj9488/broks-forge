@@ -421,6 +421,18 @@ archive/unarchive (status); rows referencing "restore" are interpreted as the ar
 | DEPLOY-004 | Graceful shutdown | Stop the backend | In-flight requests drain | | ⬜ NOT TESTED | Not exercised this pass |
 | DEPLOY-005 | Liveness/readiness | Hit `/actuator/health/{liveness,readiness}` | Both UP; readiness includes DB | | ⬜ NOT TESTED | Not exercised this pass |
 
+## 40. Design System (V1 polish)
+
+| ID | Scenario | Steps | Expected Result | Actual | Status | Notes |
+|----|----------|-------|-----------------|--------|--------|-------|
+| DESIGN-001 | Color palette applies | Load the app in light and dark mode | Google Blue primary, GitHub Green success, Google Amber warning, Material Red danger render correctly in both themes | CSS variables verified in `globals.css`; Docker-built frontend served and reachable (HTTP 200) | ✅ PASS | Variable-only change, cascades via `hsl(var(--x))` |
+| DESIGN-002 | Shared Table primitive | View Evaluation Runs, Dataset Items, and Regression Findings tables | Sticky header, hover row highlight, consistent spacing across all three | `components/ui/table.tsx` used by all three; frontend typecheck clean | ✅ PASS | Migrated from 3 hand-rolled `<table>` implementations |
+| DESIGN-003 | Sidebar grouping | Open the sidebar | Items grouped as Workspace / Build / Evaluate / Observe / Settings, not a flat entity list | `sidebar-nav.tsx` renders 5 labeled groups | ✅ PASS | |
+| DESIGN-004 | Dashboard widgets | Load `/dashboard` with an active org/project | Quick Actions, Recent Evaluations, Latest Benchmarks, Latest Agents, Provider Health, Evaluation Success Rate, and a Recent Deployments placeholder all render | Verified via typecheck + component review | ⬜ NOT TESTED | Needs a manual pass with real org/project data; "Top Failing Metrics" / "Recent Root Causes" widgets deferred (no existing aggregation endpoint) |
+| DESIGN-005 | Benchmark Gallery cards | Open Benchmarks → Gallery tab | Each card shows a template-specific icon, difficulty badge (color-coded), estimated runtime, dataset size, and category | Verified live via API — all 8 templates return `estimatedRuntimeMinutes`/`difficulty` | ✅ PASS | Additive DTO fields, no breaking change |
+| DESIGN-006 | Empty states | Visit a page with no data | Rounded-dashed border, primary-tinted icon circle, clear title/description | `EmptyState` component updated centrally | ⬜ NOT TESTED | Visual — not asserted |
+| DESIGN-007 | Card hover/elevation | Hover over a card that links elsewhere | Border/shadow transitions smoothly, no layout shift | `Card` primitive has `transition-[box-shadow,border-color]` | ⬜ NOT TESTED | Visual — not asserted |
+
 ---
 
 ## Release Readiness Report

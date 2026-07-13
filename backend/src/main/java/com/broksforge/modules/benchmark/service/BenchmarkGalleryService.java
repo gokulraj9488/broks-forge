@@ -165,7 +165,8 @@ public class BenchmarkGalleryService {
     private GalleryTemplateResponse toResponse(GalleryTemplate template) {
         return new GalleryTemplateResponse(template.key(), template.name(), template.description(),
                 template.category(), template.datasetItemCount(), template.metrics(),
-                template.requiresJudgeProvider(), template.requiresEmbeddingProvider());
+                template.requiresJudgeProvider(), template.requiresEmbeddingProvider(),
+                template.estimatedRuntimeMinutes(), template.difficulty());
     }
 
     private boolean hasText(String value) {

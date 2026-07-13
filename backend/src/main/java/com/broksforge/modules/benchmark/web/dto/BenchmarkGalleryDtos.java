@@ -24,7 +24,11 @@ public final class BenchmarkGalleryDtos {
             int datasetItemCount,
             List<MetricSpecDto> metrics,
             boolean requiresJudgeProvider,
-            boolean requiresEmbeddingProvider
+            boolean requiresEmbeddingProvider,
+            @Schema(description = "Rough wall-clock estimate for a one-click run against a typical agent")
+            int estimatedRuntimeMinutes,
+            @Schema(description = "EASY, MEDIUM, or HARD — a rough sense of how demanding the template's task is")
+            String difficulty
     ) {
     }
 

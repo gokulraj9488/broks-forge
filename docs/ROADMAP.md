@@ -141,6 +141,15 @@ verified live against real infrastructure, not planned/future items:
 - **Advisor bug fix** — `AgentAdvisor`'s three distinct finding types (insecure transport, missing
   auth, missing healthcheck) previously shared one `knowledgeKey`, corrupting knowledge-graph
   observation tracking; each now reports its own key.
+- **V1 design system refresh** — a professional color palette (Google Blue primary, GitHub Green
+  success, Google Amber warning, Material Red danger, GitHub-gray neutrals) replacing the earlier
+  sage/peach/coral theme; a shared `Table` primitive (sticky header, hover rows) replacing three
+  hand-rolled tables; workflow-grouped sidebar navigation (Workspace / Build / Evaluate / Observe /
+  Settings instead of a flat entity list); a Dashboard with quick actions, recent evaluations/
+  benchmarks/agents, provider health, and evaluation success rate; and Benchmark Gallery cards
+  showing per-template difficulty and estimated runtime (`estimatedRuntimeMinutes`, `difficulty` —
+  additive fields on `GalleryTemplateResponse`, no breaking API change). Purely presentational/
+  additive — no API contract changes, no architecture changes.
 
 ---
 
