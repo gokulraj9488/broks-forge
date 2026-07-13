@@ -41,4 +41,42 @@ class OutboundUrlGuardTest {
         assertThat(guard.check("http://127.0.0.1:11434/v1/models", false).allowed()).isFalse();
         assertThat(guard.check("http://127.0.0.1:11434/v1/models", true).allowed()).isTrue();
     }
+
+    @Test
+    @DisplayName("trusts a native Ollama provider on host.docker.internal without any global opt-in")
+    void trustsOllamaOnDockerHost() {
+        assertThat(guard.check("http://host.docker.internal:11434/api/tags", false, true).allowed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("trusts a native Ollama provider on localhost without any global opt-in")
+    void trustsOllamaOnLocalhost() {
+        assertThat(guard.check("http://localhost:11434/api/tags", false, true).allowed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("trusts a native Ollama provider on 127.0.0.1 without any global opt-in")
+    void trustsOllamaOnLoopbackIp() {
+        assertThat(guard.check("http://127.0.0.1:11434/api/tags", false, true).allowed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("a Custom REST provider pointing at localhost is still blocked (bypass is Ollama-only)")
+    void doesNotTrustNonOllamaOnLocalhost() {
+        assertThat(guard.check("http://localhost:9000/invoke", false, false).allowed()).isFalse();
+    }
+
+    @Test
+    @DisplayName("the Ollama bypass never widens to arbitrary private/link-local targets")
+    void trustedOllamaFlagDoesNotWidenToOtherPrivateHosts() {
+        assertThat(guard.check("http://10.0.0.5/api/tags", false, true).allowed()).isFalse();
+        assertThat(guard.check("http://169.254.169.254/latest/meta-data", false, true).allowed()).isFalse();
+    }
+
+    @Test
+    @DisplayName("remote hosted providers (OpenAI/Groq/OpenRouter/etc.) are unaffected by the Ollama flag")
+    void remoteProvidersUnaffectedByOllamaFlag() {
+        assertThat(guard.check("https://api.openai.com/v1/models", false, false).allowed()).isTrue();
+        assertThat(guard.check("https://api.groq.com/openai/v1/models", false, true).allowed()).isTrue();
+    }
 }

@@ -58,7 +58,10 @@ public class AgentHealthCheckExecutor {
         HealthProbePlanner.ProbePlan plan =
                 HealthProbePlanner.plan(agent.getEndpointUrl(), agent.getFramework(), provider);
 
-        OutboundUrlGuard.Decision decision = urlGuard.check(plan.url(), properties.allowPrivateTargets());
+        boolean trustedOllama =
+                HealthProbePlanner.effectiveProvider(agent.getEndpointUrl(), provider) == LlmProvider.OLLAMA;
+        OutboundUrlGuard.Decision decision =
+                urlGuard.check(plan.url(), properties.allowPrivateTargets(), trustedOllama);
         if (!decision.allowed()) {
             return new HealthProbeResult(AgentHealthStatus.UNHEALTHY, false, null, null,
                     decision.reason(), plan.strategy(), plan.url());

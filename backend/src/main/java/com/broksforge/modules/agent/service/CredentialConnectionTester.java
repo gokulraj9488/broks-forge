@@ -3,6 +3,8 @@ package com.broksforge.modules.agent.service;
 import com.broksforge.common.security.OutboundUrlGuard;
 import com.broksforge.config.properties.AgentHealthProperties;
 import com.broksforge.modules.agent.domain.AgentFramework;
+import com.broksforge.modules.agent.domain.HealthProbeStrategy;
+import com.broksforge.modules.agent.domain.LlmProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
@@ -47,19 +49,39 @@ public class CredentialConnectionTester {
         this.restClient = RestClient.builder().requestFactory(factory).build();
     }
 
-    /** Result of a connection test. Contains no secret material. */
-    public record Result(boolean success, Integer httpStatus, long latencyMs, String message) {
+    /**
+     * Result of a connection test. Contains no secret material.
+     *
+     * @param probeStrategy the provider-aware strategy used (e.g. {@code GET_MODELS})
+     * @param probeUrl      the exact URL that was probed, for debugging/transparency
+     */
+    public record Result(boolean success, Integer httpStatus, long latencyMs, String message,
+                         HealthProbeStrategy probeStrategy, String probeUrl) {
     }
 
     private record Outcome(HttpStatusCode status, String body) {
     }
 
     public Result test(String endpointUrl, AgentFramework framework, Map<String, String> authHeaders) {
-        HealthProbePlanner.ProbePlan plan = HealthProbePlanner.plan(endpointUrl, framework, null);
+        return test(endpointUrl, framework, null, authHeaders);
+    }
 
-        OutboundUrlGuard.Decision decision = urlGuard.check(plan.url(), properties.allowPrivateTargets());
+    /**
+     * Same as {@link #test(String, AgentFramework, Map)}, but with an explicitly known
+     * {@link LlmProvider} (e.g. from a stored {@code Provider} record) rather than relying on
+     * host-name detection — used by the Provider registry's own "Test connection" action, where
+     * the provider type is already known and need not be guessed from the URL.
+     */
+    public Result test(String endpointUrl, AgentFramework framework, LlmProvider provider,
+                       Map<String, String> authHeaders) {
+        HealthProbePlanner.ProbePlan plan = HealthProbePlanner.plan(endpointUrl, framework, provider);
+
+        boolean trustedOllama = HealthProbePlanner.effectiveProvider(endpointUrl, provider) == LlmProvider.OLLAMA;
+        OutboundUrlGuard.Decision decision =
+                urlGuard.check(plan.url(), properties.allowPrivateTargets(), trustedOllama);
         if (!decision.allowed()) {
-            return new Result(false, null, 0L, "Blocked by network policy: " + decision.reason());
+            return new Result(false, null, 0L, "Blocked by network policy: " + decision.reason(),
+                    plan.strategy(), plan.url());
         }
 
         log.debug("Connection test → {} {} | strategy={} | headers={} | body={}",
@@ -87,26 +109,30 @@ public class CredentialConnectionTester {
             long latencyMs = elapsedMs(startNanos);
             log.debug("Connection test ← {} {} | status={} | responseBody={}",
                     plan.method(), plan.url(), outcome.status().value(), outcome.body());
-            return classify(outcome.status(), latencyMs);
+            return classify(outcome.status(), latencyMs, plan);
         } catch (Exception e) {
             log.debug("Connection test to {} failed: {}", plan.url(), e.getMessage());
-            return new Result(false, null, elapsedMs(startNanos), truncate(e.getMessage()));
+            return new Result(false, null, elapsedMs(startNanos), truncate(e.getMessage()),
+                    plan.strategy(), plan.url());
         }
     }
 
-    private Result classify(HttpStatusCode statusCode, long latencyMs) {
+    private Result classify(HttpStatusCode statusCode, long latencyMs, HealthProbePlanner.ProbePlan plan) {
         int code = statusCode.value();
         if (statusCode.is2xxSuccessful() || statusCode.is3xxRedirection()) {
-            return new Result(true, code, latencyMs, "Connected successfully (HTTP " + code + ")");
+            return new Result(true, code, latencyMs, "Connected successfully (HTTP " + code + ")",
+                    plan.strategy(), plan.url());
         }
         if (code == 401 || code == 403) {
             return new Result(false, code, latencyMs,
-                    "Authentication rejected (HTTP " + code + ") — check the secret and header settings");
+                    "Authentication rejected (HTTP " + code + ") — check the secret and header settings",
+                    plan.strategy(), plan.url());
         }
         if (statusCode.is4xxClientError()) {
-            return new Result(false, code, latencyMs, "Reachable but returned HTTP " + code);
+            return new Result(false, code, latencyMs, "Reachable but returned HTTP " + code,
+                    plan.strategy(), plan.url());
         }
-        return new Result(false, code, latencyMs, "Endpoint error (HTTP " + code + ")");
+        return new Result(false, code, latencyMs, "Endpoint error (HTTP " + code + ")", plan.strategy(), plan.url());
     }
 
     private long elapsedMs(long startNanos) {

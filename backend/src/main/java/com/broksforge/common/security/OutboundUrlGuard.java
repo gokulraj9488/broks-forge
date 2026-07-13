@@ -28,6 +28,19 @@ public class OutboundUrlGuard {
             "metadata.google.internal", "metadata", "localhost");
 
     /**
+     * Hostnames a <b>native Ollama provider</b> is trusted to reach even when private targets are
+     * not globally opted in. Ollama is nearly always run on the same host or Docker host as the
+     * platform itself, so requiring every Ollama user to flip
+     * {@code BROKSFORGE_MODEL_ALLOW_PRIVATE_TARGETS} — which would also open every OTHER outbound
+     * call (Custom REST agents included) to arbitrary private targets — is the wrong trade-off.
+     * This allowlist is deliberately narrow: only these three well-known "the Ollama daemon is
+     * local" hostnames, and only when the caller has independently established the target is a
+     * native Ollama endpoint (provider type or resolved adapter), never a blanket bypass.
+     */
+    private static final Set<String> TRUSTED_OLLAMA_HOSTNAMES = Set.of(
+            "localhost", "127.0.0.1", "host.docker.internal");
+
+    /**
      * The outcome of a guard check.
      *
      * @param allowed whether the target may be contacted
@@ -50,6 +63,23 @@ public class OutboundUrlGuard {
      * @param allowPrivateTargets when true, private/loopback targets are permitted
      */
     public Decision check(String rawUrl, boolean allowPrivateTargets) {
+        return check(rawUrl, allowPrivateTargets, false);
+    }
+
+    /**
+     * Decides whether {@code rawUrl} may be contacted.
+     *
+     * @param rawUrl              the target URL
+     * @param allowPrivateTargets when true, private/loopback targets are permitted for ANY target
+     * @param trustedOllamaTarget when true, {@code localhost}/{@code 127.0.0.1}/
+     *                            {@code host.docker.internal} are permitted regardless of
+     *                            {@code allowPrivateTargets} — set this only when the caller has
+     *                            already confirmed the target is a native Ollama provider (by
+     *                            provider type or resolved adapter), never based on the URL alone.
+     *                            Every other private/loopback/link-local target, and every other
+     *                            provider type, is still blocked exactly as before.
+     */
+    public Decision check(String rawUrl, boolean allowPrivateTargets, boolean trustedOllamaTarget) {
         final URI uri;
         try {
             uri = URI.create(rawUrl.trim());
@@ -69,6 +99,9 @@ public class OutboundUrlGuard {
             return Decision.deny("Endpoint URL has no host");
         }
         if (allowPrivateTargets) {
+            return Decision.allow();
+        }
+        if (trustedOllamaTarget && TRUSTED_OLLAMA_HOSTNAMES.contains(host.toLowerCase(Locale.ROOT))) {
             return Decision.allow();
         }
         if (BLOCKED_HOSTNAMES.contains(host.toLowerCase(Locale.ROOT))
