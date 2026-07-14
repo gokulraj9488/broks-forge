@@ -59,6 +59,32 @@ class JwtServiceTest {
     @DisplayName("rejects a secret shorter than 256 bits")
     void rejectsWeakSecret() {
         assertThatThrownBy(() -> service(900_000L, "c2hvcnQ=")) // "short"
-                .isInstanceOf(IllegalStateException.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("BROKSFORGE_SECURITY_JWT_SECRET")
+                .hasMessageContaining("byte(s)");
+    }
+
+    @Test
+    @DisplayName("rejects a blank secret with an actionable message naming the env var")
+    void rejectsBlankSecret() {
+        assertThatThrownBy(() -> service(900_000L, "   "))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Missing BROKSFORGE_SECURITY_JWT_SECRET");
+    }
+
+    @Test
+    @DisplayName("rejects a secret containing invalid Base64 characters")
+    void rejectsInvalidBase64() {
+        assertThatThrownBy(() -> service(900_000L, "not-valid-base64!!"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("BROKSFORGE_SECURITY_JWT_SECRET is not valid Base64");
+    }
+
+    @Test
+    @DisplayName("tolerates a trailing newline/whitespace from pasting into an env-var UI")
+    void toleratesTrailingWhitespace() {
+        JwtService jwt = service(900_000L, SECRET + "\n");
+        String token = jwt.generateAccessToken(UUID.randomUUID(), "u@e.com", List.of());
+        assertThat(jwt.parseClaims(token)).isNotNull();
     }
 }

@@ -36,13 +36,42 @@ public class JwtService {
 
     public JwtService(JwtProperties properties) {
         this.properties = properties;
-        byte[] keyBytes = Decoders.BASE64.decode(properties.secret());
+        this.signingKey = Keys.hmacShaKeyFor(decodeSigningKey(properties.secret()));
+    }
+
+    /**
+     * Decodes {@code broksforge.security.jwt.secret} (bound from the
+     * {@code BROKSFORGE_SECURITY_JWT_SECRET} env var) into raw key bytes, failing with a
+     * specific, actionable message instead of a bare constructor stack trace — this is the
+     * one place a misconfigured/missing secret surfaces at startup.
+     */
+    private static byte[] decodeSigningKey(String secret) {
+        if (secret == null || secret.isBlank()) {
+            // Reachable only if @NotBlank validation on JwtProperties was somehow bypassed;
+            // kept as a defensive, equally explicit message rather than an NPE.
+            throw new IllegalStateException(
+                    "Missing BROKSFORGE_SECURITY_JWT_SECRET. Set it to a Base64-encoded secret of "
+                            + "at least 32 bytes (256 bits), e.g. the output of: openssl rand -base64 48");
+        }
+        byte[] keyBytes;
+        try {
+            // .trim(): a trailing newline/space from pasting the value into a platform's env-var
+            // UI (e.g. Railway) is a common real-world cause of an otherwise-valid secret failing
+            // strict Base64 decoding.
+            keyBytes = Decoders.BASE64.decode(secret.trim());
+        } catch (RuntimeException e) {
+            throw new IllegalStateException(
+                    "BROKSFORGE_SECURITY_JWT_SECRET is not valid Base64 (" + e.getMessage() + "). "
+                            + "Set it to the exact output of: openssl rand -base64 48 "
+                            + "-- no surrounding quotes, no extra whitespace/newlines.", e);
+        }
         if (keyBytes.length < 32) {
             throw new IllegalStateException(
-                    "broksforge.security.jwt.secret must decode to at least 256 bits (32 bytes). "
-                            + "Generate one with: openssl rand -base64 48");
+                    "BROKSFORGE_SECURITY_JWT_SECRET decodes to only " + keyBytes.length
+                            + " byte(s); at least 32 bytes (256 bits) are required for HMAC-SHA256. "
+                            + "Generate a valid one with: openssl rand -base64 48");
         }
-        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
+        return keyBytes;
     }
 
     /**
