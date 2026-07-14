@@ -9,6 +9,14 @@
 # ===========================================================================
 
 spring:
+  # No defaults here (unlike the base application.yml, which falls back to localhost for
+  # local `mvn spring-boot:run`). In production, a missing datasource variable must fail
+  # fast at startup with a clear "could not resolve placeholder" error — not silently
+  # connect to localhost and fail later with a confusing "connection refused" from Flyway.
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
   mail:
     host: ${SPRING_MAIL_HOST}
     port: ${SPRING_MAIL_PORT:587}

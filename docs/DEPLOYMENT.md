@@ -10,22 +10,50 @@ connecting to a Git repo and building on push.
 ```
 Vercel (frontend, Next.js)  --HTTPS-->  Railway (backend, Spring Boot)
                                               |
-                                              +--> Railway Postgres (managed)
-                                              +--> Railway Redis (managed)
+                                              +--> Railway Postgres (required)
+                                              +--> Railway Redis (optional)
 ```
 
 The backend is stateless (JWT auth, no server-side sessions) so it scales horizontally on
-Railway without sticky sessions. Redis is required for auth rate-limiting and idempotency —
-without it, rate-limiting fails open (logs a warning, does not block requests) but every other
-feature works normally.
+Railway without sticky sessions. **Redis is optional** — see [Is Redis
+required?](#is-redis-required) below. PostgreSQL is the only mandatory managed dependency.
 
-## 1. Provision the database and cache (Railway)
+## Is Redis required?
+
+No. Redis is used in exactly two places in this codebase, both traced directly from the
+source — nothing else references it:
+
+| Feature | Redis dependency | Can run without Redis? | Recommended fallback |
+|---|---|---|---|
+| Auth-endpoint rate limiting (`RateLimiterService` / `AuthRateLimitInterceptor`) — register/login/verify-email/forgot-password | Rate limiting only (fixed-window counter, distributed across replicas) | **Yes** | `NoOpRateLimiterService` — auto-selected when no `RedisConnectionFactory` bean exists; always allows the request. Single-instance deployments (Railway's default) don't need distribution anyway. |
+| `RedisConfig.redisTemplate` bean | None — declared for future caching/token-revocation use cases but **no `@Cacheable`, no cache manager, no other class currently reads or writes through it** | **Yes** | The bean simply isn't created (`@ConditionalOnBean(RedisConnectionFactory.class)`) when Redis is absent. |
+
+Nothing in the evaluation engine, agent registry, providers, datasets, benchmarks, or advisor
+modules touches Redis — the background evaluation runner uses an in-process worker pool
+(`broksforge.evaluation.worker-concurrency`), not a Redis-backed queue. Authentication is pure
+JWT (stateless, no server-side session store).
+
+**To run without Redis on Railway:** don't add the Redis plugin, and set
+`SPRING_AUTOCONFIGURE_EXCLUDE=org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration`.
+The app detects the missing `RedisConnectionFactory` bean and wires `NoOpRateLimiterService`
+automatically — no other code path changes, and `/actuator/health` no longer reports a Redis
+component (rather than misleadingly showing `DOWN` for a dependency you never provisioned).
+
+Local Docker Compose is unaffected either way: `docker-compose.yml` still provisions and wires
+a real `redis` service by default, so local rate limiting stays distributed/tested exactly as
+before.
+
+## 1. Provision the database (and optionally Redis) on Railway
 
 1. Create a new Railway project.
 2. Add a **PostgreSQL** plugin — Railway provisions it and exposes `DATABASE_URL`,
    `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` as variables you can reference.
-3. Add a **Redis** plugin the same way — exposes `REDIS_URL` / `REDISHOST` / `REDISPORT` /
-   `REDISPASSWORD`.
+   This is the only datastore Brok's Forge cannot run without.
+3. **Redis is optional.** Add a **Redis** plugin only if you want distributed auth-endpoint
+   rate limiting (holds the limit across horizontally-scaled replicas). If you skip it, set
+   `SPRING_AUTOCONFIGURE_EXCLUDE` (see the variables table below) and the app falls back to a
+   no-op rate limiter automatically — every other feature is unaffected. See [Is Redis
+   required?](#is-redis-required).
 4. Flyway migrations run automatically on backend startup (`spring.flyway.enabled: true`,
    `baseline-on-migrate: true`) — no manual migration step is needed.
 
@@ -37,13 +65,12 @@ feature works normally.
 
    | Variable | Value |
    |---|---|
-   | `SPRING_PROFILES_ACTIVE` | `prod` |
-   | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}` |
+   | `SPRING_PROFILES_ACTIVE` | `prod` — **do not leave this unset.** With no profile active, Spring Boot falls back to the `dev` profile's defaults, and the base `application.yml` datasource falls back to `localhost:5432` when `SPRING_DATASOURCE_URL` isn't resolvable — the exact combination that causes Flyway to try connecting to `localhost` and crash on Railway. |
+   | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}` — **required, no default in the `prod` profile.** If this (or the two below) is missing, the app now fails fast at startup with a clear "could not resolve placeholder" error instead of silently trying `localhost`. |
    | `SPRING_DATASOURCE_USERNAME` | `${{Postgres.PGUSER}}` |
    | `SPRING_DATASOURCE_PASSWORD` | `${{Postgres.PGPASSWORD}}` |
-   | `SPRING_DATA_REDIS_HOST` | `${{Redis.REDISHOST}}` |
-   | `SPRING_DATA_REDIS_PORT` | `${{Redis.REDISPORT}}` |
-   | `SPRING_DATA_REDIS_PASSWORD` | `${{Redis.REDISPASSWORD}}` |
+   | `SPRING_DATA_REDIS_HOST` / `SPRING_DATA_REDIS_PORT` / `SPRING_DATA_REDIS_PASSWORD` | Only if you provisioned the Redis plugin: `${{Redis.REDISHOST}}` / `${{Redis.REDISPORT}}` / `${{Redis.REDISPASSWORD}}`. |
+   | `SPRING_AUTOCONFIGURE_EXCLUDE` | **Only set this if you did NOT provision Redis:** `org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration` — this removes the Redis connection factory entirely, and the app automatically wires a no-op rate limiter in its place (see [Is Redis required?](#is-redis-required)). Leave unset if you did add the Redis plugin. |
    | `BROKSFORGE_SECURITY_JWT_SECRET` | output of `openssl rand -base64 48` |
    | `BROKSFORGE_SECURITY_ENCRYPTION_KEY` | output of `openssl rand -base64 32` |
    | `BROKSFORGE_SECURITY_CORS_ALLOWED_ORIGINS` | your Vercel frontend URL, e.g. `https://broksforge.vercel.app` |
