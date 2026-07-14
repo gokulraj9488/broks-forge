@@ -1,0 +1,99 @@
+name: Deploy to Production (AWS EC2)
+
+# Push to main -> SSH into EC2 -> git pull -> docker compose pull/build/up -d
+# -> prune dangling images -> health check. No manual deployment step after
+# the one-time server setup in docs/AWS_EC2_SETUP.md.
+#
+# Guarded to the canonical repo owner so a fork can't accidentally (or
+# maliciously) trigger a deploy against your EC2 host using its own copy of
+# this workflow — the job simply doesn't run anywhere else.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ github.repository_owner == 'gokulraj9488' }}
+    environment: production
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          umask 077
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy over SSH
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          DEPLOY_PATH: ${{ secrets.EC2_DEPLOY_PATH }}
+        run: |
+          # DEPLOY_PATH defaults to /opt/apps/broks-forge if the secret isn't set.
+          ssh -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" \
+            "DEPLOY_PATH='${DEPLOY_PATH:-/opt/apps/broks-forge}' bash -s" <<'REMOTE_SCRIPT'
+            set -euo pipefail
+            cd "$DEPLOY_PATH"
+
+            echo "==> Pulling latest main"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "==> Pulling base images (postgres/redis/nginx/certbot) -- backend has no"
+            echo "    registry image, only a local build, so its pull is expected to fail"
+            echo "    here; it's built fresh in the next step regardless."
+            docker compose -f docker-compose.prod.yml pull --ignore-pull-failures
+
+            echo "==> Building the backend image"
+            docker compose -f docker-compose.prod.yml build backend
+
+            echo "==> Applying (starts anything new, recreates anything changed, leaves"
+            echo "    unchanged containers untouched -- e.g. Postgres/Redis keep running)"
+            docker compose -f docker-compose.prod.yml up -d
+
+            echo "==> Removing dangling images (freed by the rebuild above)"
+            docker image prune -f
+
+            echo "==> Waiting for the backend health check"
+            healthy=0
+            for i in $(seq 1 30); do
+              if docker compose -f docker-compose.prod.yml exec -T backend \
+                   wget -qO- http://localhost:8080/actuator/health 2>/dev/null | grep -q '"status":"UP"'; then
+                healthy=1
+                break
+              fi
+              sleep 5
+            done
+            if [ "$healthy" -ne 1 ]; then
+              echo "Backend did not report healthy within 150s" >&2
+              docker compose -f docker-compose.prod.yml logs --tail=200 backend >&2
+              exit 1
+            fi
+            echo "==> Backend healthy"
+
+            echo "==> Verifying the public HTTPS endpoint"
+            if ! curl -fsS https://api.broksforge.gokul.quest/actuator/health | grep -q '"status":"UP"'; then
+              echo "Public health check via Nginx/HTTPS failed" >&2
+              exit 1
+            fi
+            echo "==> Deployment complete"
+REMOTE_SCRIPT
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

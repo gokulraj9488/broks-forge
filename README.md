@@ -41,6 +41,7 @@ Modular monolith · Clean Architecture · Built to scale into microservices.
 - [Folder structure](#folder-structure)
 - [Installation guide](#installation-guide)
 - [Quick start (Docker)](#quick-start-docker)
+- [Production deployment](#production-deployment)
 - [Local development](#local-development)
 - [Development workflow](#development-workflow)
 - [Environment variables](#environment-variables)
@@ -295,6 +296,36 @@ Then open:
 | Health           | http://localhost:8080/actuator/health |
 
 Stop with `Ctrl+C`; tear down with `docker compose down` (add `-v` to wipe data volumes).
+
+---
+
+## Production deployment
+
+The permanent production target is **AWS EC2** (backend, Docker Compose + Nginx + Let's
+Encrypt) plus **Vercel** (frontend). Deployment is `git push origin main` — GitHub Actions
+handles the rest after a one-time server setup:
+
+```
+Vercel                broksforge.gokul.quest
+  │                           │
+  ▼                           ▼
+Frontend (Next.js)  --HTTPS-->  api.broksforge.gokul.quest
+                                        │
+                                        ▼
+                              AWS EC2 (Amazon Linux 2023)
+                              ├── Nginx (reverse proxy, TLS)
+                              ├── Spring Boot API
+                              ├── PostgreSQL
+                              └── Redis (optional)
+```
+
+- **One-time server setup:** [docs/AWS_EC2_SETUP.md](./docs/AWS_EC2_SETUP.md)
+- **Day-to-day deployment, environment variables, DNS, GitHub Secrets:**
+  [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)
+- `docker-compose.prod.yml` is a separate file from the `docker-compose.yml` used above — the
+  local Quick Start is completely unaffected by anything in this section.
+- Railway was used previously and is no longer part of the architecture; the old walkthrough is
+  kept only as an archived reference in DEPLOYMENT.md.
 
 ---
 

@@ -1,0 +1,193 @@
+# ===========================================================================
+# Brok's Forge - Production stack (AWS EC2)
+# ---------------------------------------------------------------------------
+# Runs on the EC2 host only: Postgres, Redis, the Spring Boot API, Nginx
+# (reverse proxy + TLS termination), and Certbot (automatic renewal). The
+# frontend is NOT part of this stack — it is deployed separately on Vercel.
+#
+# This is a SEPARATE, standalone compose file — it does not extend or merge
+# with docker-compose.yml, so local development is completely unaffected.
+# Start it explicitly:
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Required environment: copy .env.production.example to .env on the server
+# and fill in every value (see that file for what's required vs. optional).
+# ===========================================================================
+
+name: broks-forge-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: broksforge-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    # No `ports:` mapping — reachable only from other containers on
+    # broksforge-net, never bound to the host or the public internet.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - broksforge-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: broksforge-redis
+    restart: always
+    # REDIS_PASSWORD is required in production (unlike local Docker Compose,
+    # where it may be blank) — see .env.production.example.
+    command: >
+      sh -c 'redis-server --requirepass "$$REDIS_PASSWORD" --appendonly yes'
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+    # No `ports:` mapping — same rationale as Postgres above.
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "--no-auth-warning", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - broksforge-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: broksforge-backend:prod
+    container_name: broksforge-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      BROKSFORGE_SECURITY_JWT_SECRET: ${JWT_SECRET}
+      BROKSFORGE_SECURITY_JWT_ISSUER: ${JWT_ISSUER:-broks-forge}
+      BROKSFORGE_SECURITY_JWT_ACCESS_TOKEN_EXPIRATION_MS: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:-900000}
+      BROKSFORGE_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION_MS: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:-2592000000}
+      BROKSFORGE_SECURITY_ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      BROKSFORGE_SECURITY_CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      BROKSFORGE_APP_PUBLIC_URL: ${APP_PUBLIC_URL}
+      BROKSFORGE_AGENT_HEALTH_ALLOW_PRIVATE_TARGETS: "false"
+      BROKSFORGE_MODEL_ALLOW_PRIVATE_TARGETS: "false"
+      BROKSFORGE_EVALUATION_MAX_ITEMS_PER_JOB: ${EVALUATION_MAX_ITEMS_PER_JOB:-500}
+      BROKSFORGE_ADVISOR_PROMPT_MAX_CHARS: ${ADVISOR_PROMPT_MAX_CHARS:-8000}
+      BROKSFORGE_ADVISOR_PROMPT_MAX_VARIABLES: ${ADVISOR_PROMPT_MAX_VARIABLES:-12}
+      BROKSFORGE_ADVISOR_LATENCY_SPIKE_MS: ${ADVISOR_LATENCY_SPIKE_MS:-12000}
+      BROKSFORGE_ADVISOR_MIN_SAMPLES_FOR_COMPARISON: ${ADVISOR_MIN_SAMPLES_FOR_COMPARISON:-3}
+      BROKSFORGE_ADVISOR_FAILURE_SAMPLE_SIZE: ${ADVISOR_FAILURE_SAMPLE_SIZE:-50}
+      BROKSFORGE_SECURITY_RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      BROKSFORGE_SECURITY_RATE_LIMIT_LIMIT: ${RATE_LIMIT_LIMIT:-20}
+      BROKSFORGE_SECURITY_RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
+      # SMTP is optional (see docs/DEPLOYMENT.md "Is e-mail (SMTP) required?") — leave
+      # SPRING_MAIL_HOST unset in .env to boot without it; verification/reset links are
+      # then written to the container logs instead of being e-mailed.
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      BROKSFORGE_MAIL_FROM_ADDRESS: ${BROKSFORGE_MAIL_FROM_ADDRESS:-no-reply@broksforge.gokul.quest}
+      BROKSFORGE_MAIL_FROM_NAME: ${BROKSFORGE_MAIL_FROM_NAME:-Brok's Forge}
+      # Troubleshooting only (see docs/DEPLOYMENT.md) — leave unset in normal operation.
+      DEBUG: ${DEBUG:-false}
+    # No `ports:` mapping to the host — only reachable from other containers on
+    # broksforge-net (specifically, Nginx below). This is the actual firewall:
+    # the backend is never bound to a host port, so even if the EC2 security
+    # group were misconfigured, the JVM itself isn't listening publicly.
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - broksforge-net
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: broksforge-nginx
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certbot/conf:/etc/letsencrypt:ro
+      - ./nginx/certbot/www:/var/www/certbot:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - broksforge-net
+
+  # Renews certificates twice a day (certbot no-ops unless a cert is within its
+  # renewal window, ~30 days before expiry) and reloads Nginx after a successful
+  # renewal so it picks up the new certificate without a restart/downtime.
+  certbot:
+    image: certbot/certbot:latest
+    container_name: broksforge-certbot
+    restart: always
+    volumes:
+      - ./nginx/certbot/conf:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
+    entrypoint: >
+      sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done;"
+    networks:
+      - broksforge-net
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  broksforge-net:
+    driver: bridge

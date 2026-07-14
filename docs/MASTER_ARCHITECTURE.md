@@ -1413,25 +1413,39 @@ live per-stage span recording. See
   running system observable from day one (export pipeline pending, per
   [Observability](#observability)).
 
-### Deployment architecture: Railway (backend) + Vercel (frontend)
+### Deployment architecture: AWS EC2 (backend) + Vercel (frontend)
 
-Beyond the reference Docker Compose environment, the platform also has a documented production
-deployment split across two managed platforms: Railway hosts Postgres, Redis and the Spring Boot API
-(via the existing multi-stage `backend/Dockerfile` — no Dockerfile changes needed), and Vercel hosts
-the Next.js frontend. The full walkthrough — provisioning, environment variables, secrets, rollback —
-lives in **[./DEPLOYMENT.md](./DEPLOYMENT.md)**; the load-bearing architectural facts are:
+Beyond the reference Docker Compose environment, the platform's permanent production deployment
+is self-hosted: an AWS EC2 instance (Amazon Linux 2023) runs Postgres, Redis, and the Spring Boot
+API as Docker containers behind Nginx (reverse proxy + Let's Encrypt TLS), via a dedicated
+`docker-compose.prod.yml` that does not modify or merge with the local-development
+`docker-compose.yml`; Vercel hosts the Next.js frontend at `broksforge.gokul.quest`, calling the
+API at `api.broksforge.gokul.quest`. The full walkthrough — server bring-up, environment
+variables, DNS, secrets, GitHub Actions, rollback — lives in
+**[./DEPLOYMENT.md](./DEPLOYMENT.md)** and **[./AWS_EC2_SETUP.md](./AWS_EC2_SETUP.md)**; the
+load-bearing architectural facts are:
 
-- **`server.port` changed from a hardcoded `8080` to `${PORT:8080}`** in `application.yml`, so
-  Railway's injected `PORT` environment variable is honoured. Docker Compose is unaffected — it never
-  sets `PORT`, so the app still defaults to `8080` there.
+- **No Railway-specific code ever existed in the first place.** The platform was already
+  12-factor (all config from the environment, `server.port: ${PORT:8080}` for PaaS
+  compatibility, no hardcoded hosts) — moving the primary deployment target to AWS EC2 required
+  zero application code changes, only new infrastructure files (`docker-compose.prod.yml`,
+  `nginx/`, a GitHub Actions deploy workflow) and updated documentation. `${PORT:8080}` still
+  works identically under Nginx (which forwards to the container's fixed `8080`); Docker Compose
+  is unaffected either way — it never sets `PORT`.
 - **CORS is already environment-driven** (`BROKSFORGE_SECURITY_CORS_ALLOWED_ORIGINS`) — no code
-  changes were needed to point it at a production Vercel origin.
+  changes were needed to point it at `https://broksforge.gokul.quest`.
+- **Neither Postgres nor Redis is exposed publicly** — `docker-compose.prod.yml` never publishes
+  their ports to the host; they're reachable only from the backend container over the internal
+  Docker network. Only Nginx binds host ports (80/443), and only the backend is reachable through
+  it.
 - **`next.config.mjs`'s `output: "standalone"` is harmless on Vercel** — Vercel builds and serves the
   frontend with its own build output regardless of that setting.
-- **The `prod` Spring profile (`application-prod.yml`) requires SMTP env vars and fails fast without
-  them**; the existing `docker` profile (Docker Compose) uses a console `LoggingEmailService` and
-  needs no SMTP configuration at all — these are two genuinely different profiles, not the same
-  behaviour under two names.
+- **The `prod` Spring profile is used on EC2**; SMTP is optional in every profile (including
+  `prod`) — see [DEPLOYMENT.md → Is e-mail (SMTP) required?](./DEPLOYMENT.md#is-e-mail-smtp-required).
+  Local Docker Compose uses the `docker` profile with the console `LoggingEmailService` and needs
+  no SMTP configuration at all.
+- Railway is kept only as an [archived alternative](./DEPLOYMENT.md#archived-railway-deployment)
+  in DEPLOYMENT.md, for reference — it is not part of the current or planned architecture.
 
 ---
 

@@ -8,6 +8,14 @@
 .env.*.local
 *.env
 
+# Let's Encrypt certificates and account state (created on the EC2 host by
+# nginx/init-letsencrypt.sh / the certbot container) -- never commit real
+# certificates or private keys.
+nginx/certbot/
+
+# PostgreSQL backups (scripts/backup-postgres.sh's default output directory).
+/backups/
+
 # OS
 .DS_Store
 Thumbs.db

@@ -87,8 +87,9 @@ provisioned is an ordinary, fully-editable Dataset/Prompt/Profile afterward.
 
 - **Docker Compose** — the reference environment; `docker compose up --build` orchestrates the
   backend, frontend, PostgreSQL, and Redis.
-- **Railway** (backend) + **Vercel** (frontend) — the recommended production path. See
-  [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for the full walkthrough, required environment
+- **AWS EC2** (backend, Docker Compose + Nginx + Let's Encrypt) + **Vercel** (frontend) — the
+  production path. See [docs/AWS_EC2_SETUP.md](./docs/AWS_EC2_SETUP.md) for server bring-up and
+  [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for the full deployment flow, required environment
   variables, and a post-deploy verification checklist.
 
 ---
