@@ -1,6 +1,7 @@
 package com.broksforge;
 
 import com.broksforge.config.StartupDiagnosticsLogger;
+import com.broksforge.config.StartupFailureDiagnosticsLogger;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration;
@@ -27,10 +28,12 @@ public class BroksForgeApplication {
 
     public static void main(String[] args) {
         SpringApplication app = new SpringApplication(BroksForgeApplication.class);
-        // Registered as a listener (not a @Component) so it fires on
-        // ApplicationEnvironmentPreparedEvent — before the DataSource, Flyway, or
-        // EntityManagerFactory beans are created. See StartupDiagnosticsLogger's javadoc.
-        app.addListeners(new StartupDiagnosticsLogger());
+        // Registered as listeners (not @Component beans) so they fire regardless of how far
+        // context refresh got: StartupDiagnosticsLogger on ApplicationEnvironmentPreparedEvent
+        // (before the DataSource/Flyway/EntityManagerFactory beans are created), and
+        // StartupFailureDiagnosticsLogger on ApplicationFailedEvent (if they weren't created
+        // successfully). See each class's javadoc.
+        app.addListeners(new StartupDiagnosticsLogger(), new StartupFailureDiagnosticsLogger());
         app.run(args);
     }
 }

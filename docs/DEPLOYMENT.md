@@ -103,6 +103,7 @@ real transactional e-mail; leave them unset to run without SMTP.
    | `BROKSFORGE_APP_PUBLIC_URL` | same Vercel URL (used to build links in emails) |
    | `SPRING_MAIL_HOST` / `SPRING_MAIL_USERNAME` / `SPRING_MAIL_PASSWORD` | **Optional** — your SMTP provider. See [Is e-mail (SMTP) required?](#is-e-mail-smtp-required). |
    | `BROKSFORGE_MAIL_FROM_ADDRESS` | e.g. `no-reply@yourdomain.com` (only used if SMTP is configured) |
+   | `DEBUG` | **Optional, troubleshooting only** — `true` turns on Spring Boot's condition evaluation report for that run (see [Troubleshooting a startup failure](#troubleshooting-a-startup-failure)). Leave unset normally; no effect on runtime behavior either way. |
 
    Leave `AGENT_HEALTH_ALLOW_PRIVATE_TARGETS` / `MODEL_ALLOW_PRIVATE_TARGETS` unset (they
    default to `false`) — the SSRF guard must stay locked down in production. Only native
@@ -126,12 +127,25 @@ Cannot resolve reference to bean 'jpaSharedEM_entityManagerFactory'
 ```
 
 that is always a **downstream symptom** — it names whichever repository bean happened to be
-instantiated first, not the actual cause. Scroll up from that line to the diagnostics banner,
-then look for the first `Caused by:` in between (from Flyway, HikariCP, or Hibernate) — that is
-the real root cause. Common ones: the datasource URL/credentials are wrong (compare against the
-banner's redacted URL), Postgres requires SSL and the URL is missing `?sslmode=require`, or a
-Flyway migration checksum/schema mismatch against a database that already has partial state from
-a previous deploy attempt.
+instantiated first, not the actual cause. You no longer need to hunt for it manually:
+
+1. Look for the `=== STARTUP FAILED — ROOT CAUSE ===` block. It always appears, prints the
+   root cause's exception type + message on its own line, then the **full exception chain**
+   from outermost to innermost (so you can see `entityManagerFactory` failed *because of*
+   Flyway/HikariCP/Hibernate, not the other way round), then logs the root cause's own stack
+   trace separately — so it's never the part buried under Spring's own (much longer) wrapper
+   trace or cut off by a log viewer's tail/scrollback limit. Credentials are redacted the same
+   way as the startup banner.
+2. If that still isn't enough context (e.g. you need to see *why* a particular
+   autoconfiguration did or didn't apply), set `DEBUG=true` as a Railway variable and redeploy
+   — this turns on Spring Boot's condition evaluation report for that one run. It's off by
+   default and has no effect on runtime behavior, only on startup logging, so it's safe to
+   toggle on/off per deploy.
+
+Common root causes: the datasource URL/credentials are wrong (compare against the banner's
+redacted URL), Postgres requires SSL and the URL is missing `?sslmode=require`, or a Flyway
+migration checksum/schema mismatch against a database that already has partial state from a
+previous deploy attempt.
 
 ## 3. Deploy the frontend (Vercel)
 

@@ -5,6 +5,12 @@
 # Secrets are NEVER hardcoded here - they are read from the environment.
 # ===========================================================================
 
+# Set DEBUG=true (any environment, including Railway) to turn on Spring Boot's condition
+# evaluation report (why each autoconfiguration was or wasn't applied) on the next startup —
+# invaluable when a bean fails to activate for a non-obvious reason. Off by default; has no
+# effect on runtime behavior, only on what gets logged during startup.
+debug: ${DEBUG:false}
+
 spring:
   application:
     name: broks-forge-api
