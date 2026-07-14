@@ -114,6 +114,25 @@ real transactional e-mail; leave them unset to run without SMTP.
    - `GET https://<your-railway-domain>/actuator/health/readiness` includes a `db` check —
      confirms Postgres connectivity specifically.
 
+### Troubleshooting a startup failure
+
+Every boot prints a `=== Startup diagnostics ===` banner (active profile, the datasource URL
+with credentials redacted, and the Flyway/JPA config in effect) **before** Spring attempts to
+build the DataSource, run Flyway, or create the JPA `EntityManagerFactory`. If startup then
+fails with something like:
+
+```
+Cannot resolve reference to bean 'jpaSharedEM_entityManagerFactory'
+```
+
+that is always a **downstream symptom** — it names whichever repository bean happened to be
+instantiated first, not the actual cause. Scroll up from that line to the diagnostics banner,
+then look for the first `Caused by:` in between (from Flyway, HikariCP, or Hibernate) — that is
+the real root cause. Common ones: the datasource URL/credentials are wrong (compare against the
+banner's redacted URL), Postgres requires SSL and the URL is missing `?sslmode=require`, or a
+Flyway migration checksum/schema mismatch against a database that already has partial state from
+a previous deploy attempt.
+
 ## 3. Deploy the frontend (Vercel)
 
 1. Import the GitHub repo into Vercel, set the project root to `frontend/`.
