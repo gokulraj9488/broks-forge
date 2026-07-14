@@ -26,7 +26,7 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <springdoc.version>2.7.0</springdoc.version>
-        <spring-ai.version>1.0.0</spring-ai.version>
+        <spring-ai.version>2.0.0</spring-ai.version>
         <poi.version>5.3.0</poi.version>
         <json-schema-validator.version>1.5.4</json-schema-validator.version>
     </properties>
