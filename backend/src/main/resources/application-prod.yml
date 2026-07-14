@@ -1,11 +1,7 @@
 # ===========================================================================
 # Brok's Forge - Production profile   (SPRING_PROFILES_ACTIVE=prod)
 # ---------------------------------------------------------------------------
-# Activates the real SMTP e-mail transport (SmtpEmailService) and hardened
-# logging. Every SMTP connection detail and credential is read from the
-# environment — nothing is hardcoded. Set at minimum: SPRING_MAIL_HOST,
-# SPRING_MAIL_USERNAME, SPRING_MAIL_PASSWORD (and BROKSFORGE_MAIL_FROM_ADDRESS).
-# Without SPRING_MAIL_HOST the app fails fast — production must configure SMTP.
+# Hardened logging plus (optionally) the real SMTP e-mail transport.
 # ===========================================================================
 
 spring:
@@ -17,11 +13,25 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+  # E-mail (SMTP) is OPTIONAL and off by default. `spring.mail.host`/`username`/`password`
+  # are deliberately NOT declared here (not even with an empty default): Spring Boot maps
+  # the SPRING_MAIL_HOST/SPRING_MAIL_USERNAME/SPRING_MAIL_PASSWORD env vars onto them
+  # automatically via its own relaxed binding when you set them, so nothing needs to be
+  # wired here for that to work.
+  #
+  # A prior version of this file bound `spring.mail.host: ${SPRING_MAIL_HOST}` with no
+  # default. Spring Boot's MailSenderAutoConfiguration condition inspects
+  # `spring.mail.host` at startup to decide whether to create a JavaMailSender bean; with
+  # no default and no env var set, resolving that placeholder threw
+  # "Could not resolve placeholder 'SPRING_MAIL_HOST'" *during condition evaluation*,
+  # which Spring Boot surfaces as "Error processing condition on
+  # ...MailSenderAutoConfiguration" — a fatal startup failure, not a mail-sending failure.
+  # Simply not declaring the property lets the condition cleanly evaluate to "absent" and
+  # boot proceeds; EmailServiceConfig then wires the console-logging EmailService instead
+  # of SmtpEmailService. Set SPRING_MAIL_HOST/USERNAME/PASSWORD as real env vars to enable
+  # real SMTP — nothing else needs to change.
   mail:
-    host: ${SPRING_MAIL_HOST}
     port: ${SPRING_MAIL_PORT:587}
-    username: ${SPRING_MAIL_USERNAME}
-    password: ${SPRING_MAIL_PASSWORD}
     properties:
       mail:
         smtp:

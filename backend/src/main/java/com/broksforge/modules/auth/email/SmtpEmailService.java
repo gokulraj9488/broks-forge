@@ -6,11 +6,9 @@ import com.broksforge.config.properties.MailProperties;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.stereotype.Service;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
@@ -20,15 +18,15 @@ import java.nio.charset.StandardCharsets;
  * {@link JavaMailSender}, as a {@code multipart/alternative} message carrying both an
  * HTML body and a plain-text fallback (built by {@link EmailContentFactory}).
  *
- * <p>Active only under the {@code prod} profile; local development and CI use the
- * console {@code LoggingEmailService} instead. All SMTP connection details and
- * credentials come from {@code spring.mail.*} environment variables — nothing is
- * hardcoded. {@link com.broksforge.modules.auth.service.AuthService} depends only on
- * the {@link EmailService} abstraction and is unaware which transport is active.</p>
+ * <p>Registered by {@link EmailServiceConfig} only when {@code spring.mail.host} is
+ * actually set — SMTP is opt-in by configuration, not by profile, so a {@code prod}
+ * deployment without SMTP configured falls back to {@link LoggingEmailService} instead
+ * of failing to start. All SMTP connection details and credentials come from
+ * {@code spring.mail.*} environment variables — nothing is hardcoded.
+ * {@link com.broksforge.modules.auth.service.AuthService} depends only on the
+ * {@link EmailService} abstraction and is unaware which transport is active.</p>
  */
 @Slf4j
-@Service
-@Profile("prod")
 public class SmtpEmailService implements EmailService {
 
     private final JavaMailSender mailSender;

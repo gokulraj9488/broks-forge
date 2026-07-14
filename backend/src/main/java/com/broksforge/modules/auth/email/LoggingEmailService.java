@@ -1,19 +1,19 @@
 package com.broksforge.modules.auth.email;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Service;
 
 /**
- * Development / CI e-mail transport that records messages in the application log
- * instead of dispatching them: zero configuration, no SMTP, no provider account,
- * fully offline. It logs the verification and password-reset links (clickable URLs)
- * to the backend console so the flow is fully exercisable without any e-mail
- * infrastructure.
+ * Fallback e-mail transport that records messages in the application log instead of
+ * dispatching them: zero configuration, no SMTP, no provider account, fully offline.
+ * It logs the verification and password-reset links (clickable URLs) to the backend
+ * console so the flow is fully exercisable without any e-mail infrastructure.
  *
- * <p>Active on every profile <em>except</em> {@code prod} ({@code @Profile("!prod")}).
- * The production profile activates {@link SmtpEmailService} instead — exactly one
- * {@link EmailService} bean exists per profile, and
+ * <p>Registered by {@link EmailServiceConfig} whenever no other {@link EmailService}
+ * bean exists — i.e. whenever {@code spring.mail.host} isn't configured, on
+ * <em>any</em> profile including {@code prod}. This is a deliberate graceful
+ * degradation: real transactional e-mail is an optional feature (verification/reset/
+ * notification links still work, just via logs), not a hard requirement to boot the
+ * platform. Exactly one {@link EmailService} bean exists per environment, and
  * {@link com.broksforge.modules.auth.service.AuthService} depends only on the
  * abstraction and never knows which transport is active (see ADR 0016).</p>
  *
@@ -26,12 +26,9 @@ import org.springframework.stereotype.Service;
  * would remove a deliberately demonstrated capability) this class also writes the
  * bare link straight to {@link System#out}, bypassing Logback/the active encoder
  * entirely, so local development always has one clean, unescaped, clickable URL —
- * regardless of which console log format is active. This class never runs in
- * {@code prod} ({@code @Profile("!prod")}), so production output is unaffected.</p>
+ * regardless of which console log format is active.</p>
  */
 @Slf4j
-@Service
-@Profile("!prod")
 public class LoggingEmailService implements EmailService {
 
     @Override

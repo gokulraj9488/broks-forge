@@ -43,6 +43,32 @@ Local Docker Compose is unaffected either way: `docker-compose.yml` still provis
 a real `redis` service by default, so local rate limiting stays distributed/tested exactly as
 before.
 
+## Is e-mail (SMTP) required?
+
+No — e-mail is optional in every profile, including `prod`. `EmailServiceConfig` wires
+exactly one `EmailService` bean: `SmtpEmailService` if `spring.mail.host` is set (via the
+`SPRING_MAIL_HOST` env var, any profile), otherwise `LoggingEmailService` — which prints
+verification/reset/notification links straight to the console instead of sending real
+e-mail. Every auth flow (registration, password reset, password change) still completes
+end-to-end without SMTP configured; you just read the link from the Railway logs instead of
+an inbox.
+
+**Incident this fixes:** an earlier version of `application-prod.yml` declared
+`spring.mail.host: ${SPRING_MAIL_HOST}` with no default. Spring Boot's
+`MailSenderAutoConfiguration` inspects `spring.mail.host` at startup *before* creating any
+bean, to decide whether to activate; with the env var unset, resolving that placeholder
+threw `IllegalArgumentException: Could not resolve placeholder 'SPRING_MAIL_HOST'` **during
+condition evaluation itself** — surfaced as the fatal `"Error processing condition on
+org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration"` startup failure.
+It was a hard crash before a single mail bean was ever created, not a failed SMTP
+connection. The fix removes that no-default placeholder entirely (Spring Boot's own
+relaxed env-var binding already maps `SPRING_MAIL_HOST` → `spring.mail.host` without any
+`yml` declaration when you do set it) and makes `SmtpEmailService` activation conditional
+on the property actually being present.
+
+Set `SPRING_MAIL_HOST` / `SPRING_MAIL_USERNAME` / `SPRING_MAIL_PASSWORD` whenever you want
+real transactional e-mail; leave them unset to run without SMTP.
+
 ## 1. Provision the database (and optionally Redis) on Railway
 
 1. Create a new Railway project.
@@ -75,8 +101,8 @@ before.
    | `BROKSFORGE_SECURITY_ENCRYPTION_KEY` | output of `openssl rand -base64 32` |
    | `BROKSFORGE_SECURITY_CORS_ALLOWED_ORIGINS` | your Vercel frontend URL, e.g. `https://broksforge.vercel.app` |
    | `BROKSFORGE_APP_PUBLIC_URL` | same Vercel URL (used to build links in emails) |
-   | `SPRING_MAIL_HOST` / `SPRING_MAIL_USERNAME` / `SPRING_MAIL_PASSWORD` | your SMTP provider (required — the `prod` profile fails fast without `SPRING_MAIL_HOST`) |
-   | `BROKSFORGE_MAIL_FROM_ADDRESS` | e.g. `no-reply@yourdomain.com` |
+   | `SPRING_MAIL_HOST` / `SPRING_MAIL_USERNAME` / `SPRING_MAIL_PASSWORD` | **Optional** — your SMTP provider. See [Is e-mail (SMTP) required?](#is-e-mail-smtp-required). |
+   | `BROKSFORGE_MAIL_FROM_ADDRESS` | e.g. `no-reply@yourdomain.com` (only used if SMTP is configured) |
 
    Leave `AGENT_HEALTH_ALLOW_PRIVATE_TARGETS` / `MODEL_ALLOW_PRIVATE_TARGETS` unset (they
    default to `false`) — the SSRF guard must stay locked down in production. Only native
