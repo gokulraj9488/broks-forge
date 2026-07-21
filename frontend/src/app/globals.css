@@ -133,6 +133,43 @@
     background-size: 100% 100%, 100% 100%, 3rem 3rem, 3rem 3rem;
   }
 
+  /* Engineering background (landing page) — grid pulse, node pulse and a small
+   * dot traveling along each connection path. Kept as plain keyframes rather
+   * than per-frame JS/canvas so the browser compositor drives them (transform/
+   * opacity only), and disabled entirely under reduced motion. */
+  @keyframes eng-grid-pulse {
+    0%, 100% { opacity: 0.02; }
+    50% { opacity: 0.045; }
+  }
+  @keyframes eng-node-pulse {
+    0%, 100% { opacity: 0.18; transform: scale(1); }
+    50% { opacity: 0.42; transform: scale(1.35); }
+  }
+  @keyframes eng-travel {
+    0% { offset-distance: 0%; opacity: 0; }
+    8% { opacity: 0.8; }
+    92% { opacity: 0.8; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+  .eng-bg-grid {
+    animation: eng-grid-pulse 9s ease-in-out infinite;
+  }
+  .eng-bg-node {
+    animation: eng-node-pulse 6s ease-in-out infinite;
+    transform-origin: center;
+  }
+  .eng-bg-dot {
+    offset-rotate: 0deg;
+    animation: eng-travel linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .eng-bg-grid,
+    .eng-bg-node,
+    .eng-bg-dot {
+      animation: none;
+    }
+  }
+
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;

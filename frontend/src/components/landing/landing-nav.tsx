@@ -11,7 +11,7 @@ const LINKS = [
   { href: "#features", label: "Features" },
   { href: "#workflow", label: "Workflow" },
   { href: "#screenshots", label: "Screenshots" },
-  { href: "https://github.com/your-org/broks-forge", label: "GitHub", external: true },
+  { href: "https://github.com/gokulraj9488/broks-forge", label: "GitHub", external: true },
   { href: "/docs", label: "Docs" },
 ];
 

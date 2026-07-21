@@ -92,7 +92,7 @@ export function Hero() {
               variant="outline"
               className="transition-transform active:scale-[0.97]"
             >
-              <Link href="https://github.com/your-org/broks-forge" target="_blank" rel="noopener noreferrer">
+              <Link href="https://github.com/gokulraj9488/broks-forge" target="_blank" rel="noopener noreferrer">
                 <Github className="h-4 w-4" />
                 View GitHub
               </Link>

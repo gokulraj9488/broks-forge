@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { EngineeringBackground } from "./engineering-background";
 import { LandingNav } from "./landing-nav";
 import { Hero } from "./hero";
 import { TechMarquee } from "./marquee";
@@ -14,7 +15,8 @@ import { FinalCta } from "./final-cta";
 
 export function LandingPage() {
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="flex min-h-dvh flex-col">
+      <EngineeringBackground />
       <LandingNav />
       <main className="flex-1">
         <Hero />
@@ -35,7 +37,7 @@ export function LandingPage() {
             &copy; {new Date().getFullYear()} Brok&apos;s Forge. Open source under Apache 2.0.
           </p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <Link href="https://github.com/your-org/broks-forge" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
+            <Link href="https://github.com/gokulraj9488/broks-forge" target="_blank" rel="noopener noreferrer" className="hover:text-foreground">
               GitHub
             </Link>
             <Link href="/docs" className="hover:text-foreground">
