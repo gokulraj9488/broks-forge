@@ -4,6 +4,7 @@ import com.broksforge.common.exception.BadRequestException;
 import com.broksforge.common.exception.ErrorCode;
 import com.broksforge.common.exception.ResourceConflictException;
 import com.broksforge.common.exception.ResourceNotFoundException;
+import com.broksforge.common.util.TemplateVariables;
 import com.broksforge.common.web.PageResponse;
 import com.broksforge.config.properties.EvaluationProperties;
 import com.broksforge.modules.agent.service.AgentInvocationService;
@@ -32,6 +33,7 @@ import com.broksforge.modules.evaluation.web.dto.EvaluationJobResponse;
 import com.broksforge.modules.evaluation.web.dto.EvaluationJobSummaryResponse;
 import com.broksforge.modules.evaluation.web.dto.EvaluationResultResponse;
 import com.broksforge.modules.evaluation.web.dto.EvaluationRunResponse;
+import com.broksforge.modules.evaluation.web.dto.PromptRenderDebugResponse;
 import com.broksforge.modules.organization.domain.OrganizationRole;
 import com.broksforge.modules.organization.service.OrganizationAccessService;
 import com.broksforge.modules.project.service.ProjectService;
@@ -45,8 +47,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -352,6 +357,54 @@ public class EvaluationService {
         EvaluationRun run = runRepository.findByIdAndEvaluationJobId(runId, jobId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Evaluation run", runId));
         return mapper.toRunResponse(run);
+    }
+
+    /**
+     * Reconstructs exactly how a run's prompt was rendered: the dataset row it used, which
+     * template variables were detected vs. actually resolved, and which had no matching value.
+     * Computed on read from already-persisted data (the run, the job's pinned prompt version, the
+     * dataset item) — no new table, mirroring the AI Debugger's timeline. Exists to make a
+     * silently-empty template variable visible in the UI instead of only in server logs.
+     */
+    @Transactional(readOnly = true)
+    public PromptRenderDebugResponse getPromptRenderDebug(UUID actorId, UUID organizationId, UUID projectId,
+                                                          UUID jobId, UUID runId) {
+        EvaluationJob job = accessGuard.requireReadableJob(organizationId, projectId, jobId, actorId);
+        EvaluationRun run = runRepository.findByIdAndEvaluationJobId(runId, jobId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Evaluation run", runId));
+
+        String template = null;
+        if (job.getPromptId() != null) {
+            // The exact version pinned on the job at execution time — never the currently-active
+            // one, which may have changed since. Matches EvaluationPlanBuilder#buildContext.
+            PromptVersionResponse promptVersion = promptService.getVersionForExecution(
+                    actorId, organizationId, projectId, job.getPromptId(), job.getPromptVersionId());
+            template = promptVersion.template();
+        }
+
+        List<String> detected = new ArrayList<>(TemplateVariables.extract(template));
+        Map<String, String> resolved = new LinkedHashMap<>();
+        List<String> missing = List.of();
+
+        if (run.getDatasetItemId() != null) {
+            DatasetRow row = datasetService.loadExecutionItem(
+                    actorId, organizationId, projectId, job.getDatasetId(), run.getDatasetItemId());
+            Map<String, Object> values = new LinkedHashMap<>(row.metadata() == null ? Map.of() : row.metadata());
+            values.put("input", row.input());
+            values.put("expected_output", row.expectedOutput());
+            for (String name : detected) {
+                Object value = values.get(name);
+                if (value != null) {
+                    resolved.put(name, String.valueOf(value));
+                }
+            }
+            if (template != null) {
+                missing = new ArrayList<>(TemplateVariables.missingVariables(template, values));
+            }
+        }
+
+        return new PromptRenderDebugResponse(runId, run.getDatasetItemId(), run.getSequence(),
+                detected, resolved, run.getInput(), missing);
     }
 
     /** Published for the root-cause engine: a bounded sample of failed runs in a job. */

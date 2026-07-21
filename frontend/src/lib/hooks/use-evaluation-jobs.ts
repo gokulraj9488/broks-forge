@@ -20,6 +20,8 @@ const keys = {
     ["organizations", o, "projects", p, "evaluation-jobs", j, "runs"] as const,
   results: (o: string, p: string, j: string, r: string) =>
     ["organizations", o, "projects", p, "evaluation-jobs", j, "runs", r, "results"] as const,
+  promptDebug: (o: string, p: string, j: string, r: string) =>
+    ["organizations", o, "projects", p, "evaluation-jobs", j, "runs", r, "prompt-debug"] as const,
 };
 
 const isActive = (status: string | undefined) =>
@@ -129,5 +131,25 @@ export function useEvaluationRunResults(
         runId as string,
       ),
     enabled: !!organizationId && !!projectId && !!jobId && !!runId,
+  });
+}
+
+export function usePromptRenderDebug(
+  organizationId: string | undefined,
+  projectId: string | undefined,
+  jobId: string | undefined,
+  runId: string | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: keys.promptDebug(organizationId ?? "", projectId ?? "", jobId ?? "", runId ?? ""),
+    queryFn: () =>
+      evaluationJobsApi.promptDebug(
+        organizationId as string,
+        projectId as string,
+        jobId as string,
+        runId as string,
+      ),
+    enabled: enabled && !!organizationId && !!projectId && !!jobId && !!runId,
   });
 }

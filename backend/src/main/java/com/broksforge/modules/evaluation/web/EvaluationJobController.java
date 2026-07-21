@@ -8,6 +8,7 @@ import com.broksforge.modules.evaluation.web.dto.EvaluationJobResponse;
 import com.broksforge.modules.evaluation.web.dto.EvaluationJobSummaryResponse;
 import com.broksforge.modules.evaluation.web.dto.EvaluationResultResponse;
 import com.broksforge.modules.evaluation.web.dto.EvaluationRunResponse;
+import com.broksforge.modules.evaluation.web.dto.PromptRenderDebugResponse;
 import com.broksforge.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -137,6 +138,20 @@ public class EvaluationJobController {
                                                                       @PathVariable UUID jobId,
                                                                       @PathVariable UUID runId) {
         return ResponseEntity.ok(evaluationService.listResults(
+                SecurityUtils.requireCurrentUserId(), organizationId, projectId, jobId, runId));
+    }
+
+    @GetMapping("/{jobId}/runs/{runId}/prompt-debug")
+    @Operation(summary = "Debug how a run's prompt was rendered",
+            description = "Shows the dataset row the run used, the template's detected variables, which of "
+                    + "them resolved to a value, the exact rendered prompt, and any variables that had no "
+                    + "matching value (these render as empty text, which is almost always why a model reports "
+                    + "missing data).")
+    public ResponseEntity<PromptRenderDebugResponse> getPromptDebug(@PathVariable UUID organizationId,
+                                                                    @PathVariable UUID projectId,
+                                                                    @PathVariable UUID jobId,
+                                                                    @PathVariable UUID runId) {
+        return ResponseEntity.ok(evaluationService.getPromptRenderDebug(
                 SecurityUtils.requireCurrentUserId(), organizationId, projectId, jobId, runId));
     }
 }

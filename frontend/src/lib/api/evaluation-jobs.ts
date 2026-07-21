@@ -156,6 +156,17 @@ export interface EvaluationRunResultResponse {
   executionStatus: MetricExecutionStatus;
 }
 
+/** How a run's prompt template resolved against its dataset row — see backend PromptRenderDebugResponse. */
+export interface PromptRenderDebugResponse {
+  runId: string;
+  datasetItemId: string | null;
+  datasetItemSequence: number;
+  variablesDetected: string[];
+  variablesResolved: Record<string, string>;
+  renderedPrompt: string | null;
+  missingVariables: string[];
+}
+
 // ---------------------------------------------------------------------------
 // Request payloads
 // ---------------------------------------------------------------------------
@@ -257,6 +268,18 @@ export const evaluationJobsApi = {
     apiClient
       .get<EvaluationRunResultResponse[]>(
         `${base(organizationId, projectId)}/${jobId}/runs/${runId}/results`,
+      )
+      .then((r) => r.data),
+
+  promptDebug: (
+    organizationId: string,
+    projectId: string,
+    jobId: string,
+    runId: string,
+  ) =>
+    apiClient
+      .get<PromptRenderDebugResponse>(
+        `${base(organizationId, projectId)}/${jobId}/runs/${runId}/prompt-debug`,
       )
       .then((r) => r.data),
 };
