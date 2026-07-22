@@ -627,6 +627,22 @@ public class DatasetService {
     }
 
     /**
+     * Loads a single dataset row by item id — for read-only, per-run diagnostics (the evaluation
+     * module's prompt-render debug view) that already know exactly which item a run used and don't
+     * need the whole version loaded. IDOR-safe: the item must belong to {@code datasetId}, not just exist.
+     */
+    @Transactional(readOnly = true)
+    public DatasetRow loadExecutionItem(UUID actorId, UUID organizationId, UUID projectId, UUID datasetId,
+                                        UUID itemId) {
+        accessGuard.requireReadable(organizationId, projectId, datasetId, actorId);
+        DatasetItem item = itemRepository.findById(itemId)
+                .filter(i -> i.getDatasetId().equals(datasetId))
+                .orElseThrow(() -> ResourceNotFoundException.of("Dataset item", itemId));
+        return new DatasetRow(item.getId(), item.getSequence(), item.getInput(), item.getExpectedOutput(),
+                item.getMetadata());
+    }
+
+    /**
      * Pages through a dataset version's rows in sequence order, for callers that must stream a
      * large dataset (e.g. the background evaluation runner) instead of loading it entirely into
      * memory. Access is re-checked per page since a caller may hold a page result across a

@@ -20,6 +20,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # dependency-review-action diffs the base ref's lockfile against head's;
+          # the default shallow (depth-1) checkout only fetches the head commit,
+          # so the action can't see the base commit to diff against and errors
+          # out — unrelated to any actual vulnerability or license finding.
+          fetch-depth: 0
 
       - name: Dependency Review
         uses: actions/dependency-review-action@v4

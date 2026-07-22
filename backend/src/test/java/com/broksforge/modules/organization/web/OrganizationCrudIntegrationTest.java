@@ -146,7 +146,7 @@ class OrganizationCrudIntegrationTest extends AbstractIntegrationTest {
         }
 
         @Test
-        @DisplayName("returns 404 for an unknown org the caller is not a member of")
+        @DisplayName("returns 403 for an unknown org the caller is not a member of (deny-by-default)")
         void unknownIsNotFoundOrForbidden() throws Exception {
             // A random id: caller is not a member, so membership check fails first -> 403 (deny-by-default).
             apiGet(owner, BASE + "/" + java.util.UUID.randomUUID(), 403);

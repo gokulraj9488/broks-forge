@@ -19,6 +19,8 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Runs an {@link EvaluationPlan}: for each dataset row it renders the input, invokes
@@ -53,6 +55,7 @@ public class EvaluationJobExecutor {
         int sequence = 0;
         for (DatasetRow row : plan.items()) {
             String input = renderInput(plan.template(), row);
+            logRenderDiagnostics(plan.jobId(), plan.template(), row, input);
             ModelInvocationRequest request = new ModelInvocationRequest(
                     plan.organizationId(), plan.projectId(), plan.provider(), plan.model(),
                     input, plan.parameters(), plan.target());
@@ -157,6 +160,7 @@ public class EvaluationJobExecutor {
     public RunTotals executeRow(EvaluationPlan plan, DatasetRow row, int sequence, int attempt,
                                 int maxAttempts, long backoffBaseMs, long backoffMaxMs) {
         String input = renderInput(plan.template(), row);
+        logRenderDiagnostics(plan.jobId(), plan.template(), row, input);
         ModelInvocationRequest request = new ModelInvocationRequest(
                 plan.organizationId(), plan.projectId(), plan.provider(), plan.model(),
                 input, plan.parameters(), plan.target());
@@ -221,14 +225,50 @@ public class EvaluationJobExecutor {
         if (template == null || template.isBlank()) {
             return row.input();
         }
-        Map<String, Object> values = new LinkedHashMap<>(row.metadata() == null ? Map.of() : row.metadata());
-        values.put("input", row.input());
-        values.put("expected_output", row.expectedOutput());
+        Map<String, Object> values = buildTemplateValues(row);
         String rendered = TemplateVariables.render(template, values);
         if (!TemplateVariables.extract(template).contains("input") && row.input() != null && !row.input().isBlank()) {
             rendered = rendered + "\n\n" + row.input();
         }
         return rendered;
+    }
+
+    /** The exact variable→value map {@link #renderInput} substitutes against — factored out so
+     * diagnostics (see {@link #logRenderDiagnostics}) inspect precisely what rendering saw, not an
+     * approximation of it. */
+    private Map<String, Object> buildTemplateValues(DatasetRow row) {
+        Map<String, Object> values = new LinkedHashMap<>(row.metadata() == null ? Map.of() : row.metadata());
+        values.put("input", row.input());
+        values.put("expected_output", row.expectedOutput());
+        return values;
+    }
+
+    /**
+     * Root-cause fix: {@link TemplateVariables#render} silently substitutes an empty string for
+     * any {@code {{variable}}} with no matching value — a dataset row missing a column the prompt
+     * references (a blank cell, a short/ragged CSV row, or a metadata key that doesn't match the
+     * template) renders that placeholder as nothing, with no error, and the resulting prompt still
+     * gets sent to the model. The model then correctly reports it never received the data — the
+     * pipeline behavior was correct, but completely invisible. This makes that gap visible: a
+     * per-row DEBUG trace always, and a WARN the moment any referenced variable has no value.
+     */
+    private void logRenderDiagnostics(UUID jobId, String template, DatasetRow row, String renderedPrompt) {
+        if (template == null || template.isBlank()) {
+            return;
+        }
+        Set<String> detected = TemplateVariables.extract(template);
+        Map<String, Object> values = buildTemplateValues(row);
+        if (log.isDebugEnabled()) {
+            log.debug("Evaluation job {} row {} (sequence {}): variables detected={}, resolved={}, rendered=\"{}\"",
+                    jobId, row.itemId(), row.sequence(), detected, values.keySet(), renderedPrompt);
+        }
+        Set<String> missing = TemplateVariables.missingVariables(template, values);
+        if (!missing.isEmpty()) {
+            log.warn("Evaluation job {} row {} (sequence {}): template variable(s) {} had no matching dataset "
+                            + "value and rendered as empty text — check the dataset's column mapping or the "
+                            + "prompt's {{variable}} names",
+                    jobId, row.itemId(), row.sequence(), missing);
+        }
     }
 
     // Package-private (not private) so EvaluationBackgroundRunner.buildSummaryFromDb can build the

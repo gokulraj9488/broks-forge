@@ -7,10 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from "@/components/ui/pagination";
+import { TabsBar } from "@/components/ui/tabs-bar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PassBadge, RunStatusBadge, EXECUTION_STATUS_LABEL } from "@/components/common/eval-badges";
 import { RunResults } from "@/components/evaluations/run-results";
+import { PromptRenderDebug } from "@/components/evaluations/prompt-render-debug";
 import { ExecutionTimeline } from "@/components/debugger/execution-timeline";
+
+type DebugTab = "timeline" | "prompt";
 import { useEvaluationRuns, useEvaluationRunResults } from "@/lib/hooks/use-evaluation-jobs";
 import { METRIC_TYPE_LABELS, type MetricType } from "@/lib/api/evaluation-profiles";
 import { formatCost, formatLatency, formatNumber, formatScore } from "@/lib/format";
@@ -32,6 +36,7 @@ export function RunsPanel({
   const [page, setPage] = useState(0);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [debugRun, setDebugRun] = useState<string | null>(null);
+  const [debugTab, setDebugTab] = useState<DebugTab>("timeline");
 
   const { data, isLoading, isError, refetch, isRefetching } = useEvaluationRuns(
     organizationId,
@@ -182,7 +187,7 @@ export function RunsPanel({
                         <div className="space-y-3 border-t border-border pt-4">
                           <div className="flex items-center justify-between">
                             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                              Execution timeline
+                              Debug
                             </p>
                             <Button
                               variant="outline"
@@ -190,16 +195,35 @@ export function RunsPanel({
                               onClick={() => setDebugRun(debugRun === run.id ? null : run.id)}
                             >
                               <Bug className="h-4 w-4" />
-                              {debugRun === run.id ? "Hide debugger" : "Debug"}
+                              {debugRun === run.id ? "Hide debugger" : "Debug this run"}
                             </Button>
                           </div>
                           {debugRun === run.id && (
-                            <ExecutionTimeline
-                              organizationId={organizationId}
-                              projectId={projectId}
-                              jobId={jobId}
-                              runId={run.id}
-                            />
+                            <div className="space-y-4">
+                              <TabsBar
+                                tabs={[
+                                  { key: "timeline", label: "Execution timeline" },
+                                  { key: "prompt", label: "Prompt rendering" },
+                                ]}
+                                value={debugTab}
+                                onChange={setDebugTab}
+                              />
+                              {debugTab === "timeline" ? (
+                                <ExecutionTimeline
+                                  organizationId={organizationId}
+                                  projectId={projectId}
+                                  jobId={jobId}
+                                  runId={run.id}
+                                />
+                              ) : (
+                                <PromptRenderDebug
+                                  organizationId={organizationId}
+                                  projectId={projectId}
+                                  jobId={jobId}
+                                  runId={run.id}
+                                />
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>

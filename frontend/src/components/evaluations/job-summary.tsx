@@ -4,6 +4,7 @@ import { CircleDollarSign, Gauge, Hash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatCard, MeterBar } from "@/components/common/stat-card";
+import { DonutChart, HBarChart, type BarDatum } from "@/components/common/mini-charts";
 import { EXECUTION_STATUS_LABEL } from "@/components/common/eval-badges";
 import { METRIC_TYPE_LABELS, type MetricType } from "@/lib/api/evaluation-profiles";
 import { formatCompact, formatCost, formatLatency, formatPercent, formatScore } from "@/lib/format";
@@ -54,18 +55,21 @@ export function JobSummary({ job }: { job: EvaluationJobResponse }) {
         <Card>
           <CardContent className="space-y-3 p-5">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Evaluation</p>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div>
-                <p className="text-2xl font-semibold tracking-tight text-success">{evaluation.passed}</p>
-                <p className="text-xs text-muted-foreground">Passed</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold tracking-tight text-destructive">{evaluation.failed}</p>
-                <p className="text-xs text-muted-foreground">Failed</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold tracking-tight text-muted-foreground">{evaluation.skipped}</p>
-                <p className="text-xs text-muted-foreground">Skipped</p>
+            <div className="flex items-center gap-4">
+              <DonutChart
+                value={
+                  evaluation.passed + evaluation.failed > 0
+                    ? evaluation.passed / (evaluation.passed + evaluation.failed)
+                    : 0
+                }
+                tone={evaluation.passed >= evaluation.failed ? "success" : "destructive"}
+                size={72}
+                strokeWidth={8}
+              />
+              <div className="grid grid-cols-1 gap-1 text-xs">
+                <span className="text-success">{evaluation.passed} passed</span>
+                <span className="text-destructive">{evaluation.failed} failed</span>
+                <span className="text-muted-foreground">{evaluation.skipped} skipped</span>
               </div>
             </div>
             {evaluation.skipped > 0 && (
@@ -76,7 +80,9 @@ export function JobSummary({ job }: { job: EvaluationJobResponse }) {
           </CardContent>
         </Card>
 
-        {/* Execution — metric-level provider-call health, job-wide. */}
+        {/* Execution — metric-level provider-call health, job-wide. Failure reasons ranked so the
+            most common cause of an unavailable metric is the first thing a reader sees, not just
+            "there were errors." */}
         <Card>
           <CardContent className="space-y-3 p-5">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Execution</p>
@@ -85,17 +91,15 @@ export function JobSummary({ job }: { job: EvaluationJobResponse }) {
               <p className="text-xs text-muted-foreground">metric calls succeeded</p>
             </div>
             {totalExecutionErrors > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {EXECUTION_ERROR_KEYS.map(([key, status]) => {
-                  const count = execution?.[key] ?? 0;
-                  if (!count) return null;
-                  return (
-                    <Badge key={key} variant="warning" className="gap-1">
-                      {EXECUTION_STATUS_LABEL[status]}: {count}
-                    </Badge>
-                  );
-                })}
-              </div>
+              <HBarChart
+                data={EXECUTION_ERROR_KEYS.filter(([key]) => (execution?.[key] ?? 0) > 0)
+                  .map(([key, status]): BarDatum => ({
+                    label: EXECUTION_STATUS_LABEL[status],
+                    value: execution?.[key] ?? 0,
+                    highlight: true,
+                  }))
+                  .sort((a, b) => b.value - a.value)}
+              />
             ) : (
               <p className="text-xs text-muted-foreground">No provider execution errors.</p>
             )}

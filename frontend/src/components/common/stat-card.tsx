@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -8,10 +9,19 @@ interface StatCardProps {
   hint?: React.ReactNode;
   icon?: LucideIcon;
   className?: string;
+  /**
+   * A directional change since the last comparable period. `good` colors it success/destructive
+   * from the metric's own perspective — e.g. a latency drop is "good" (success) even though the
+   * number itself went down, whereas a cost drop being "good" also happens to point down; the
+   * caller decides which direction is favorable rather than this component assuming higher-is-better.
+   */
+  delta?: { value: string; good: boolean; direction: "up" | "down" };
+  /** Optional inline visual (sparkline, mini histogram) rendered under the value. */
+  chart?: React.ReactNode;
 }
 
 /** Compact metric tile used across dashboards, analytics and eval summaries. */
-export function StatCard({ label, value, hint, icon: Icon, className }: StatCardProps) {
+export function StatCard({ label, value, hint, icon: Icon, className, delta, chart }: StatCardProps) {
   return (
     <Card className={className}>
       <CardContent className="p-5">
@@ -20,7 +30,27 @@ export function StatCard({ label, value, hint, icon: Icon, className }: StatCard
           {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
         </div>
         <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
-        {hint != null && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+        {(delta || hint != null) && (
+          <div className="mt-1 flex items-center gap-1.5">
+            {delta && (
+              <span
+                className={cn(
+                  "flex items-center gap-0.5 text-xs font-medium",
+                  delta.good ? "text-success" : "text-destructive",
+                )}
+              >
+                {delta.direction === "up" ? (
+                  <ArrowUp className="h-3 w-3" />
+                ) : (
+                  <ArrowDown className="h-3 w-3" />
+                )}
+                {delta.value}
+              </span>
+            )}
+            {hint != null && <p className="text-xs text-muted-foreground">{hint}</p>}
+          </div>
+        )}
+        {chart && <div className="mt-3">{chart}</div>}
       </CardContent>
     </Card>
   );

@@ -20,6 +20,12 @@ ENV NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES=$NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Git does not track empty directories, so a `public/` with no committed files
+# (as in this repo today) is silently absent from a fresh `git checkout` —
+# `COPY . .` above then has nothing to copy it from. Guarantee it exists here
+# so the runtime stage's COPY --from=build below never fails, whether public/
+# is empty, missing, or later populated with real static assets.
+RUN mkdir -p public
 RUN npm run build
 
 # --------------------------- Runtime ---------------------------------------

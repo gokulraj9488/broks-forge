@@ -153,9 +153,9 @@
           }
         },
         {
-          "name": "Get unknown organization (not found) [404]",
+          "name": "Get unknown organization (deny-by-default) [403]",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-            "pm.test('404 Not Found', () => pm.response.to.have.status(404));"
+            "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
           ] } }],
           "request": {
             "method": "GET",
