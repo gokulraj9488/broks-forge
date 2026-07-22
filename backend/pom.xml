@@ -28,7 +28,7 @@
         <springdoc.version>2.7.0</springdoc.version>
         <spring-ai.version>1.0.0</spring-ai.version>
         <poi.version>5.3.0</poi.version>
-        <json-schema-validator.version>1.5.4</json-schema-validator.version>
+        <json-schema-validator.version>3.0.6</json-schema-validator.version>
     </properties>
 
     <dependencyManagement>
