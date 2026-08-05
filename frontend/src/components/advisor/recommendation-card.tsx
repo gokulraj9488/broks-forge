@@ -34,7 +34,7 @@ export function RecommendationCard({
               <SeverityBadge severity={rec.severity} />
               <ConfidenceBadge confidence={rec.confidence} />
             </div>
-            <h3 className="text-base font-semibold leading-tight text-foreground">{rec.title}</h3>
+            <h2 className="text-base font-semibold leading-tight text-foreground">{rec.title}</h2>
           </div>
           {rec.knowledgeKey && <KnowledgeKeyBadge nodeKey={rec.knowledgeKey} />}
         </div>

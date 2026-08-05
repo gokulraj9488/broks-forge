@@ -41,7 +41,7 @@ function LoginForm() {
   return (
     <Card className="border-border/60 shadow-xl">
       <CardHeader>
-        <CardTitle className="text-xl">Sign in</CardTitle>
+        <CardTitle as="h1" className="text-xl">Sign in</CardTitle>
         <CardDescription>Welcome back. Enter your credentials to continue.</CardDescription>
       </CardHeader>
       <CardContent>

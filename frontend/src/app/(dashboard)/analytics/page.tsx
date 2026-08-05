@@ -6,6 +6,7 @@ import { TabsBar } from "@/components/ui/tabs-bar";
 import { WorkspaceSelector } from "@/components/common/workspace-selector";
 import { AnalyticsPanel } from "@/components/analytics/analytics-panel";
 import { ReportsPanel } from "@/components/reports/reports-panel";
+import { SurfaceSummary } from "@/components/common/surface-summary";
 
 type Tab = "analytics" | "reports";
 
@@ -21,11 +22,12 @@ export default function AnalyticsPage() {
     <div>
       <PageHeader
         title="Analytics"
-        description="Track evaluation volume, pass rates, latency and spend across your project."
+        description="What the evidence adds up to — quality, latency and spend, always reported together."
       />
       <WorkspaceSelector>
         {({ organizationId, projectId }) => (
           <div className="space-y-5">
+            <SurfaceSummary kind="analytics" organizationId={organizationId} projectId={projectId} />
             <TabsBar tabs={TABS} value={tab} onChange={setTab} />
             {tab === "analytics" ? (
               <AnalyticsPanel organizationId={organizationId} projectId={projectId} />

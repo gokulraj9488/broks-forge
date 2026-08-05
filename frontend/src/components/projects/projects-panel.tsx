@@ -45,7 +45,7 @@ export function ProjectsPanel({
 
   if (isLoading) {
     return (
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-24 w-full" />
         ))}
@@ -70,7 +70,7 @@ export function ProjectsPanel({
           action={<CreateProjectDialog organizationId={organizationId} />}
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {projects.map((project) => (
             <Card key={project.id} className="group transition-colors hover:border-primary/40">
               <CardContent className="p-5">
@@ -84,7 +84,7 @@ export function ProjectsPanel({
                         <FolderKanban className="h-4 w-4 text-primary" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="truncate font-medium leading-tight">{project.name}</h3>
+                        <h2 className="truncate font-medium leading-tight">{project.name}</h2>
                         <p className="truncate text-xs text-muted-foreground">/{project.slug}</p>
                       </div>
                     </div>

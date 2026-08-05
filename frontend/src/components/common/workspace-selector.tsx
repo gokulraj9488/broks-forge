@@ -29,15 +29,23 @@ export interface WorkspaceSelection {
  */
 export function WorkspaceSelector({
   noProjectsHref,
+  initialOrganizationId,
+  initialProjectId,
   children,
 }: {
   noProjectsHref?: (orgId: string) => string;
+  /**
+   * Pre-selects the workspace a deep link arrived about, so opening an artifact's question in Brok
+   * lands in the org and project that artifact lives in rather than in whichever one sorts first.
+   */
+  initialOrganizationId?: string;
+  initialProjectId?: string;
   children: (selection: WorkspaceSelection) => React.ReactNode;
 }) {
   const { data: orgsData, isLoading: orgsLoading } = useOrganizations({ size: 100 });
   const organizations = useMemo(() => orgsData?.content ?? [], [orgsData]);
 
-  const [orgId, setOrgId] = useState<string>("");
+  const [orgId, setOrgId] = useState<string>(initialOrganizationId ?? "");
   useEffect(() => {
     if (!orgId && organizations.length > 0) {
       setOrgId(organizations[0].id);
@@ -49,7 +57,7 @@ export function WorkspaceSelector({
   });
   const projects = useMemo(() => projectsData?.content ?? [], [projectsData]);
 
-  const [projectId, setProjectId] = useState<string>("");
+  const [projectId, setProjectId] = useState<string>(initialProjectId ?? "");
   useEffect(() => {
     if (projects.length > 0 && !projects.some((p) => p.id === projectId)) {
       setProjectId(projects[0].id);

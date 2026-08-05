@@ -55,7 +55,7 @@ export default function HelpPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {TOPICS.map(({ icon: Icon, title, body }) => (
           <Card key={title}>
             <CardContent className="space-y-2 p-5">

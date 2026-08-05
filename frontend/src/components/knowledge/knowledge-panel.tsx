@@ -207,7 +207,7 @@ function NodeDetail({ node }: { node: KnowledgeNodeResponse }) {
 
   return (
     <div className="space-y-4 border-t border-border px-4 py-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Section label="Summary">{node.summary}</Section>
         <Section label="Detection hint">{node.detectionHint}</Section>
         <Section label="Remediation">{node.remediation}</Section>

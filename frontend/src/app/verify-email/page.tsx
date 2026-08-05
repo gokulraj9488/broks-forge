@@ -72,6 +72,7 @@ function VerifyEmailInner() {
             <XCircle className="h-6 w-6 text-destructive" />
           </div>
         )}
+        <h1 className="text-xl font-semibold leading-none tracking-tight">Email verification</h1>
         <p className="text-sm text-muted-foreground">{message}</p>
         {status === "error" && isAuthenticated && (
           <p className="text-xs text-muted-foreground">
@@ -105,11 +106,11 @@ export default function VerifyEmailPage() {
           <Logo />
         </Link>
       </div>
-      <div className="w-full max-w-md animate-fade-in">
+      <main className="w-full max-w-md animate-fade-in">
         <Suspense fallback={<FullPageSpinner />}>
           <VerifyEmailInner />
         </Suspense>
-      </div>
+      </main>
     </div>
   );
 }

@@ -114,7 +114,7 @@ export function ProfilesPanel({
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-32 w-full" />
           ))}
@@ -145,7 +145,7 @@ export function ProfilesPanel({
         />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {profiles.map((profile) => (
               <Card key={profile.id} className={!profile.enabled ? "opacity-60" : undefined}>
                 <CardContent className="p-5">
@@ -159,7 +159,7 @@ export function ProfilesPanel({
                         <Gauge className="h-5 w-5 text-primary" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="truncate font-medium leading-tight">{profile.name}</h3>
+                        <h2 className="truncate font-medium leading-tight">{profile.name}</h2>
                         <p className="truncate text-xs text-muted-foreground">/{profile.slug}</p>
                       </div>
                     </button>

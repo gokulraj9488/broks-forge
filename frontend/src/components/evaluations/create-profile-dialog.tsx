@@ -97,7 +97,7 @@ export function CreateProfileDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Name" htmlFor="ep-name" required>
               <Input id="ep-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Customer Support Conversation" />
             </Field>
@@ -110,7 +110,7 @@ export function CreateProfileDialog({
           </Field>
 
           <Field label="Preset" hint="A starting point — fully editable afterward">
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {PRESET_OPTIONS.map((o) => (
                 <button
                   key={o.value}

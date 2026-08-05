@@ -131,7 +131,7 @@ export function CreateBenchmarkDialog({
           <Field label="Description" htmlFor="bm-desc">
             <Textarea id="bm-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Type" htmlFor="bm-type" required>
               <Select value={type} onValueChange={(v) => setType(v as BenchmarkType)}>
                 <SelectTrigger id="bm-type">

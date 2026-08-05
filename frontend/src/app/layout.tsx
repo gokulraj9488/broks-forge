@@ -25,26 +25,41 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
+  // Terminology is deliberately led by the category and this product's own concept names — those
+  // are the terms the documentation defines and uses consistently, so they are the ones worth
+  // being findable by. Generic LLMOps terms follow, because that is what people search today.
   keywords: [
-    "AI agents",
-    "agent evaluation",
-    "LLM evaluation",
-    "agent platform",
-    "LLMOps",
+    "AI Engineering Operating System",
     "AI engineering",
-    "benchmarking",
+    "engineering intelligence",
+    "engineering memory",
+    "AI Git",
+    "root cause explorer",
+    "forge graph",
+    "AI system observability alternative",
+    "LLM evaluation",
+    "agent evaluation",
+    "prompt versioning",
     "prompt management",
     "regression detection",
-    "Spring Boot",
-    "Next.js",
+    "LLMOps",
+    "AI agents",
+    "self-hosted LLM platform",
+    "open source AI engineering platform",
   ],
   authors: [{ name: "Gokulraj", url: "https://gokul.quest" }],
   creator: "Gokulraj",
   publisher: SITE_NAME,
   category: "technology",
   alternates: { canonical: "/" },
-  // The favicon is auto-linked from app/icon.svg; declare the Apple touch icon.
-  icons: { apple: [{ url: "/icon.svg" }] },
+  // The favicon is auto-linked from app/icon.svg. `shortcut` is declared explicitly as well: without
+  // a rel="shortcut icon" link, browsers fall back to probing /favicon.ico, which this app does not
+  // ship — a guaranteed 404 on every first page view.
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icon.svg" }],
+  },
   openGraph: {
     type: "website",
     siteName: SITE_NAME,

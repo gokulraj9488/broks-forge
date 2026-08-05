@@ -31,6 +31,15 @@ jobs:
           java-version: "21"
           cache: maven
 
+      # See backend-ci.yml: the kernel and forge-* modules are local Maven projects the
+      # application pom depends on, so they must be installed before it can resolve them.
+      - name: Install local platform modules
+        working-directory: backend
+        run: |
+          for module in kernel forge-knowledge forge-fvcs forge-fkge forge-fxp; do
+            mvn -B -ntp -f "$module/pom.xml" install -DskipTests
+          done
+
       - name: Build backend JAR
         run: mvn -B -ntp -f backend/pom.xml clean verify
 

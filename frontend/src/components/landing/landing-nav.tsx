@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#workflow", label: "Workflow" },
-  { href: "#screenshots", label: "Screenshots" },
-  { href: "https://github.com/gokulraj9488/broks-forge", label: "GitHub", external: true },
+  { href: "#problem", label: "Why" },
+  { href: "#layers", label: "Architecture" },
+  { href: "#brok", label: "Brok" },
+  { href: "#comparison", label: "Compare" },
   { href: "/docs", label: "Docs" },
+  { href: "https://github.com/gokulraj9488/broks-forge", label: "GitHub", external: true },
 ];
 
 export function LandingNav() {

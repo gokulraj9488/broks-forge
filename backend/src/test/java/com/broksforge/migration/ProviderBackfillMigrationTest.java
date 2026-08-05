@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.time.Duration;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -34,7 +35,10 @@ class ProviderBackfillMigrationTest {
 
     @BeforeAll
     static void startContainer() {
-        postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+        // Same generous startup budget as AbstractIntegrationTest: on a memory-constrained Docker host a
+        // cold initdb outlasts Testcontainers' 60s default, and this migration test owns its own container.
+        postgres = new PostgreSQLContainer<>("postgres:16-alpine")
+                .withStartupTimeout(Duration.ofMinutes(5));
         postgres.start();
     }
 
@@ -48,7 +52,7 @@ class ProviderBackfillMigrationTest {
     void backfillsProviderForPreExistingAgent() throws Exception {
         Flyway toV35 = Flyway.configure()
                 .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-                .locations("classpath:db/migration")
+                .locations("classpath:db/broksforge")
                 .target("35")
                 .load();
         toV35.migrate();
@@ -80,7 +84,7 @@ class ProviderBackfillMigrationTest {
 
         Flyway toLatest = Flyway.configure()
                 .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-                .locations("classpath:db/migration")
+                .locations("classpath:db/broksforge")
                 .load();
         toLatest.migrate();
 

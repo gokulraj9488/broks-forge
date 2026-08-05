@@ -54,6 +54,16 @@ public class PromptService {
     private final ProjectService projectService;
     private final PromptMapper mapper;
 
+    /**
+     * Read-only Platform V2 Knowledge read-through (P4). The facade is always a bean and owns the
+     * platform-disabled/absent fallback, so this service just calls it. It serves the active-template text
+     * only when it is consistent with the current V1 template (else V1), so behavior is identical.
+     * Field-injected so the constructor is unchanged; {@code required = false} keeps the service usable if the
+     * read package is excluded.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.broksforge.platform.read.KnowledgeReadFacade knowledgeReads;
+
     public PromptService(PromptRepository promptRepository,
                          PromptVersionRepository versionRepository,
                          PromptAccessGuard accessGuard,
@@ -185,14 +195,15 @@ public class PromptService {
         accessGuard.requireReadable(organizationId, projectId, promptId, actorId);
         return PageResponse.from(
                 versionRepository.findByPromptIdOrderByVersionNumberDesc(promptId, pageable),
-                mapper::toVersionResponse);
+                version -> mapper.toVersionResponse(serveTemplateFromKnowledge(organizationId, promptId, version)));
     }
 
     @Transactional(readOnly = true)
     public PromptVersionResponse getVersion(UUID actorId, UUID organizationId, UUID projectId, UUID promptId,
                                             UUID versionId) {
         accessGuard.requireReadable(organizationId, projectId, promptId, actorId);
-        return mapper.toVersionResponse(getVersionOrThrow(promptId, versionId));
+        PromptVersion version = getVersionOrThrow(promptId, versionId);
+        return mapper.toVersionResponse(serveTemplateFromKnowledge(organizationId, promptId, version));
     }
 
     @Transactional
@@ -256,12 +267,27 @@ public class PromptService {
             throw new ResourceConflictException(ErrorCode.PROMPT_NO_ACTIVE_VERSION,
                     "Prompt has no active version; create or activate one first");
         }
-        return mapper.toVersionResponse(getVersionOrThrow(promptId, effectiveId));
+        PromptVersion version = getVersionOrThrow(promptId, effectiveId);
+        return mapper.toVersionResponse(serveTemplateFromKnowledge(organizationId, promptId, version));
     }
 
     // ----------------------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------------------
+
+    /**
+     * Serves the version's template through the single Knowledge read entry point (P4/P5). The projected
+     * prompt text is the active-template keyed by prompt id, so the verified read-through yields the Knowledge
+     * value only for the active version and only when it equals the current V1 template; every other version
+     * (and the disabled/absent/stale cases) falls back to V1. Behavior is therefore identical to V1. The
+     * adjustment is in-memory only and callers run in read-only transactions, so it is never flushed.
+     */
+    private PromptVersion serveTemplateFromKnowledge(UUID organizationId, UUID promptId, PromptVersion version) {
+        if (knowledgeReads != null) {
+            version.setTemplate(knowledgeReads.promptText(organizationId, promptId, version.getTemplate()));
+        }
+        return version;
+    }
 
     private void activateInternal(Prompt prompt, PromptVersion target) {
         for (PromptVersion active : versionRepository.findByPromptIdAndActiveTrue(prompt.getId())) {

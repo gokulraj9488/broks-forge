@@ -93,7 +93,7 @@ export function CreatePromptDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Name" htmlFor="pr-name" error={errors.name?.message} required>
               <Input id="pr-name" placeholder="Support reply prompt" {...register("name")} />
             </Field>

@@ -85,7 +85,7 @@ export function RegisterVersionDialog({
           <DialogDescription>Record a deployment of this agent.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Version number" htmlFor="v-number" error={errors.versionNumber?.message} required>
               <Input id="v-number" placeholder="1.4.0" {...register("versionNumber")} />
             </Field>

@@ -45,7 +45,7 @@ export function AnalyticsPanel({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-24 w-full" />
           ))}
@@ -89,7 +89,7 @@ export function AnalyticsPanel({
         </Select>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard label="Evaluations" value={formatNumber(data.jobCount)} icon={Activity} hint={`${windowDays}d window`} />
         <StatCard
           label="Runs"
@@ -127,7 +127,7 @@ export function AnalyticsPanel({
       {trend.length === 0 ? (
         <EmptyState icon={Activity} title="No activity in this window" description="Run evaluations to populate trends." />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <TrendCard title="Runs" hint={rangeLabel} data={runSeries} formatValue={formatNumber}>
             <BarTimeline data={runSeries} />
           </TrendCard>

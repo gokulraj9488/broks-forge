@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Bot,
+  Boxes,
   Building2,
   Database,
   FileText,
@@ -16,6 +17,7 @@ import {
   Network,
   Plug,
   Settings,
+  Sparkles,
   Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,8 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Workspace",
     items: [
       { href: "/dashboard", label: "Overview", icon: LayoutGrid },
+      { href: "/brok", label: "Brok", icon: Sparkles },
+      { href: "/registry", label: "Registry", icon: Boxes },
       { href: "/organizations", label: "Organizations", icon: Building2 },
     ],
   },

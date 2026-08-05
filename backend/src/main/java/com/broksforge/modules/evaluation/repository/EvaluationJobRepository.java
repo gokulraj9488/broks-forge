@@ -20,6 +20,9 @@ public interface EvaluationJobRepository
 
     long countByProjectIdAndDeletedFalse(UUID projectId);
 
+    /** All non-deleted evaluation jobs in an organization (read-only; used to assemble the engineering graph). */
+    List<EvaluationJob> findByOrganizationIdAndDeletedFalse(UUID organizationId);
+
     long countByOrganizationIdAndProjectIdAndDeletedFalse(UUID organizationId, UUID projectId);
 
     long countByProjectIdAndStatusAndDeletedFalse(UUID projectId, EvaluationStatus status);

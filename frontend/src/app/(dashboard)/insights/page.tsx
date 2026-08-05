@@ -3,6 +3,7 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { WorkspaceSelector } from "@/components/common/workspace-selector";
 import { DashboardPanel } from "@/components/dashboard/dashboard-panel";
+import { PlatformStatusPanel } from "@/components/platform/platform-status-panel";
 import { SearchBox } from "@/components/search/search-box";
 
 export default function InsightsPage() {
@@ -16,6 +17,7 @@ export default function InsightsPage() {
         {({ organizationId, projectId }) => (
           <div className="space-y-6">
             <SearchBox organizationId={organizationId} projectId={projectId} />
+            <PlatformStatusPanel organizationId={organizationId} />
             <DashboardPanel organizationId={organizationId} projectId={projectId} />
           </div>
         )}

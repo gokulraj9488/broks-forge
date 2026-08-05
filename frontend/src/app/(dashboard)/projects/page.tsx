@@ -42,7 +42,7 @@ export default function ProjectsPage() {
       />
 
       {loading ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24 w-full" />
           ))}
@@ -70,7 +70,7 @@ export default function ProjectsPage() {
           }
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {rows.map(({ org, project }) => (
             <Link
               key={project.id}
@@ -85,7 +85,7 @@ export default function ProjectsPage() {
                         <FolderKanban className="h-4 w-4 text-primary" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="truncate font-medium leading-tight">{project.name}</h3>
+                        <h2 className="truncate font-medium leading-tight">{project.name}</h2>
                         <p className="truncate text-xs text-muted-foreground">
                           {org.name} · /{project.slug}
                         </p>

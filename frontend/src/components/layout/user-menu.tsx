@@ -34,7 +34,12 @@ export function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      {/* The trigger's only content is an avatar of initials, which tells a screen reader nothing
+          about what the control does. Name it explicitly. */}
+      <DropdownMenuTrigger
+        aria-label="Account menu"
+        className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
         <Avatar>
           <AvatarFallback>{initials(user?.fullName || user?.email)}</AvatarFallback>
         </Avatar>

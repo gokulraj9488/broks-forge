@@ -39,12 +39,12 @@ export default function RegisterPage() {
   return (
     <Card className="border-border/60 shadow-xl">
       <CardHeader>
-        <CardTitle className="text-xl">Create your account</CardTitle>
+        <CardTitle as="h1" className="text-xl">Create your account</CardTitle>
         <CardDescription>Start building the engineering platform for your AI agents.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="First name" htmlFor="firstName" error={errors.firstName?.message}>
               <Input id="firstName" placeholder="Ada" autoComplete="given-name" {...register("firstName")} />
             </Field>

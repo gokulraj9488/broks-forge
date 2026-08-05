@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      kernel-store-postgres: the PostgreSQL persistence adapter.
+
+      Persists the append log (the sole source of truth) in PostgreSQL via plain JDBC — no Spring, no
+      JPA, no ORM. Projections are rebuilt in memory by replaying the persisted log at open (the
+      constitutional model: projections are derivations, ADR-V2-0001). It passes the SAME kernel-tck
+      contract as the in-memory backend, proving storage implementations are interchangeable.
+
+      Dependencies are deliberately minimal — kernel-core + the PostgreSQL JDBC driver only. Schema
+      migrations are applied by a small dependency-free JDBC migrator (see SchemaMigrations) rather
+      than Flyway, keeping the adapter lean and consistent with the kernel's zero-framework ethos. The
+      integration test runs against a real PostgreSQL supplied via the KERNEL_TEST_PG_URL environment
+      variable and skips cleanly when it is unset (so CI runs it; an offline box does not).
+    -->
+
+    <parent>
+        <groupId>com.broksforge.kernel</groupId>
+        <artifactId>broks-forge-kernel</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>kernel-store-postgres</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Brok's Forge Kernel :: PostgreSQL Store</name>
+    <description>PostgreSQL persistence adapter for the Forge Kernel (JDBC + Flyway).</description>
+
+    <properties>
+        <postgresql.version>42.7.8</postgresql.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.broksforge.kernel</groupId>
+            <artifactId>kernel-core</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
+        </dependency>
+
+        <!-- Test: the TCK contract, run against a real PostgreSQL supplied via KERNEL_TEST_PG_URL. -->
+        <dependency>
+            <groupId>com.broksforge.kernel</groupId>
+            <artifactId>kernel-tck</artifactId>
+            <version>1.0.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

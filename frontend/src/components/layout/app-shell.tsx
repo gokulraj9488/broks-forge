@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Menu, Sparkles, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { UserMenu } from "@/components/layout/user-menu";
@@ -40,7 +40,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <p className="text-[11px] leading-relaxed text-muted-foreground">
           Brok&apos;s Forge · v1.0.0
           <br />
-          The Engineering Platform for AI Agents.
+          The AI Engineering Operating System.
         </p>
       </div>
     </div>
@@ -50,6 +50,20 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  // Brok is one keystroke from anywhere. Ctrl+. (Cmd+. on Mac) travels to the Engineering Partner —
+  // a navigation, not an overlay: constitutionally Brok is a workspace you go to, not a widget.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "." && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+        e.preventDefault();
+        router.push("/brok");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,6 +110,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* The one entry point visible on every page — how a first-time user discovers Brok. */}
+            {pathname !== "/brok" && (
+              <Link
+                href="/brok"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Ask Brok</span>
+                <kbd className="hidden rounded border border-border bg-muted px-1 py-0.5 text-[9px] font-normal text-muted-foreground sm:inline">
+                  Ctrl&nbsp;.
+                </kbd>
+              </Link>
+            )}
             <UserMenu />
           </div>
         </header>

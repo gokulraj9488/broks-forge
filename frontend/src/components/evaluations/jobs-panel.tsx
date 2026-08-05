@@ -128,7 +128,7 @@ export function JobsPanel({
                     <CardContent className="p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <h3 className="truncate font-medium leading-tight">{job.name}</h3>
+                          <h2 className="truncate font-medium leading-tight">{job.name}</h2>
                           <p className="mt-1 text-xs text-muted-foreground">
                             {formatNumber(job.completedItems)}/{formatNumber(job.totalItems)} items
                             {job.failedItems > 0 && (

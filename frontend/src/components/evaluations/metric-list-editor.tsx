@@ -297,7 +297,7 @@ export function MetricListEditor({
       {metrics.map((metric, i) => (
         <div key={i} className="space-y-3 rounded-lg border border-border p-3">
           <div className="flex items-start gap-2">
-            <div className="grid flex-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 flex-1 gap-3 sm:grid-cols-2">
               <Field label="Type">
                 <Select value={metric.type} onValueChange={(v) => updateMetric(i, { type: v as MetricType })}>
                   <SelectTrigger aria-label="Metric type">
@@ -354,7 +354,7 @@ export function MetricListEditor({
           </p>
 
           {isJudgeFamily(metric.type) && (
-            <div className="grid gap-3 rounded-md border border-dashed border-border bg-muted/30 p-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 rounded-md border border-dashed border-border bg-muted/30 p-3 sm:grid-cols-2">
               <Field label="Provider" required hint="The judge/embedding provider to call">
                 <Select value={metric.providerId} onValueChange={(v) => updateMetric(i, { providerId: v })}>
                   <SelectTrigger aria-label="Judge provider">

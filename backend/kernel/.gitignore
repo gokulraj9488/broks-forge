@@ -1,0 +1,3 @@
+# Maven build output for every module in the kernel reactor.
+target/
+**/target/

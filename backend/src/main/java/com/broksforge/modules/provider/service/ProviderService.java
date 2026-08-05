@@ -60,6 +60,15 @@ public class ProviderService {
     private final ProviderAdapterRegistry adapterRegistry;
     private final CredentialConnectionTester connectionTester;
 
+    /**
+     * Read-only Platform V2 Knowledge read-through (P3/P4). The facade is always a bean and itself owns the
+     * platform-disabled/absent fallback, so this service just calls it — no availability check here. It serves
+     * the V1-consistent value, so output is identical to V1. Field-injected so the constructor is unchanged;
+     * {@code required = false} keeps the service usable if the read package is excluded.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.broksforge.platform.read.KnowledgeReadFacade knowledgeReads;
+
     public ProviderService(ProviderRepository providerRepository, AgentRepository agentRepository,
                            ProviderAccessGuard accessGuard, OrganizationAccessService accessService,
                            ProjectService projectService, ProviderMapper mapper,
@@ -168,13 +177,13 @@ public class ProviderService {
         accessService.requireMembership(organizationId, actorId);
         projectService.assertProjectExists(organizationId, projectId);
         return PageResponse.from(providerRepository.findByProjectIdAndDeletedFalse(projectId, pageable)
-                .map(this::toResponse));
+                .map(provider -> toResponse(serveNameFromKnowledge(organizationId, provider))));
     }
 
     @Transactional(readOnly = true)
     public ProviderResponse get(UUID actorId, UUID organizationId, UUID projectId, UUID providerId) {
         Provider provider = accessGuard.requireReadable(organizationId, projectId, providerId, actorId);
-        return toResponse(provider);
+        return toResponse(serveNameFromKnowledge(organizationId, provider));
     }
 
     @Transactional
@@ -290,6 +299,19 @@ public class ProviderService {
     // ----------------------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------------------
+
+    /**
+     * Serves the provider's name through the single Knowledge read entry point (P3/P5). The value equals the
+     * current V1 name (Knowledge is used only when consistent with V1, else V1), so behavior is identical.
+     * The facade owns the platform-disabled/absent fallback. In-memory only; the read-only transactions that
+     * call this never flush the adjustment.
+     */
+    private Provider serveNameFromKnowledge(UUID organizationId, Provider provider) {
+        if (knowledgeReads != null) {
+            provider.setName(knowledgeReads.providerName(organizationId, provider.getId(), provider.getName()));
+        }
+        return provider;
+    }
 
     private ProviderResponse toResponse(Provider provider) {
         int linkedAgentCount = agentRepository.countByProviderIdAndDeletedFalse(provider.getId());

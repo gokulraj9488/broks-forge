@@ -153,7 +153,7 @@ export function ProvidersPanel({
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-36 w-full" />
           ))}
@@ -177,7 +177,7 @@ export function ProvidersPanel({
         />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {filtered.map((provider) => (
               <Card key={provider.id} className={!provider.enabled ? "opacity-60" : undefined}>
                 <CardContent className="p-5">
@@ -187,7 +187,7 @@ export function ProvidersPanel({
                         <Plug className="h-5 w-5 text-primary" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="truncate font-medium leading-tight">{provider.name}</h3>
+                        <h2 className="truncate font-medium leading-tight">{provider.name}</h2>
                         <p className="truncate text-xs text-muted-foreground">{provider.baseUrl}</p>
                       </div>
                     </div>

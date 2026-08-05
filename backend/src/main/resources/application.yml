@@ -58,7 +58,7 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
-    locations: classpath:db/migration
+    locations: classpath:db/broksforge
 
   data:
     redis:
@@ -147,6 +147,18 @@ springdoc:
 # Application-specific configuration (custom namespace)
 # ---------------------------------------------------------------------------
 broksforge:
+  # Platform V2 (P0): wire the frozen platform into the application, isolated in its own schema and
+  # dormant (no endpoints, no user-visible behavior). Set enabled=false to run exactly as before.
+  platform:
+    v2:
+      enabled: ${BROKSFORGE_PLATFORM_V2_ENABLED:true}
+      schema: forge_kernel
+      probe-org-id: 00000000-0000-0000-0000-000000000000
+      max-pool-size: 4
+      # P7: idempotently project existing entities into the kernel on startup so the engineering ledger holds
+      # real artifacts. Env-driven; default false keeps ordinary/test startup unchanged (the runner only
+      # activates when the platform is also enabled). The container turns this on (see docker-compose).
+      backfill-on-startup: ${BROKSFORGE_PLATFORM_V2_BACKFILL_ON_STARTUP:false}
   app:
     public-url: ${BROKSFORGE_APP_PUBLIC_URL:http://localhost:3000}
   # ---------------------------------------------------------------------------
@@ -292,3 +304,14 @@ logging:
     # Low volume (only on user-triggered checks) and the Authorization header is masked — safe to keep on.
     com.broksforge.modules.agent.service.CredentialConnectionTester: DEBUG
     com.broksforge.modules.agent.service.AgentHealthCheckExecutor: DEBUG
+    # Two libraries log an expected, permanent condition at WARN on every boot. Left at WARN they
+    # are the loudest thing in a production log and train operators to ignore warnings.
+    #
+    # Hibernate announces `hibernate.type.preferred_instant_jdbc_type` as an incubating setting.
+    # That setting is deliberate (it pins Instant mapping to TIMESTAMP_UTC, see spring.jpa above),
+    # so the notice reports our own decision back to us and can never be acted on.
+    org.hibernate.orm.incubating: ERROR
+    # Spring Security warns that a DaoAuthenticationProvider bean means UserDetailsService is not
+    # auto-wired for form login. That is the intended arrangement here, and Spring's own message
+    # says to raise the level to ERROR when it is deliberate.
+    org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer: ERROR

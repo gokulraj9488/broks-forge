@@ -40,7 +40,16 @@ export function TabsBar<T extends string>({
   };
 
   return (
-    <div role="tablist" className={cn("flex gap-1 border-b border-border", className)}>
+    // A workspace can carry six tabs, which is wider than a phone. The strip scrolls on its own
+    // rather than widening the page: `shrink-0` on each tab stops them compressing into unreadable
+    // slivers, and `overflow-x-auto` keeps the overflow inside this element instead of the document.
+    <div
+      role="tablist"
+      className={cn(
+        "flex gap-1 overflow-x-auto border-b border-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        className,
+      )}
+    >
       {tabs.map((tab, index) => {
         const active = tab.key === value;
         return (
@@ -56,7 +65,7 @@ export function TabsBar<T extends string>({
             onClick={() => onChange(tab.key)}
             onKeyDown={(event) => onKeyDown(event, index)}
             className={cn(
-              "relative -mb-px rounded-t-sm border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
+              "relative -mb-px shrink-0 whitespace-nowrap rounded-t-sm border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               active
                 ? "border-primary text-foreground"

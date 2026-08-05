@@ -10,6 +10,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TabsBar, type TabItem } from "@/components/ui/tabs-bar";
+import { ArtifactEvolution } from "@/components/platform/artifact-evolution";
+import { ArtifactIntelligence } from "@/components/platform/artifact-intelligence";
+import { AskBrok } from "@/components/brok/ask-brok";
 import { HealthBadge, StatusBadge } from "@/components/common/badges";
 import { VersionsPanel } from "@/components/agents/versions-panel";
 import { HealthPanel } from "@/components/agents/health-panel";
@@ -36,7 +39,15 @@ import { FRAMEWORK_OPTIONS, type AgentCredentialResponse, type AgentResponse } f
 import { computeAgentReadiness } from "@/lib/agent-readiness";
 import { formatDateTime } from "@/lib/utils";
 
-type Tab = "overview" | "versions" | "advisor" | "health" | "credentials" | "settings";
+type Tab =
+  | "overview"
+  | "versions"
+  | "advisor"
+  | "health"
+  | "credentials"
+  | "evolution"
+  | "intelligence"
+  | "settings";
 
 const TABS: TabItem<Tab>[] = [
   { key: "overview", label: "Overview" },
@@ -44,6 +55,8 @@ const TABS: TabItem<Tab>[] = [
   { key: "advisor", label: "Advisor" },
   { key: "health", label: "Health" },
   { key: "credentials", label: "Credentials" },
+  { key: "evolution", label: "Evolution" },
+  { key: "intelligence", label: "Intelligence" },
   { key: "settings", label: "Settings" },
 ];
 const TAB_KEYS = TABS.map((t) => t.key);
@@ -119,7 +132,7 @@ function Overview({
   return (
     <div className="space-y-6">
       <Card>
-        <CardContent className="grid gap-6 p-6 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2">
           <Detail label="Framework">
             {FRAMEWORK_LABELS[agent.framework] ?? agent.framework}
             <span className="ml-1 text-xs text-muted-foreground">(descriptive only)</span>
@@ -318,6 +331,13 @@ function AgentDetail() {
           {agent.status === "ARCHIVED" && <StatusBadge status="ARCHIVED" />}
           {readiness?.requiresCredential && <AgentReadinessBadge readiness={readiness} />}
           <HealthBadge status={agent.healthStatus} />
+          {/* Reachable from every tab, not just the ones that already reason — the workspace itself is an entry point. */}
+          <AskBrok
+            organizationId={orgId}
+            projectId={projectId}
+            focus={`agent:${agentId}`}
+            question={`Tell me about ${agent.name}.`}
+          />
         </div>
       </div>
 
@@ -386,6 +406,10 @@ function AgentDetail() {
             onCredentialSaved={handleCredentialSaved}
             initialAuthType={agent.authType}
           />
+        )}
+        {tab === "evolution" && <ArtifactEvolution organizationId={orgId} projectId={projectId} type="agent" entityId={agentId} />}
+        {tab === "intelligence" && (
+          <ArtifactIntelligence organizationId={orgId} projectId={projectId} type="agent" entityId={agentId} />
         )}
         {tab === "settings" && (
           <AgentSettingsPanel

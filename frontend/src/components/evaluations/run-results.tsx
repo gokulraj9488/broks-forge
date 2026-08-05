@@ -131,7 +131,7 @@ function MetricResultRow({ result: r }: { result: EvaluationRunResultResponse })
           ) : structured ? (
             <>
               {r.metricType === "SEMANTIC_SIMILARITY" && (
-                <div className="grid gap-1.5 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                   {r.threshold != null && (
                     <DetailRow label="Threshold" value={r.threshold} />
                   )}
@@ -149,7 +149,7 @@ function MetricResultRow({ result: r }: { result: EvaluationRunResultResponse })
                 </p>
               )}
               {criteriaEntries.length > 0 && (
-                <div className="grid gap-1.5 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                   {criteriaEntries.map(([name, value]) => (
                     <div key={name} className="flex items-center justify-between rounded bg-muted/40 px-2 py-1">
                       <span>{name}</span>

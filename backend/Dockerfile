@@ -6,7 +6,21 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
-# Cache dependencies first for faster incremental builds
+# Platform V2 modules are local (not on Maven Central). Build and install them into the image's
+# local Maven repository first, so the application below can resolve them. This is an implementation
+# detail of the image build only — the developer workflow (docker compose up --build) is unchanged.
+COPY kernel ./kernel
+COPY forge-knowledge ./forge-knowledge
+COPY forge-fvcs ./forge-fvcs
+COPY forge-fkge ./forge-fkge
+COPY forge-fxp ./forge-fxp
+RUN mvn -B -q -f kernel/pom.xml install -DskipTests \
+ && mvn -B -q -f forge-knowledge/pom.xml install -DskipTests \
+ && mvn -B -q -f forge-fvcs/pom.xml install -DskipTests \
+ && mvn -B -q -f forge-fkge/pom.xml install -DskipTests \
+ && mvn -B -q -f forge-fxp/pom.xml install -DskipTests
+
+# Cache application dependencies for faster incremental builds
 COPY pom.xml ./
 RUN mvn -B -q dependency:go-offline
 

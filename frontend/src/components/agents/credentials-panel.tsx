@@ -127,7 +127,7 @@ export function CredentialsPanel({
         <Card>
           <CardContent className="divide-y divide-border p-0">
             {list.map((credential) => (
-              <div key={credential.id} className="flex items-start justify-between gap-3 p-4">
+              <div key={credential.id} className="flex flex-wrap items-start justify-between gap-3 p-4">
                 <div className="min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium">

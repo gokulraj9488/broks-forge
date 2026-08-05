@@ -92,7 +92,7 @@ jobs:
               exit 1
             fi
             echo "==> Deployment complete"
-REMOTE_SCRIPT
+          REMOTE_SCRIPT
 
       - name: Clean up SSH key
         if: always()

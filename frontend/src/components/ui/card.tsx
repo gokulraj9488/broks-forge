@@ -5,9 +5,6 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      // Marks this element for the branded cursor's subtle hover glow (components/brand/brand-cursor.tsx).
-      // A plain data attribute — no behavioural change to Card itself.
-      data-cursor-glow=""
       className={cn(
         "rounded-xl border border-border/60 bg-card text-card-foreground shadow-sm",
         "transition-[box-shadow,border-color] duration-200",
@@ -26,15 +23,22 @@ const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 );
 CardHeader.displayName = "CardHeader";
 
-const CardTitle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn("font-semibold leading-none tracking-tight", className)}
-      {...props}
-    />
-  ),
-);
+/**
+ * A card's title. Renders a plain {@code div} by default, because most cards sit inside a page that
+ * already owns its heading structure and adding one here would invent heading levels. Pass
+ * {@code as} where the card *is* the page — an auth screen, say — so the visible title is also the
+ * real heading assistive technology navigates by.
+ */
+const CardTitle = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { as?: "div" | "h1" | "h2" | "h3" }
+>(({ className, as: Tag = "div", ...props }, ref) => (
+  <Tag
+    ref={ref}
+    className={cn("font-semibold leading-none tracking-tight", className)}
+    {...props}
+  />
+));
 CardTitle.displayName = "CardTitle";
 
 const CardDescription = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(

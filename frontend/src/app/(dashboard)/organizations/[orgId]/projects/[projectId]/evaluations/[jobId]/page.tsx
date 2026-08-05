@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, FlaskConical } from "lucide-react";
+import { ArrowLeft, FlaskConical, Maximize2, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -13,19 +13,27 @@ import { MeterBar, StatCard } from "@/components/common/stat-card";
 import { JobSummary } from "@/components/evaluations/job-summary";
 import { JobActions } from "@/components/evaluations/job-actions";
 import { RunsPanel } from "@/components/evaluations/runs-panel";
-import { RootCausePanel } from "@/components/rootcause/root-cause-panel";
+import { InvestigationWorkspace } from "@/components/investigation/investigation-workspace";
+import { ArtifactEvolution } from "@/components/platform/artifact-evolution";
+import { ArtifactIntelligence } from "@/components/platform/artifact-intelligence";
+import { AskBrok } from "@/components/brok/ask-brok";
+import { EvaluationPipeline } from "@/components/platform/evaluation-pipeline";
+import { ExecutionGraph } from "@/components/platform/execution-graph";
 import { useEvaluationJob } from "@/lib/hooks/use-evaluation-jobs";
 import { useOrganization } from "@/lib/hooks/use-organizations";
 import { formatDateTime } from "@/lib/utils";
 import { formatEta, formatNumber } from "@/lib/format";
 import type { EvaluationJobResponse } from "@/lib/api/evaluation-jobs";
 
-type Tab = "overview" | "runs" | "root-cause";
+type Tab = "overview" | "runs" | "execution" | "root-cause" | "evolution" | "intelligence";
 
 const TABS = [
   { key: "overview" as const, label: "Overview" },
   { key: "runs" as const, label: "Runs" },
+  { key: "execution" as const, label: "Execution graph" },
   { key: "root-cause" as const, label: "Root cause" },
+  { key: "evolution" as const, label: "Evolution" },
+  { key: "intelligence" as const, label: "Intelligence" },
 ];
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
@@ -52,7 +60,7 @@ function Config({ job }: { job: EvaluationJobResponse }) {
 
   return (
     <Card>
-      <CardContent className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
+      <CardContent className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
         <Detail label="Agent">{link("agents", job.agentId)}</Detail>
         <Detail label="Dataset">{link("datasets", job.datasetId)}</Detail>
         <Detail label="Prompt">{link("prompts", job.promptId)}</Detail>
@@ -92,6 +100,12 @@ export default function EvaluationJobDetailPage() {
   const { data: job, isLoading, isError } = useEvaluationJob(orgId, projectId, jobId);
   const [tab, setTab] = useState<Tab>("overview");
 
+  // Deep-link support: arriving from Knowledge/Graph with ?tab=intelligence opens that workspace tab.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t && TABS.some((x) => x.key === t)) setTab(t as Tab);
+  }, []);
+
   const role = organization?.currentUserRole;
   const canManage = role === "OWNER" || role === "ADMIN" || role === "MEMBER";
   const canDelete = role === "OWNER" || role === "ADMIN";
@@ -101,7 +115,7 @@ export default function EvaluationJobDetailPage() {
       <div className="space-y-6">
         <Skeleton className="h-6 w-40" />
         <Skeleton className="h-12 w-72" />
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24 w-full" />
           ))}
@@ -154,13 +168,43 @@ export default function EvaluationJobDetailPage() {
             </div>
           </div>
         </div>
-        <JobActions
-          job={job}
-          organizationId={orgId}
-          projectId={projectId}
-          canManage={canManage}
-          canDelete={canDelete}
-        />
+        {/* Two or three actions side by side are wider than a 320px screen, so let them wrap. */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/*
+           * A failure earns the primary affordance: the fastest thing an engineer can do with a red
+           * evaluation is open the investigation that is already assembled for it.
+           */}
+          {(job.status === "FAILED" || job.failedItems > 0) && (
+            <Link
+              href={`/organizations/${orgId}/projects/${projectId}/evaluations/${jobId}/investigate`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <Search className="h-3.5 w-3.5" />
+              Investigate
+            </Link>
+          )}
+          {/*
+           * One way into Brok per workspace, visible from every tab, and it already knows the state it is
+           * being asked from: a red evaluation opens the question the engineer actually has.
+           */}
+          <AskBrok
+            organizationId={orgId}
+            projectId={projectId}
+            focus={`evaluation:${jobId}`}
+            question={
+              job.status === "FAILED" || job.failedItems > 0
+                ? "Why is this graph red?"
+                : "Explain this evaluation."
+            }
+          />
+          <JobActions
+            job={job}
+            organizationId={orgId}
+            projectId={projectId}
+            canManage={canManage}
+            canDelete={canDelete}
+          />
+        </div>
       </div>
 
       {job.errorMessage && (
@@ -169,9 +213,20 @@ export default function EvaluationJobDetailPage() {
         </p>
       )}
 
+      {/* A failed run keeps its pipeline visible, stopped exactly where the chain broke. */}
+      {job.status === "FAILED" && (
+        <Card>
+          <CardContent className="p-5">
+            <EvaluationPipeline job={job} />
+          </CardContent>
+        </Card>
+      )}
+
       {active && (
         <Card>
           <CardContent className="space-y-4 p-5">
+            {/* The run as the pipeline it actually is — stages complete as the counters move. */}
+            <EvaluationPipeline job={job} />
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
                 Progress · {formatNumber(processed)}/{formatNumber(job.totalItems)} items
@@ -206,8 +261,36 @@ export default function EvaluationJobDetailPage() {
             jobActive={active}
           />
         )}
+        {/* The graph shows where the chain broke; Brok — one click up, in the header — says why. */}
+        {tab === "execution" && (
+          <ExecutionGraph organizationId={orgId} projectId={projectId} job={job} />
+        )}
+        {/*
+         * The root-cause tab is now the Root Cause Explorer itself (P13) — the same diagnosis this tab
+         * always showed, with the chronology, the deeper causal layers and the evidence chains around it.
+         * The full-width route is one click away for the actual investigation.
+         */}
         {tab === "root-cause" && (
-          <RootCausePanel organizationId={orgId} projectId={projectId} jobId={jobId} />
+          <div className="space-y-3">
+            <div className="flex justify-end">
+              <Link
+                href={`/organizations/${orgId}/projects/${projectId}/evaluations/${jobId}/investigate`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                Open the full investigation
+              </Link>
+            </div>
+            <InvestigationWorkspace
+              organizationId={orgId}
+              projectId={projectId}
+              evaluationId={jobId}
+            />
+          </div>
+        )}
+        {tab === "evolution" && <ArtifactEvolution organizationId={orgId} projectId={projectId} type="evaluation" entityId={jobId} />}
+        {tab === "intelligence" && (
+          <ArtifactIntelligence organizationId={orgId} projectId={projectId} type="evaluation" entityId={jobId} />
         )}
       </div>
     </div>

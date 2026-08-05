@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { AgentsPanel } from "@/components/agents/agents-panel";
+import { SurfaceSummary } from "@/components/common/surface-summary";
 import { useOrganizations } from "@/lib/hooks/use-organizations";
 import { useProjects } from "@/lib/hooks/use-projects";
 
@@ -50,7 +51,7 @@ export default function AgentsPage() {
     <div>
       <PageHeader
         title="Agents"
-        description="Browse, search and manage the AI agents registered across your projects."
+        description="The AI systems your organization has registered — every one versioned, evaluated and connected to what it affects."
       />
 
       {orgsLoading ? (
@@ -131,7 +132,11 @@ export default function AgentsPage() {
               }
             />
           ) : projectId ? (
-            <AgentsPanel organizationId={orgId} projectId={projectId} canManage={isMember} />
+            <div className="space-y-5">
+              {/* Meaning before measurement (P-1): the surface states its condition before the table. */}
+              <SurfaceSummary kind="agents" organizationId={orgId} projectId={projectId} />
+              <AgentsPanel organizationId={orgId} projectId={projectId} canManage={isMember} />
+            </div>
           ) : null}
         </div>
       )}

@@ -49,7 +49,7 @@ function ResetPasswordForm() {
   return (
     <Card className="border-border/60 shadow-xl">
       <CardHeader>
-        <CardTitle className="text-xl">Set a new password</CardTitle>
+        <CardTitle as="h1" className="text-xl">Set a new password</CardTitle>
         <CardDescription>Choose a strong password you don&apos;t use elsewhere.</CardDescription>
       </CardHeader>
       <CardContent>

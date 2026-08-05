@@ -23,7 +23,7 @@ export function DatasetStatsPanel({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-24 w-full" />
           ))}
@@ -47,7 +47,7 @@ export function DatasetStatsPanel({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Items" value={formatNumber(data.itemCount)} hint={`Version v${data.versionNumber}`} />
         <StatCard
           label="With expected output"
@@ -66,7 +66,7 @@ export function DatasetStatsPanel({
             </div>
             <MeterBar value={data.expectedOutputCoverage} tone="success" />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Avg input length</p>
               <p className="text-lg font-semibold">{formatNumber(Math.round(data.avgInputLength))} chars</p>

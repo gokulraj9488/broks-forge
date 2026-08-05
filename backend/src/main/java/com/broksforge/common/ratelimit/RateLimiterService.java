@@ -6,7 +6,7 @@ import java.time.Duration;
  * A fixed-window rate limiter keyed by an arbitrary string (typically
  * {@code "rl:auth:<path>:<clientIp>"}). Implementations may be distributed (Redis-backed,
  * holds across replicas) or a local no-op fallback when Redis isn't provisioned — see
- * {@link RedisRateLimiterService} and {@link NoOpRateLimiterService}.
+ * {@link RedisRateLimiterService}, which enforces through Redis where Redis is configured and otherwise allows every request.
  */
 public interface RateLimiterService {
 

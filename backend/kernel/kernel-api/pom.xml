@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      kernel-api: the pure vocabulary of the Forge Kernel.
+
+      Value objects, identities, hashes, kernel enums, and the canonical serializer. ZERO compile
+      dependencies (JDK only) — a value type can never smuggle in a framework annotation, so
+      content addressing stays deterministic and portable for a decade.
+
+      Implements: MANIFESTO Article I (identity, content addressing), Article II (the four kinds),
+                  Article III (the five edge families), Law 3 (content addressing).
+      Justified by: docs/v2/KERNEL_IMPLEMENTATION_PLAN.md §1, §6, §7.
+    -->
+
+    <parent>
+        <groupId>com.broksforge.kernel</groupId>
+        <artifactId>broks-forge-kernel</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>kernel-api</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Brok's Forge Kernel :: API</name>
+    <description>Value objects, identities, kernel enums, and the canonical serializer.</description>
+
+    <dependencies>
+        <!-- Test only. There are intentionally NO compile-scope dependencies. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoCo
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 /**
- * Entry point for the Brok's Forge API.
+ * Entry point for Brok's Forge API.
  *
  * <p>Brok's Forge is a modular monolith. Each feature lives under
  * {@code com.broksforge.modules} and is wired through clearly defined service

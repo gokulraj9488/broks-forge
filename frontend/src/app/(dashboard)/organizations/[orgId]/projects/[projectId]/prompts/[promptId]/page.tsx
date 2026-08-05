@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, FileText, Lightbulb } from "lucide-react";
@@ -13,6 +13,9 @@ import { StatusBadge } from "@/components/common/badges";
 import { PromptVersionsPanel } from "@/components/prompts/prompt-versions-panel";
 import { PromptComparePanel } from "@/components/prompts/prompt-compare-panel";
 import { PromptSettingsPanel } from "@/components/prompts/prompt-settings-panel";
+import { ArtifactEvolution } from "@/components/platform/artifact-evolution";
+import { ArtifactIntelligence } from "@/components/platform/artifact-intelligence";
+import { AskBrok } from "@/components/brok/ask-brok";
 import { AdvisoryReport } from "@/components/advisor/advisory-report";
 import { usePrompt } from "@/lib/hooks/use-prompts";
 import { usePromptAdvisory } from "@/lib/hooks/use-advisor";
@@ -20,13 +23,15 @@ import { useOrganization } from "@/lib/hooks/use-organizations";
 import { formatDateTime } from "@/lib/utils";
 import type { PromptResponse } from "@/lib/api/prompts";
 
-type Tab = "overview" | "versions" | "advisor" | "compare" | "settings";
+type Tab = "overview" | "versions" | "advisor" | "compare" | "evolution" | "intelligence" | "settings";
 
 const TABS = [
   { key: "overview" as const, label: "Overview" },
   { key: "versions" as const, label: "Versions" },
   { key: "advisor" as const, label: "Advisor" },
   { key: "compare" as const, label: "Compare" },
+  { key: "evolution" as const, label: "Evolution" },
+  { key: "intelligence" as const, label: "Intelligence" },
   { key: "settings" as const, label: "Settings" },
 ];
 
@@ -74,7 +79,7 @@ function Overview({ prompt }: { prompt: PromptResponse }) {
   return (
     <div className="space-y-6">
       <Card>
-        <CardContent className="grid gap-6 p-6 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2">
           <Detail label="Status">{prompt.status}</Detail>
           <Detail label="Latest version">v{prompt.latestVersionNumber ?? 0}</Detail>
           <Detail label="Active version">
@@ -112,6 +117,12 @@ export default function PromptDetailPage() {
   const { data: organization } = useOrganization(orgId);
   const { data: prompt, isLoading, isError } = usePrompt(orgId, projectId, promptId);
   const [tab, setTab] = useState<Tab>("overview");
+
+  // Deep-link support: arriving from Knowledge/Graph with ?tab=intelligence opens that workspace tab.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t && TABS.some((x) => x.key === t)) setTab(t as Tab);
+  }, []);
 
   const role = organization?.currentUserRole;
   const canManage = role === "OWNER" || role === "ADMIN" || role === "MEMBER";
@@ -160,6 +171,13 @@ export default function PromptDetailPage() {
         <div className="flex items-center gap-2">
           {prompt.status === "ARCHIVED" && <StatusBadge status="ARCHIVED" />}
           <Badge variant="outline">v{prompt.latestVersionNumber ?? 0}</Badge>
+          {/* Reachable from every tab, not just the ones that already reason — the workspace itself is an entry point. */}
+          <AskBrok
+            organizationId={orgId}
+            projectId={projectId}
+            focus={`prompt:${promptId}`}
+            question={`Tell me about ${prompt.name}.`}
+          />
         </div>
       </div>
 
@@ -184,6 +202,10 @@ export default function PromptDetailPage() {
         )}
         {tab === "compare" && (
           <PromptComparePanel organizationId={orgId} projectId={projectId} promptId={promptId} />
+        )}
+        {tab === "evolution" && <ArtifactEvolution organizationId={orgId} projectId={projectId} type="prompt" entityId={promptId} />}
+        {tab === "intelligence" && (
+          <ArtifactIntelligence organizationId={orgId} projectId={projectId} type="prompt" entityId={promptId} />
         )}
         {tab === "settings" && (
           <PromptSettingsPanel

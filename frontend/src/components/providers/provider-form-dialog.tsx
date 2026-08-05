@@ -167,7 +167,7 @@ export function ProviderFormDialog({
             <Input id="pv-name" placeholder="Groq Production" {...register("name")} />
           </Field>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Type" htmlFor="pv-type" error={errors.type?.message} required>
               <Controller
                 control={control}
@@ -247,7 +247,7 @@ export function ProviderFormDialog({
             </Field>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field
               label="Default model"
               htmlFor="pv-default-model"

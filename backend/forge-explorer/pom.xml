@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      Forge Engineering Explorer — the Phase 1.5 kernel dogfooding application.
+
+      DELIBERATELY has no parent and is NOT a module of the kernel reactor. It consumes the released
+      Forge Kernel exactly as any external open-source project would: through the published Maven
+      artifacts (com.broksforge.kernel:kernel-core / kernel-api, version 1.0.0) resolved from the
+      local repository. There is no source-path, sibling-module, or friend access to the kernel — if
+      this project needed a kernel *internal* to compile, the kernel would have failed its dogfooding.
+
+      This application exists solely to validate the kernel. It is NOT part of the Broks Forge product.
+    -->
+
+    <groupId>com.broksforge.explorer</groupId>
+    <artifactId>forge-engineering-explorer</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>Forge Engineering Explorer</name>
+    <description>Phase 1.5 dogfooding app: an engineering explorer built entirely on the public Forge Kernel API.</description>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Pinned to the same versions the kernel build already cached, so this project builds offline. -->
+        <kernel.version>1.0.0</kernel.version>
+        <junit.version>5.11.4</junit.version>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
+    </properties>
+
+    <dependencies>
+        <!-- The kernel, consumed as an external dependency. kernel-core brings kernel-api transitively;
+             kernel-api is declared explicitly because the application imports its value types directly. -->
+        <dependency>
+            <groupId>com.broksforge.kernel</groupId>
+            <artifactId>kernel-core</artifactId>
+            <version>${kernel.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.broksforge.kernel</groupId>
+            <artifactId>kernel-api</artifactId>
+            <version>${kernel.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- Default-lifecycle plugins pinned to the versions the kernel build already cached, so this
+             project builds fully offline without inheriting any parent. -->
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>3.3.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.4.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.4.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>3.1.4</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                    <compilerArgs>
+                        <arg>-Xlint:all</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>

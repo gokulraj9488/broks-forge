@@ -17,7 +17,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  *
  * <p>Guarded by {@link ConditionalOnBean} so this configuration is skipped (rather than
  * failing startup) when an operator excludes Redis autoconfiguration entirely — see
- * {@code NoOpRateLimiterService} for the corresponding rate-limiter fallback.</p>
+ * {@code RedisRateLimiterService}, which falls back to allowing every request when no Redis is present.</p>
  */
 @Configuration
 @ConditionalOnBean(RedisConnectionFactory.class)

@@ -26,10 +26,17 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
 ];
 
+// Static generation runs one worker per CPU by default. Inside a container with a couple of
+// gigabytes that fans out into more concurrent page renders than the memory allows, and the build
+// dies and retries instead of finishing. NEXT_BUILD_CPUS caps the fan-out for constrained builders
+// (the image build sets it); unset, builds keep full parallelism.
+const buildCpus = Number(process.env.NEXT_BUILD_CPUS) || 0;
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Produce a self-contained server bundle for a slim production Docker image.
   output: "standalone",
+  ...(buildCpus > 0 ? { experimental: { cpus: buildCpus } } : {}),
   reactStrictMode: true,
   poweredByHeader: false,
   // Type-checking and linting run in CI (`npm run typecheck` / `npm run lint`).

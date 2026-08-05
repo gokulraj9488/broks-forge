@@ -149,7 +149,7 @@ export function RunsPanel({
                             {run.error}
                           </p>
                         )}
-                        <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                           <div>
                             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                               Input

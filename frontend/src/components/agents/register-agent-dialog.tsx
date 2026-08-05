@@ -158,7 +158,7 @@ export function RegisterAgentDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Name" htmlFor="agent-name" error={errors.name?.message} required>
               <Input id="agent-name" placeholder="Customer Support Agent" {...register("name")} />
             </Field>
@@ -198,7 +198,7 @@ export function RegisterAgentDialog({
 
           {providerId ? (
             <>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field
                   label="Model override"
                   htmlFor="agent-model-override"
@@ -232,7 +232,7 @@ export function RegisterAgentDialog({
             <Textarea id="agent-description" placeholder="What does this agent do?" {...register("description")} />
           </Field>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Framework" htmlFor="agent-framework" error={errors.framework?.message} required>
               <Controller
                 control={control}

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      The Forge Kernel reactor.
+
+      DELIBERATELY has no parent. The kernel is the substrate on which every future Forge
+      capability is built (see docs/v2/MANIFESTO.md); it must remain independent of Spring Boot,
+      PostgreSQL, Flyway, REST, and every application framework. Inheriting no parent proves that
+      independence at the build level: the kernel compiles with nothing but the JDK and a test
+      runner. The application (../pom.xml) is a separate build and is NOT touched by this reactor;
+      integration happens later, at the kernel-spring milestone.
+
+      Implements: MANIFESTO Article IX (Userspace) — the kernel/userspace boundary.
+      Justified by: docs/v2/KERNEL_IMPLEMENTATION_PLAN.md §1 (package architecture).
+    -->
+
+    <groupId>com.broksforge.kernel</groupId>
+    <artifactId>broks-forge-kernel</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>Brok's Forge Kernel</name>
+    <description>The append-only, content-addressed engineering substrate for Brok's Forge V2.</description>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Pinned to versions already resolved by the application build, so the kernel builds
+             offline. JUnit 5 is the ONLY test dependency; no jqwik, no framework test support —
+             property tests are implemented on JUnit with seeded randomization (plan §9). -->
+        <junit.version>5.11.4</junit.version>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
+    </properties>
+
+    <modules>
+        <module>kernel-api</module>
+        <module>kernel-core</module>
+        <module>kernel-tck</module>
+        <module>kernel-store-postgres</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                    <configuration>
+                        <release>${maven.compiler.release}</release>
+                        <compilerArgs>
+                            <arg>-Xlint:all</arg>
+                        </compilerArgs>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                </plugin>
+                <!-- Default-lifecycle plugins pinned to versions already cached locally, so the
+                     kernel builds offline without inheriting any parent. -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>3.3.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.4.2</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>3.4.1</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>3.1.4</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>0.8.12</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <!-- Coverage. `mvn verify` writes target/site/jacoco/index.html and a CSV/XML report.
+                 No hard gate yet (the milestone reports the number); a `check` execution can enforce
+                 it later, as the application module already documents. -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>jacoco-prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

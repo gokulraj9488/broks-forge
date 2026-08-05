@@ -123,7 +123,7 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="First name" htmlFor="firstName" error={errors.firstName?.message}>
                   <Input id="firstName" autoComplete="given-name" {...register("firstName")} />
                 </Field>

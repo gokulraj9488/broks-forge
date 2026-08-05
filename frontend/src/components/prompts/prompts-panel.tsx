@@ -85,7 +85,7 @@ export function PromptsPanel({
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-28 w-full" />
           ))}
@@ -105,7 +105,7 @@ export function PromptsPanel({
         />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {prompts.map((prompt) => (
               <Link
                 key={prompt.id}
@@ -120,7 +120,7 @@ export function PromptsPanel({
                           <FileText className="h-5 w-5 text-primary" />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="truncate font-medium leading-tight">{prompt.name}</h3>
+                          <h2 className="truncate font-medium leading-tight">{prompt.name}</h2>
                           <p className="truncate text-xs text-muted-foreground">/{prompt.slug}</p>
                         </div>
                       </div>

@@ -1,0 +1,35 @@
+name: Encoding
+
+# Source files must be UTF-8. This guards against the specific, silent failure of a UTF-8 file
+# being read as Windows-1252 and written back — which turns an em dash into "a-circumflex euro
+# right-quote" and bakes it into the repository. It is cheap, runs on every change, and covers both
+# the backend and the frontend, so it lives in its own workflow rather than inside either CI.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: encoding-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check-encoding:
+    name: No mojibake in source files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check source encoding
+        run: node scripts/check-encoding.mjs --list

@@ -6,6 +6,10 @@ const config: Config = {
     "./src/pages/**/*.{ts,tsx}",
     "./src/components/**/*.{ts,tsx}",
     "./src/app/**/*.{ts,tsx}",
+    // src/lib is not all plumbing: markdown.tsx renders every documentation page and carries its own
+    // utility classes. Without this glob any class used only there is never generated, so the class
+    // lands in the HTML and does nothing.
+    "./src/lib/**/*.{ts,tsx}",
   ],
   theme: {
     container: {

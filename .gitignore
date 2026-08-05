@@ -34,10 +34,11 @@ desktop.ini
 # ---------------------------------------------------------------------------
 # Java / Maven (backend)
 # ---------------------------------------------------------------------------
+# Every module in the backend reactor writes build output to its own target/
+# directory - the application, the kernel, and each forge-* module.
 backend/target/
+backend/**/target/
 backend/.mvn/wrapper/maven-wrapper.jar
-backend/!**/src/main/**/target/
-backend/!**/src/test/**/target/
 *.class
 *.log
 hs_err_pid*

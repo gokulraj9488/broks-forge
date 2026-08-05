@@ -224,7 +224,7 @@ export function AgentSettingsPanel({
 
             {providerId ? (
               <>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field
                     label="Model override"
                     htmlFor="set-model-override"
@@ -252,7 +252,7 @@ export function AgentSettingsPanel({
             <Field label="Description" htmlFor="set-description" error={errors.description?.message}>
               <Textarea id="set-description" disabled={!editable} {...register("description")} />
             </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Framework" htmlFor="set-framework">
                 <Controller
                   control={control}

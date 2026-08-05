@@ -122,6 +122,49 @@
     color: inherit;
   }
 
+  /*
+   * Enterprise interaction model (GitHub / Linear / Figma / Vercel), replacing the former
+   * branded cursor. The native cursor is authoritative — it already communicates affordance
+   * precisely, and overriding it costs precision while adding novelty. What earns the polish
+   * budget instead is a keyboard-first focus ring that is impossible to miss, honest pointer
+   * affordances on disabled controls, and motion that is present but never in the way.
+   */
+  :where(a, button, [role="button"], summary, [role="tab"], [role="menuitem"]):focus-visible,
+  :where(input, textarea, select, [contenteditable="true"]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: calc(var(--radius) - 4px);
+  }
+
+  /* A disabled control should say so under the pointer rather than invite a click. */
+  :where(button, [role="button"], a)[aria-disabled="true"],
+  :where(button, input, select, textarea):disabled {
+    cursor: not-allowed;
+  }
+
+  /* Interactive rows/cards that carry their own click handler read as clickable. */
+  [data-interactive] {
+    cursor: pointer;
+  }
+
+  /* Smooth in-page navigation (anchor jumps, scrollIntoView) — off under reduced motion. */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   /* Subtle grid / glow backdrop reminiscent of Linear & Vercel marketing UIs */
   .auth-backdrop {
     background-color: hsl(var(--background));

@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { ProvidersPanel } from "@/components/providers/providers-panel";
+import { SurfaceSummary } from "@/components/common/surface-summary";
 import { useOrganizations } from "@/lib/hooks/use-organizations";
 import { useProjects } from "@/lib/hooks/use-projects";
 
@@ -53,7 +54,7 @@ export default function ProvidersPage() {
     <div>
       <PageHeader
         title="Providers"
-        description="Register the LLM providers your agents connect through — OpenAI, Groq, OpenRouter, Google AI Studio, Anthropic, Ollama and more — instead of duplicating connection details on every agent."
+        description="How your agents reach their models — registered once, so every call made through them is attributable and costed."
       />
 
       {orgsLoading ? (
@@ -131,12 +132,15 @@ export default function ProvidersPage() {
               }
             />
           ) : projectId ? (
-            <ProvidersPanel
-              organizationId={orgId}
-              projectId={projectId}
-              canManage={isMember}
-              canDelete={canDelete}
-            />
+            <div className="space-y-5">
+              <SurfaceSummary kind="providers" organizationId={orgId} projectId={projectId} />
+              <ProvidersPanel
+                organizationId={orgId}
+                projectId={projectId}
+                canManage={isMember}
+                canDelete={canDelete}
+              />
+            </div>
           ) : null}
         </div>
       )}

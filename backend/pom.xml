@@ -84,6 +84,22 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
+        <!-- ===================== Platform V2 (P0 wiring) =====================
+             Local modules (not on Maven Central); the Docker build installs them into the
+             image's local repository before packaging. forge-fxp transitively provides FKGE,
+             FVCS, the Knowledge System, and the kernel; kernel-store-postgres provides the
+             durable Postgres-backed kernel. Frozen — consumed via public APIs only. -->
+        <dependency>
+            <groupId>com.broksforge.fxp</groupId>
+            <artifactId>forge-fxp</artifactId>
+            <version>2.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.broksforge.kernel</groupId>
+            <artifactId>kernel-store-postgres</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
         <!-- ===================== Redis ===================== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

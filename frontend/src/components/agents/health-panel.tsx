@@ -92,7 +92,7 @@ export function HealthPanel({
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="space-y-1 p-5">
             <p className="text-sm text-muted-foreground">Current status</p>
@@ -138,7 +138,7 @@ export function HealthPanel({
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold">Recent checks</h3>
+        <h2 className="mb-2 text-sm font-semibold">Recent checks</h2>
         {!data || data.recent.length === 0 ? (
           <EmptyState icon={Activity} title="No checks yet" description="Run a health check to begin." />
         ) : (

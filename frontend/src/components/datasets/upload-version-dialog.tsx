@@ -149,7 +149,7 @@ export function UploadVersionDialog({
           />
         ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field label="Format" htmlFor="dv-format" error={errors.format?.message} required>
               <Controller
                 control={control}

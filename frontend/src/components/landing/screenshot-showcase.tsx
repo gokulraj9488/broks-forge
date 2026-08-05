@@ -60,7 +60,7 @@ export function ScreenshotShowcase() {
               <Reveal key={item.title} delay={0.05}>
                 <div
                   className={cn(
-                    "grid items-center gap-10 lg:grid-cols-2 lg:gap-20",
+                    "grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-20",
                     reversed && "lg:[direction:rtl]",
                   )}
                 >

@@ -23,7 +23,7 @@ export default function OrganizationsPage() {
       />
 
       {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-28 w-full" />
           ))}
@@ -38,7 +38,7 @@ export default function OrganizationsPage() {
           action={<CreateOrganizationDialog />}
         />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {organizations.map((org) => (
             <Link key={org.id} href={`/organizations/${org.id}`} className="group">
               <Card className="h-full transition-colors group-hover:border-primary/40">
@@ -49,7 +49,7 @@ export default function OrganizationsPage() {
                         <Building2 className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-medium leading-tight">{org.name}</h3>
+                        <h2 className="font-medium leading-tight">{org.name}</h2>
                         <p className="text-xs text-muted-foreground">/{org.slug}</p>
                       </div>
                     </div>

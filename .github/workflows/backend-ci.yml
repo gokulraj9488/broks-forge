@@ -36,6 +36,17 @@ jobs:
           java-version: "21"
           cache: maven
 
+      # The V2 platform modules (the kernel reactor and the forge-* modules) are local
+      # Maven projects, not published artifacts. The application pom depends on them, so
+      # they must be installed into the runner's local repository before it can resolve.
+      # Same ordering as backend/Dockerfile, which does this for the image build.
+      - name: Install local platform modules
+        working-directory: backend
+        run: |
+          for module in kernel forge-knowledge forge-fvcs forge-fkge forge-fxp; do
+            mvn -B -ntp -f "$module/pom.xml" install -DskipTests
+          done
+
       # ubuntu-latest ships Maven and Docker; Testcontainers (PostgreSQL) uses the
       # preinstalled Docker daemon. The repository has no Maven wrapper by design.
       - name: Build, test & verify

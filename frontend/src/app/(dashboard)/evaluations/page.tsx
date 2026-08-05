@@ -6,6 +6,7 @@ import { TabsBar } from "@/components/ui/tabs-bar";
 import { WorkspaceSelector } from "@/components/common/workspace-selector";
 import { JobsPanel } from "@/components/evaluations/jobs-panel";
 import { ProfilesPanel } from "@/components/evaluations/profiles-panel";
+import { SurfaceSummary } from "@/components/common/surface-summary";
 
 type Tab = "jobs" | "profiles";
 
@@ -21,11 +22,12 @@ export default function EvaluationsPage() {
     <div>
       <PageHeader
         title="Evaluations"
-        description="Score agents against datasets, track pass rates, latency, tokens and cost."
+        description="Where evidence comes from — every run produces observations your engineering can reason about."
       />
       <WorkspaceSelector>
         {({ organizationId, projectId, isMember }) => (
           <div className="space-y-5">
+            <SurfaceSummary kind="evaluations" organizationId={organizationId} projectId={projectId} />
             <TabsBar tabs={TABS} value={tab} onChange={setTab} />
             {tab === "jobs" ? (
               <JobsPanel organizationId={organizationId} projectId={projectId} canManage={isMember} />

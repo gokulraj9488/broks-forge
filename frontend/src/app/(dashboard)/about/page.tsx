@@ -95,7 +95,7 @@ export default function AboutPage() {
           </p>
 
           <h3 className="mt-6 text-sm font-medium text-foreground">It demonstrates</h3>
-          <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
+          <ul className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {DEMONSTRATES.map(({ icon: Icon, label }) => (
               <li key={label} className="flex items-center gap-3 text-sm text-muted-foreground">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -138,7 +138,7 @@ export default function AboutPage() {
         <h2 id="connect-heading" className="text-lg font-semibold tracking-tight">
           Connect
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {LINKS.map(({ icon: Icon, label, value, href, external }) => (
             <a
               key={label}

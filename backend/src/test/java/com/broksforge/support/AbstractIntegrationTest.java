@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -55,7 +56,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 public abstract class AbstractIntegrationTest {
 
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
+    /**
+     * The startup budget for the database container. Testcontainers' default is 60 seconds, which is ample on
+     * CI but not on a memory-constrained Docker Desktop, where a cold {@code initdb} routinely takes longer.
+     * A timeout there fails every integration test at once for a purely environmental reason, which is both
+     * alarming and misleading — so the budget is explicit and generous. It does not weaken any assertion: a
+     * database that never becomes ready still fails the run.
+     */
+    private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(5);
+
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
+            .withStartupTimeout(STARTUP_TIMEOUT);
 
     static {
         POSTGRES.start();

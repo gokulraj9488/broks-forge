@@ -2,54 +2,31 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight, Check, FlaskConical, Github, Trophy } from "lucide-react";
+import { ArrowUpRight, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-const TRUST_STRIP = [
-  "Multi-Model Evaluation",
-  "Regression Detection",
-  "Prompt Versioning",
-  "AI Judge",
-  "Production Monitoring",
+/**
+ * The hero has one job: a first-time visitor must infer "AI Engineering Operating System" within
+ * thirty seconds, without documentation.
+ *
+ * So it states the category outright rather than describing features, and the visual is a real
+ * Brok answer in the product's own vocabulary — verdict, epistemic status, evidence, next action.
+ * That single artifact communicates more about what this is than any list of capabilities, because
+ * nothing else on the market answers a question that way.
+ */
+const PILLARS = [
+  { name: "Build", detail: "agents, prompts, datasets, providers" },
+  { name: "Evaluate", detail: "reproducible measurement" },
+  { name: "Understand", detail: "intelligence, knowledge, memory" },
+  { name: "Evolve", detail: "AI Git, promotion, rollback" },
 ];
 
-/** A gently-floating mock benchmark card — decorative, not real data. */
-function FloatCard({
-  className,
-  delay = 0,
-  children,
-}: {
-  className?: string;
-  delay?: number;
-  children: React.ReactNode;
-}) {
-  const reduceMotion = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{
-        opacity: 1,
-        y: reduceMotion ? 0 : [0, -8, 0],
-      }}
-      transition={{
-        opacity: { duration: 0.6, delay },
-        y: reduceMotion
-          ? { duration: 0.6, delay }
-          : { duration: 6, delay, repeat: Infinity, ease: "easeInOut" },
-      }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 export function Hero() {
+  const reduceMotion = useReducedMotion();
+
   return (
     <section className="relative overflow-hidden border-b border-border/60">
-      {/* Faint grid — matches app's technical, non-illustrative aesthetic. No blobs, no gradients. */}
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-[0.15]"
         style={{
@@ -60,121 +37,123 @@ export function Hero() {
         }}
       />
 
-      <div className="container relative grid gap-16 py-20 lg:grid-cols-2 lg:items-center lg:py-28">
+      <div className="container relative grid grid-cols-1 gap-14 py-20 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:py-28">
         <div>
           <Badge variant="outline" className="mb-6 gap-1.5 py-1">
             <span className="h-1.5 w-1.5 rounded-full bg-success" />
-            v1.0.0 &middot; open source
+            Open source · Apache 2.0
           </Badge>
 
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-[3.25rem] lg:leading-[1.1]">
-            From Prompt Guesswork
-            <span className="text-primary"> to AI Engineering.</span>
+          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-[3.4rem] lg:leading-[1.05]">
+            The AI Engineering
+            <span className="text-primary"> Operating System.</span>
           </h1>
 
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-            Prompt evaluation is fragmented across chat windows and spreadsheets. Benchmarks
-            aren&apos;t reproducible. Debugging a bad output means guessing. Brok&apos;s Forge
-            replaces all of it with versioned datasets, repeatable evaluations, and regression
-            detection — one system, for every model and agent framework you ship.
+            Your AI system is a sequence of engineering decisions — a prompt promoted, a dataset
+            regenerated, a model swapped. Broks Forge records those decisions with the evidence and
+            the reasoning behind them, then answers the questions that follow:{" "}
+            <span className="text-foreground">why did this fail, what changed, has this happened
+            before, and can we defend it?</span>
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button asChild size="lg" className="transition-transform active:scale-[0.97]">
-              <Link href="/login">
+              <Link href="/register">
                 Get Started
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="transition-transform active:scale-[0.97]"
-            >
-              <Link href="https://github.com/gokulraj9488/broks-forge" target="_blank" rel="noopener noreferrer">
+            <Button asChild size="lg" variant="outline" className="transition-transform active:scale-[0.97]">
+              <Link href="/docs/what-is-broks-forge">Read the docs</Link>
+            </Button>
+            <Button asChild size="lg" variant="ghost" className="transition-transform active:scale-[0.97]">
+              <Link
+                href="https://github.com/gokulraj9488/broks-forge"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Github className="h-4 w-4" />
-                View GitHub
+                GitHub
               </Link>
             </Button>
           </div>
 
-          <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-            {TRUST_STRIP.map((item) => (
-              <li key={item} className="flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-success" />
-                {item}
-              </li>
+          <dl className="mt-10 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+            {PILLARS.map((p) => (
+              <div key={p.name}>
+                <dt className="text-sm font-medium text-foreground">{p.name}</dt>
+                <dd className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{p.detail}</dd>
+              </div>
             ))}
-          </ul>
+          </dl>
         </div>
 
-        {/* Product scene: real UI vocabulary (Card/Badge), not stock illustration. */}
-        <div className="relative hidden h-[420px] lg:block" aria-hidden="true">
-          <FloatCard className="absolute left-2 top-4 w-64" delay={0}>
-            <Card className="shadow-md">
-              <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-                <span className="text-xs font-medium text-muted-foreground">Benchmark</span>
-                <Trophy className="h-3.5 w-3.5 text-warning" />
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl font-semibold tabular-nums text-foreground">94.2</div>
-                <div className="mt-2 flex items-center gap-1.5">
-                  <Badge variant="success" className="text-[10px]">+3.1 vs baseline</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </FloatCard>
+        {/* A real answer in the product's own vocabulary — the fastest way to show what this is. */}
+        <motion.div
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="relative"
+          aria-hidden="true"
+        >
+          <div className="rounded-xl border border-border bg-card/80 p-5 shadow-lg backdrop-blur">
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Ask Brok</span> · Has this happened
+              before?
+            </p>
 
-          <FloatCard className="absolute right-0 top-32 w-72" delay={0.8}>
-            <Card className="shadow-md">
-              <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-                <span className="text-xs font-medium text-muted-foreground">Evaluation Run</span>
-                <FlaskConical className="h-3.5 w-3.5 text-primary" />
-              </CardHeader>
-              <CardContent className="space-y-2 pt-0">
-                {[
-                  { label: "Exact match", value: 88 },
-                  { label: "Latency score", value: 96 },
-                  { label: "Cost efficiency", value: 74 },
-                ].map((row) => (
-                  <div key={row.label} className="flex items-center gap-2">
-                    <span className="w-24 shrink-0 text-[11px] text-muted-foreground">{row.label}</span>
-                    <div className="h-1.5 flex-1 rounded-full bg-muted">
-                      <div
-                        className="h-1.5 rounded-full bg-primary"
-                        style={{ width: `${row.value}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </FloatCard>
+            <div className="mt-4 rounded-lg border border-rose-500/30 bg-rose-500/5 p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-medium leading-snug text-foreground">
+                  Yes — this has happened before.
+                </p>
+                <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  near-certain
+                </span>
+              </div>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                Checkout Quality #1 failed 19 days ago against the same agent and dataset. The
+                recorded cause is identical, which makes this a recurrence, not a coincidence.
+              </p>
+              <p className="mt-2 text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                Derived · read from earlier evaluations sharing an artifact with this one
+              </p>
+            </div>
 
-          <FloatCard className="absolute bottom-6 left-10 w-60" delay={1.6}>
-            <Card className="shadow-md">
-              <CardHeader className="pb-2">
-                <span className="text-xs font-medium text-muted-foreground">Prompt Comparison</span>
-              </CardHeader>
-              <CardContent className="flex items-center justify-between pt-0">
-                <div>
-                  <div className="text-[11px] text-muted-foreground">v3 vs v4</div>
-                  <div className="text-lg font-semibold text-success">+12%</div>
+            <div className="mt-3 space-y-2">
+              {[
+                { k: "Reasoning", v: "Both failures recorded: “Connection refused”." },
+                { k: "Memory", v: "“Moved the endpoint behind the internal gateway.”" },
+                { k: "Impact", v: "2 downstream artifacts left without evidence." },
+              ].map((row) => (
+                <div key={row.k} className="flex gap-2.5 text-xs">
+                  <span className="w-16 shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                    {row.k}
+                  </span>
+                  <span className="min-w-0 flex-1 leading-snug text-foreground/85">{row.v}</span>
                 </div>
-                <div className="flex h-10 items-end gap-1">
-                  {[6, 10, 8, 16, 22, 18, 26].map((h, i) => (
-                    <div
-                      key={i}
-                      className="w-1.5 rounded-sm bg-chart-2"
-                      style={{ height: `${h}px` }}
-                    />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </FloatCard>
-        </div>
+              ))}
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-border/60 pt-3">
+              {["View the failure graph", "Compare revisions", "Investigate the precedent"].map(
+                (a) => (
+                  <span
+                    key={a}
+                    className="rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground"
+                  >
+                    {a}
+                  </span>
+                ),
+              )}
+            </div>
+          </div>
+
+          <p className="mt-3 text-center text-[11px] text-muted-foreground/70">
+            Every statement declares how it is known. Nothing is generated.
+          </p>
+        </motion.div>
       </div>
     </section>
   );

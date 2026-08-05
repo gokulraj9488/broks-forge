@@ -107,7 +107,7 @@ export function AgentReadinessChecklist({
       )}
     >
       <CardContent className="space-y-4 p-5">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             {readiness.isReady ? (
               <Sparkles className="h-5 w-5 text-success" />
@@ -115,9 +115,9 @@ export function AgentReadinessChecklist({
               <Sparkles className="h-5 w-5 text-primary" />
             )}
             <div>
-              <h3 className="text-sm font-semibold">
+              <h2 className="text-sm font-semibold">
                 {readiness.isReady ? "Agent is ready" : "Finish setting up this agent"}
-              </h3>
+              </h2>
               <p className="text-xs text-muted-foreground">
                 {readiness.isReady
                   ? "All setup steps are complete."

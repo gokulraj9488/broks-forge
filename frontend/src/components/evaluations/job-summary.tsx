@@ -43,14 +43,14 @@ export function JobSummary({ job }: { job: EvaluationJobResponse }) {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Avg latency" value={formatLatency(s.avgLatencyMs)} hint="per run" icon={Gauge} />
         <StatCard label="Total tokens" value={formatCompact(s.totalTokens)} hint="prompt + completion" icon={Hash} />
         <StatCard label="Total cost" value={formatCost(s.totalCost)} hint="estimated" icon={CircleDollarSign} />
         <StatCard label="Runs" value={s.totalRuns} hint={`${s.succeeded} succeeded · ${s.failed} failed`} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Evaluation — quality verdict, independent of provider health. */}
         <Card>
           <CardContent className="space-y-3 p-5">
@@ -126,7 +126,7 @@ export function JobSummary({ job }: { job: EvaluationJobResponse }) {
         <Card>
           <CardContent className="space-y-4 p-5">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Per-metric results</p>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {breakdownEntries.map(([metric, entry]) => (
                 <MetricBreakdownCard key={metric} metric={metric} entry={entry} />
               ))}

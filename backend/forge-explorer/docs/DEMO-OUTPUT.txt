@@ -1,0 +1,198 @@
+﻿
+==============================================================================
+  FORGE ENGINEERING EXPLORER — Phase 1.5 kernel dogfooding
+==============================================================================
+Built on the public Forge Kernel API only (kernel-core / kernel-api 1.0.0).
+Org: 0000feed-0000-4000-8000-00000000d0d0
+
+── 1  ARTIFACTS & COMPOSITION   (append: CreateNode; family: composition) ────
+  prompt    v1  sha-256:d06fd61d1f…
+  retrieval     sha-256:4e1958b34a…
+  agent     v1  sha-256:ee40748950…   uses=prompt.v1, depends_on=retrieval
+
+── 2  VERSIONING & DERIVATION   (append: AddRevision; family: derivation) ────
+  prompt    v2  sha-256:feefb30c8e…   derived_from prompt.v1
+  agent     v2  sha-256:590ed289ea…   uses=prompt.v2, derived_from agent.v1
+
+── 3  DEPLOY & PROMOTE   (append: RepointName, compare-and-swap) ─────────────
+  deploy  agents/support/current  → agent.v1
+  promote agents/support/current  → agent.v2   (CAS expected v1)
+
+── 4  OBSERVATIONS   (kind: observation) ─────────────────────────────────────
+  observed  p95_latency_ms = 812      sha-256:3b1a36174b…
+  observed  error_rate     = 0.041    sha-256:c85828be0c…
+
+── 5  CLAIMS   (kind: claim; family: evidence; the Claim Law — no naked numbers) 
+  claim  sha-256:0b671d849b…   method=welch-t-test:v2 confidence=0.87 cites=[latency, error_rate]
+  (the kernel does NOT enforce this law — see the Kernel Amendment Proposal)
+
+── 6  CAUSALITY   (append: AssertEdge; family: causality) ────────────────────
+  edge  agent.v2  --caused-->  p95_latency observation
+
+── 7  DECISION, INTENT & ROLLBACK   (kind: decision; family: intent) ─────────
+  decision  sha-256:efdf63a7bc…   rests_on the regression claim
+  edge      decision --applied--> agent.v1
+  rollback  agents/support/current  → agent.v1   (CAS expected v2)
+
+── 8  REPRODUCE   (op 5: reproducer SPI; family: derivation via generated_from) 
+  reproduced by ChecklistReproducer
+  run 1 produced 3 observations
+  run 2 produced 3 observations — identical content hashes (reproducible), distinct facts:
+    run1[0] = sha-256:b0affcbc86…
+    run2[0] = sha-256:b0affcbc86…   equal=true
+
+── 9  CLOCK TICK & EDGE RETRACTION   (append: Tick, RetractEdge) ─────────────
+  tick emitted; causality edge retracted (it and its retraction both remain in history)
+
+  autonomous observer appended 6 observations (Law 9: no privileged writer)
+
+── 10 RESOLVE & TIME TRAVEL   (op 2: resolve, resolveAt) ─────────────────────
+  resolve now              agents/support/current  → sha-256:ee40748950…
+  resolveAt pos 12 (post-promote)  → sha-256:590ed289ea…
+
+── 11 TRAVERSE   (op 3: graph BFS, OUT / IN) ─────────────────────────────────
+  OUT from agent.v2 (composition+derivation): 5 nodes, 6 edges
+  IN  to  prompt.v2 (who uses/derives it): 2 nodes, 1 edges
+
+── 12 CLOSURE   (distinguished traversal: composition closure = system snapshot) 
+  closure(agent.v2) = 3 revisions (root first)
+  reproducibility certificate (root hash): sha-256:590ed289ea6d40066703303d36db09cbdd5162e3ceb4348eb2682c3e7ab0572c
+    - sha-256:590ed289ea…
+    - sha-256:feefb30c8e…
+    - sha-256:4e1958b34a…
+
+── 13 DIFF   (op 4: structural delta over canonical content) ─────────────────
+  diff(prompt.v1, prompt.v2): 2 change(s)
+    CHANGED  /payload/text   "Answer the ticket: {{ticket}}"  →  "Answer the ticket concisely and cite s…
+    ADDED  /refs/0   ∅  →  {"family":"derivation","target":"sha-25…
+
+── 14 AUDIT   (verifyChain + IntegrityScanner validation layer) ──────────────
+  verifyChain: true
+  integrity scan: CLEAN over 35 log entries
+  audit subscription observed 35 committed entries
+
+── 15 LOG   (append log = source of truth = event stream) ────────────────────
+  last 8 of 35 entries:
+    pos  28  put    observation/check-result sha-256:b0affcbc86… node=1d78b4a6…   —  engineer:alice
+    pos  29  edge+  generated_from [derivation] forge:0000feed-0000-4000-8000-00000000d0d0/observation/1d78b4a6-a87b-46cc-88eb-d30b43ec66e9@sha-256:b0affc… → forge:0000feed-0000-4000-8000-00000000d0d0/artifact/3247c1fc-a4b2-4820-91b9-67e2bc04e281@sha-256:f90be7…   —  engineer:alice
+    pos  30  put    observation/check-result sha-256:a2e02a10f7… node=d8e22eb2…   —  engineer:alice
+    pos  31  edge+  generated_from [derivation] forge:0000feed-0000-4000-8000-00000000d0d0/observation/d8e22eb2-d43e-4a78-b847-d48421942e5e@sha-256:a2e02a… → forge:0000feed-0000-4000-8000-00000000d0d0/artifact/3247c1fc-a4b2-4820-91b9-67e2bc04e281@sha-256:f90be7…   —  engineer:alice
+    pos  32  put    observation/check-result sha-256:0eeb773272… node=45f79801…   —  engineer:alice
+    pos  33  edge+  generated_from [derivation] forge:0000feed-0000-4000-8000-00000000d0d0/observation/45f79801-af2b-4e86-9ea9-f406c30eb06b@sha-256:0eeb77… → forge:0000feed-0000-4000-8000-00000000d0d0/artifact/3247c1fc-a4b2-4820-91b9-67e2bc04e281@sha-256:f90be7…   —  engineer:alice
+    pos  34  tick   2026-07-27T00:00:00Z   —  engineer:alice
+    pos  35  edge-  caused [causality] forge:0000feed-0000-4000-8000-00000000d0d0/artifact/79531e87-a18e-4897-9394-259599a6b04c@sha-256:590ed2… → forge:0000feed-0000-4000-8000-00000000d0d0/observation/ca16f231-7cb1-4789-8373-47215670db19@sha-256:3b1a36…   —  engineer:alice
+
+── 16 VISUALIZE   (graph folded from the log) ────────────────────────────────
+  ENGINEERING GRAPH
+    nodes: 20   artifact=4   observation=14   claim=1   decision=1   edges: 16 (9 intrinsic, 7 extrinsic)   names: 1   ticks: 1
+  
+    NODES
+      artifact    prompt                 sha-256:feefb30c8e…  (2 rev)
+          {text="Answer the ticket concisely and cite sources: {{ticket}}"}
+      observation artifact-registered    sha-256:8e61668cd9…  (1 rev)
+          {artifact="prompt", at_position=1}
+      artifact    retrieval-config       sha-256:4e1958b34a…  (1 rev)
+          {index="support-kb", top_k=5}
+      observation artifact-registered    sha-256:7d8ba698ea…  (1 rev)
+          {artifact="retrieval-config", at_position=3}
+      artifact    agent                  sha-256:590ed289ea…  (2 rev)
+          {model="claude-sonnet-5", name="support-agent"}
+      observation artifact-registered    sha-256:ef1cb5cbbb…  (1 rev)
+          {artifact="agent", at_position=5}
+      observation artifact-registered    sha-256:41a7ca1eb4…  (1 rev)
+          {artifact="prompt", at_position=7}
+      observation artifact-registered    sha-256:eda38440f6…  (1 rev)
+          {artifact="agent", at_position=9}
+      observation metric                 sha-256:3b1a36174b…  (1 rev)
+          {value=812, name="p95_latency_ms"}
+      observation metric                 sha-256:c85828be0c…  (1 rev)
+          {value=0.041, name="error_rate"}
+      claim       regression-verdict     sha-256:0b671d849b…  (1 rev)
+          {statement="p95 latency regressed after the prompt-v2 rollout", method="welch-t-test:v2", confidence=0.87}
+      decision    rollback               sha-256:efdf63a7bc…  (1 rev)
+          {statement="Roll support agent back to v1 pending a latency fix"}
+      artifact    check-suite            sha-256:f90be7ddfb…  (1 rev)
+          {checks=["answers-in-english", "cites-a-source", "latency-under-1s"], name="support-agent-smoke"}
+      observation artifact-registered    sha-256:4e8f94c5b5…  (1 rev)
+          {artifact="check-suite", at_position=20}
+      observation check-result           sha-256:b0affcbc86…  (1 rev)
+          {suite="sha-256:f90be7ddfb5c1c1941f2f56ebe847ceac8268f4769a6d98a465…", method="deterministic-replay:v1", passed=true, closure_size=1, check="answers-in-english"}
+      observation check-result           sha-256:a2e02a10f7…  (1 rev)
+          {suite="sha-256:f90be7ddfb5c1c1941f2f56ebe847ceac8268f4769a6d98a465…", method="deterministic-replay:v1", passed=true, closure_size=1, check="cites-a-source"}
+      observation check-result           sha-256:0eeb773272…  (1 rev)
+          {suite="sha-256:f90be7ddfb5c1c1941f2f56ebe847ceac8268f4769a6d98a465…", method="deterministic-replay:v1", passed=true, closure_size=1, check="latency-under-1s"}
+      observation check-result           sha-256:b0affcbc86…  (1 rev)
+          {suite="sha-256:f90be7ddfb5c1c1941f2f56ebe847ceac8268f4769a6d98a465…", method="deterministic-replay:v1", passed=true, closure_size=1, check="answers-in-english"}
+      observation check-result           sha-256:a2e02a10f7…  (1 rev)
+          {suite="sha-256:f90be7ddfb5c1c1941f2f56ebe847ceac8268f4769a6d98a465…", method="deterministic-replay:v1", passed=true, closure_size=1, check="cites-a-source"}
+      observation check-result           sha-256:0eeb773272…  (1 rev)
+          {suite="sha-256:f90be7ddfb5c1c1941f2f56ebe847ceac8268f4769a6d98a465…", method="deterministic-replay:v1", passed=true, closure_size=1, check="latency-under-1s"}
+  
+    NAMES
+      agents/support/current   → sha-256:ee40748950…
+  
+    EDGES  (continuant level, de-duplicated across revisions)
+      [composition] uses          artifact/agent → artifact/prompt
+      [composition] depends_on    artifact/agent → artifact/retrieval-config
+      [derivation ] derived_from  artifact/prompt → artifact/prompt
+      [derivation ] derived_from  artifact/agent → artifact/agent
+      [derivation ] generated_from observation/check-result → artifact/check-suite
+      [derivation ] generated_from observation/check-result → artifact/check-suite
+      [derivation ] generated_from observation/check-result → artifact/check-suite
+      [derivation ] generated_from observation/check-result → artifact/check-suite
+      [derivation ] generated_from observation/check-result → artifact/check-suite
+      [derivation ] generated_from observation/check-result → artifact/check-suite
+      [evidence   ] cites         claim/regression-verdict → observation/metric
+      [evidence   ] cites         claim/regression-verdict → observation/metric
+      [intent     ] rests_on      decision/rollback → claim/regression-verdict
+      [intent     ] applied       decision/rollback → artifact/agent
+
+  --- Graphviz DOT (paste into any DOT viewer) ---
+  digraph forge_graph {
+    rankdir=LR;
+    node [style=filled, fontname="monospace", shape=box];
+    edge [fontname="monospace", fontsize=10];
+  
+    g_f609131b_a7d4_417b_9132_4e5363d1edca [label="artifact/prompt\nf609131b", fillcolor="lightskyblue"];
+    g_7f1483a7_576c_42cf_862b_fbe6111cc7c8 [label="observation/artifact-registered\n7f1483a7", fillcolor="palegreen"];
+    g_8222c07e_90e0_439f_8f48_334aa90d5951 [label="artifact/retrieval-config\n8222c07e", fillcolor="lightskyblue"];
+    g_bbdcbbb3_dbff_4782_bc9c_c0188e18e73d [label="observation/artifact-registered\nbbdcbbb3", fillcolor="palegreen"];
+    g_79531e87_a18e_4897_9394_259599a6b04c [label="artifact/agent\n79531e87", fillcolor="lightskyblue"];
+    g_fd834389_de2b_448e_a4d5_77b0963c1321 [label="observation/artifact-registered\nfd834389", fillcolor="palegreen"];
+    g_ea145adb_44e1_4638_a350_518e8b95d56b [label="observation/artifact-registered\nea145adb", fillcolor="palegreen"];
+    g_1f0baade_5ee8_4438_8a17_00acb961a8e2 [label="observation/artifact-registered\n1f0baade", fillcolor="palegreen"];
+    g_ca16f231_7cb1_4789_8373_47215670db19 [label="observation/metric\nca16f231", fillcolor="palegreen"];
+    g_febf8345_87fc_4c06_8ccb_6f2c98916332 [label="observation/metric\nfebf8345", fillcolor="palegreen"];
+    g_ebcbff7f_cfe6_4140_bc6a_10f79ab979cc [label="claim/regression-verdict\nebcbff7f", fillcolor="khaki"];
+    g_63902684_e3b1_4965_b033_3789e9fd4e58 [label="decision/rollback\n63902684", fillcolor="plum"];
+    g_3247c1fc_a4b2_4820_91b9_67e2bc04e281 [label="artifact/check-suite\n3247c1fc", fillcolor="lightskyblue"];
+    g_3c319e9e_d31c_40d5_b195_0b35005e7f38 [label="observation/artifact-registered\n3c319e9e", fillcolor="palegreen"];
+    g_b90345f3_c777_4b60_b169_f80560d51954 [label="observation/check-result\nb90345f3", fillcolor="palegreen"];
+    g_7b5f57c3_6de7_4659_9aae_edfb155902b3 [label="observation/check-result\n7b5f57c3", fillcolor="palegreen"];
+    g_08ca7b71_23b4_4555_bc67_149451c764c0 [label="observation/check-result\n08ca7b71", fillcolor="palegreen"];
+    g_1d78b4a6_a87b_46cc_88eb_d30b43ec66e9 [label="observation/check-result\n1d78b4a6", fillcolor="palegreen"];
+    g_d8e22eb2_d43e_4a78_b847_d48421942e5e [label="observation/check-result\nd8e22eb2", fillcolor="palegreen"];
+    g_45f79801_af2b_4e86_9ea9_f406c30eb06b [label="observation/check-result\n45f79801", fillcolor="palegreen"];
+  
+    g_79531e87_a18e_4897_9394_259599a6b04c -> g_f609131b_a7d4_417b_9132_4e5363d1edca [label="uses", color="steelblue"];
+    g_79531e87_a18e_4897_9394_259599a6b04c -> g_8222c07e_90e0_439f_8f48_334aa90d5951 [label="depends_on", color="steelblue"];
+    g_f609131b_a7d4_417b_9132_4e5363d1edca -> g_f609131b_a7d4_417b_9132_4e5363d1edca [label="derived_from", color="darkgreen"];
+    g_79531e87_a18e_4897_9394_259599a6b04c -> g_79531e87_a18e_4897_9394_259599a6b04c [label="derived_from", color="darkgreen"];
+    g_ebcbff7f_cfe6_4140_bc6a_10f79ab979cc -> g_ca16f231_7cb1_4789_8373_47215670db19 [label="cites", color="goldenrod"];
+    g_ebcbff7f_cfe6_4140_bc6a_10f79ab979cc -> g_febf8345_87fc_4c06_8ccb_6f2c98916332 [label="cites", color="goldenrod"];
+    g_63902684_e3b1_4965_b033_3789e9fd4e58 -> g_ebcbff7f_cfe6_4140_bc6a_10f79ab979cc [label="rests_on", color="purple"];
+    g_63902684_e3b1_4965_b033_3789e9fd4e58 -> g_79531e87_a18e_4897_9394_259599a6b04c [label="applied", color="purple", style=dashed];
+    g_b90345f3_c777_4b60_b169_f80560d51954 -> g_3247c1fc_a4b2_4820_91b9_67e2bc04e281 [label="generated_from", color="darkgreen", style=dashed];
+    g_7b5f57c3_6de7_4659_9aae_edfb155902b3 -> g_3247c1fc_a4b2_4820_91b9_67e2bc04e281 [label="generated_from", color="darkgreen", style=dashed];
+    g_08ca7b71_23b4_4555_bc67_149451c764c0 -> g_3247c1fc_a4b2_4820_91b9_67e2bc04e281 [label="generated_from", color="darkgreen", style=dashed];
+    g_1d78b4a6_a87b_46cc_88eb_d30b43ec66e9 -> g_3247c1fc_a4b2_4820_91b9_67e2bc04e281 [label="generated_from", color="darkgreen", style=dashed];
+    g_d8e22eb2_d43e_4a78_b847_d48421942e5e -> g_3247c1fc_a4b2_4820_91b9_67e2bc04e281 [label="generated_from", color="darkgreen", style=dashed];
+    g_45f79801_af2b_4e86_9ea9_f406c30eb06b -> g_3247c1fc_a4b2_4820_91b9_67e2bc04e281 [label="generated_from", color="darkgreen", style=dashed];
+    g_name_agents_support_current [label="agents/support/current", shape=note, fillcolor="white"];
+    g_name_agents_support_current -> g_79531e87_a18e_4897_9394_259599a6b04c [style=dotted, label="resolves"];
+  }
+
+
+==============================================================================
+  END — every major kernel capability exercised via public API only
+==============================================================================

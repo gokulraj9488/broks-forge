@@ -42,7 +42,7 @@ export function BenchmarksPanel({
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-28 w-full" />
           ))}
@@ -60,7 +60,7 @@ export function BenchmarksPanel({
         />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {benchmarks.map((benchmark) => (
               <Link
                 key={benchmark.id}
@@ -74,7 +74,7 @@ export function BenchmarksPanel({
                         <Trophy className="h-5 w-5 text-primary" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="truncate font-medium leading-tight">{benchmark.name}</h3>
+                        <h2 className="truncate font-medium leading-tight">{benchmark.name}</h2>
                         <p className="truncate text-xs text-muted-foreground">
                           {BENCHMARK_TYPE_LABELS[benchmark.type] ?? benchmark.type}
                         </p>

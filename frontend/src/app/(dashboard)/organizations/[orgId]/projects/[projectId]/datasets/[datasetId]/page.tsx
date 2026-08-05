@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Database } from "lucide-react";
@@ -14,19 +14,24 @@ import { DatasetVersionsPanel } from "@/components/datasets/dataset-versions-pan
 import { DatasetItemsPanel } from "@/components/datasets/dataset-items-panel";
 import { DatasetStatsPanel } from "@/components/datasets/dataset-stats-panel";
 import { DatasetSettingsPanel } from "@/components/datasets/dataset-settings-panel";
+import { ArtifactEvolution } from "@/components/platform/artifact-evolution";
+import { ArtifactIntelligence } from "@/components/platform/artifact-intelligence";
+import { AskBrok } from "@/components/brok/ask-brok";
 import { useDataset } from "@/lib/hooks/use-datasets";
 import { useOrganization } from "@/lib/hooks/use-organizations";
 import { formatDateTime } from "@/lib/utils";
 import { formatNumber } from "@/lib/format";
 import type { DatasetResponse } from "@/lib/api/datasets";
 
-type Tab = "overview" | "versions" | "items" | "stats" | "settings";
+type Tab = "overview" | "versions" | "items" | "stats" | "evolution" | "intelligence" | "settings";
 
 const TABS = [
   { key: "overview" as const, label: "Overview" },
   { key: "versions" as const, label: "Versions" },
   { key: "items" as const, label: "Items" },
   { key: "stats" as const, label: "Stats" },
+  { key: "evolution" as const, label: "Evolution" },
+  { key: "intelligence" as const, label: "Intelligence" },
   { key: "settings" as const, label: "Settings" },
 ];
 
@@ -43,7 +48,7 @@ function Overview({ dataset }: { dataset: DatasetResponse }) {
   return (
     <div className="space-y-6">
       <Card>
-        <CardContent className="grid gap-6 p-6 sm:grid-cols-2">
+        <CardContent className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2">
           <Detail label="Visibility">{dataset.visibility}</Detail>
           <Detail label="Status">{dataset.status}</Detail>
           <Detail label="Latest version">v{dataset.latestVersionNumber ?? 0}</Detail>
@@ -76,6 +81,12 @@ export default function DatasetDetailPage() {
   const { data: organization } = useOrganization(orgId);
   const { data: dataset, isLoading, isError } = useDataset(orgId, projectId, datasetId);
   const [tab, setTab] = useState<Tab>("overview");
+
+  // Deep-link support: arriving from Knowledge/Graph with ?tab=intelligence opens that workspace tab.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t && TABS.some((x) => x.key === t)) setTab(t as Tab);
+  }, []);
 
   const role = organization?.currentUserRole;
   const canManage = role === "OWNER" || role === "ADMIN" || role === "MEMBER";
@@ -124,6 +135,13 @@ export default function DatasetDetailPage() {
         <div className="flex items-center gap-2">
           {dataset.status === "ARCHIVED" && <StatusBadge status="ARCHIVED" />}
           <Badge variant="muted">{formatNumber(dataset.currentItemCount ?? 0)} items</Badge>
+          {/* Reachable from every tab, not just the ones that already reason — the workspace itself is an entry point. */}
+          <AskBrok
+            organizationId={orgId}
+            projectId={projectId}
+            focus={`dataset:${datasetId}`}
+            question={`Show every artifact affected by ${dataset.name}.`}
+          />
         </div>
       </div>
 
@@ -154,6 +172,10 @@ export default function DatasetDetailPage() {
         )}
         {tab === "stats" && (
           <DatasetStatsPanel organizationId={orgId} projectId={projectId} datasetId={datasetId} />
+        )}
+        {tab === "evolution" && <ArtifactEvolution organizationId={orgId} projectId={projectId} type="dataset" entityId={datasetId} />}
+        {tab === "intelligence" && (
+          <ArtifactIntelligence organizationId={orgId} projectId={projectId} type="dataset" entityId={datasetId} />
         )}
         {tab === "settings" && (
           <DatasetSettingsPanel

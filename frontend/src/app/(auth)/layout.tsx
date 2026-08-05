@@ -12,11 +12,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <Logo />
           </Link>
         </div>
-        <div className="w-full max-w-md animate-fade-in">{children}</div>
+        <main className="w-full max-w-md animate-fade-in">{children}</main>
         <div className="mt-8 flex flex-col items-center gap-2 text-center">
           <ContactDeveloper />
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Brok&apos;s Forge · The Engineering Platform for AI Agents.
+            © {new Date().getFullYear()} Brok&apos;s Forge · The AI Engineering Operating System.
           </p>
         </div>
       </div>

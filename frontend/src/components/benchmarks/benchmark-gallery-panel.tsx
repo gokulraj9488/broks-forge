@@ -65,7 +65,7 @@ export function BenchmarkGalleryPanel({
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-48 w-full" />
           ))}
@@ -73,7 +73,7 @@ export function BenchmarkGalleryPanel({
       ) : isError || !templates ? (
         <EmptyState icon={LayoutGrid} title="Couldn't load gallery templates" description="Please try again." />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {templates.map((template) => {
             const Icon = TEMPLATE_ICONS[template.key] ?? LayoutGrid;
             return (
@@ -90,7 +90,7 @@ export function BenchmarkGalleryPanel({
                       </Badge>
                     </div>
                   </div>
-                  <h3 className="mt-4 font-medium leading-tight">{template.name}</h3>
+                  <h2 className="mt-4 font-medium leading-tight">{template.name}</h2>
                   <p className="mt-1.5 flex-1 text-xs text-muted-foreground">{template.description}</p>
                   <div className="mt-4 flex flex-wrap gap-1.5">
                     {template.metrics.map((metric, i) => (

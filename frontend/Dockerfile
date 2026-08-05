@@ -18,6 +18,12 @@ ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 ARG NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES=30
 ENV NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES=$NEXT_PUBLIC_IDLE_TIMEOUT_MINUTES
 ENV NEXT_TELEMETRY_DISABLED=1
+# Keep the build inside the memory a container is realistically given. Without a heap ceiling Node
+# grows until the cgroup kills it, which Next reports as "Retrying 1/3..." and then hangs; without a
+# worker cap, static generation fans out one renderer per CPU and multiplies that peak. Both are
+# build-time only and do not affect the runtime image.
+ENV NODE_OPTIONS=--max-old-space-size=1536
+ENV NEXT_BUILD_CPUS=2
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Git does not track empty directories, so a `public/` with no committed files

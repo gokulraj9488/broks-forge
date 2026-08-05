@@ -4,7 +4,7 @@ export function WhyWeBuilt() {
   return (
     <section className="border-b border-border/60 py-24">
       <div className="container">
-        <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
           <Reveal>
             <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
               Why we built Brok&apos;s Forge

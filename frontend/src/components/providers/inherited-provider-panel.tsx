@@ -28,7 +28,7 @@ export function InheritedProviderPanel({ provider }: { provider: ProviderRespons
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Inherited configuration
       </p>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Item label="Provider">
           {provider.name} <span className="text-muted-foreground">({TYPE_LABELS[provider.type] ?? provider.type})</span>
         </Item>

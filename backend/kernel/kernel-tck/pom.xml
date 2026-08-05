@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      kernel-tck: the Technology Compatibility Kit.
+
+      A backend-agnostic behavioural contract that EVERY storage backend must pass identically. The
+      in-memory backend and the PostgreSQL backend both extend the same contract, which is how
+      "storage implementations remain interchangeable" (ADR-V2-0001) is proven rather than asserted.
+
+      The contract base classes live in main scope (with JUnit as a compile dependency) so that other
+      modules' test suites can extend them — the same pattern as the JPA TCK.
+    -->
+
+    <parent>
+        <groupId>com.broksforge.kernel</groupId>
+        <artifactId>broks-forge-kernel</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>kernel-tck</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Brok's Forge Kernel :: TCK</name>
+    <description>Backend-agnostic storage compatibility contract.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.broksforge.kernel</groupId>
+            <artifactId>kernel-core</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <!-- Compile scope: the contract base classes are JUnit tests that other modules extend. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+</project>

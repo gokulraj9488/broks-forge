@@ -8,8 +8,10 @@ import {
   FileText,
   FlaskConical,
   Loader2,
+  Network,
   Trophy,
 } from "lucide-react";
+import { ForgeGraph } from "@/components/platform/forge-graph";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -33,7 +35,7 @@ export function DashboardPanel({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24 w-full" />
           ))}
@@ -54,7 +56,20 @@ export function DashboardPanel({
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-base font-semibold">
+            <Network className="h-4 w-4 text-primary" />
+            Engineering graph
+          </h2>
+          <Link href="/knowledge" className="text-xs text-primary hover:underline">
+            Open full graph
+          </Link>
+        </div>
+        <ForgeGraph organizationId={organizationId} height={300} compact />
+      </section>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <CountTile label="Agents" value={c.agents} icon={Bot} href="/agents" />
         <CountTile label="Datasets" value={c.datasets} icon={Database} href="/datasets" />
         <CountTile label="Prompts" value={c.prompts} icon={FileText} href="/prompts" />
@@ -64,7 +79,7 @@ export function DashboardPanel({
       </div>
 
       {a && (
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardContent className="space-y-3 p-5">
               <div className="flex items-center justify-between">
@@ -83,7 +98,7 @@ export function DashboardPanel({
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold">Recent evaluations</h2>

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { DOC_FILES } from "@/lib/docs";
 
 /**
  * Minimal, dependency-free Markdown → JSX renderer for the /docs route.
@@ -8,6 +9,37 @@ import type { ReactNode } from "react";
  * outside that (nested lists, footnotes) renders as plain text rather than
  * throwing, since these are trusted, repo-authored files, not user input.
  */
+
+const REPO = "https://github.com/gokulraj9488/broks-forge/blob/main";
+
+/** Filename as written in the repo → the slug it is published under, for the docs that are published. */
+const SLUG_BY_FILE = new Map(DOC_FILES.map((d) => [d.file, d.slug]));
+
+/**
+ * Resolves a link written for the repository filesystem into one that works on the website.
+ *
+ * The engineering handbook is published unedited, so its links are relative paths between
+ * markdown files — `./PROJECT_RULES.md`, `./adr/0001-modular-monolith.md`, `../SECURITY.md`.
+ * Left alone those 404: the browser resolves them against `/docs/<slug>` and there is no
+ * `.md` route. A published document becomes its own page; anything not published (the ADRs,
+ * the repo-root policies) points at the file in the repository, which is where it lives.
+ */
+export function resolveDocHref(href: string): string {
+  if (/^(https?:|mailto:|#|\/)/.test(href)) return href;
+
+  const [rawPath, hash] = href.split("#");
+  const anchor = hash ? `#${hash}` : "";
+  if (!rawPath) return href;
+
+  // Relative links in these files are written from the repo's `docs/` directory.
+  const fromRepoRoot = rawPath.startsWith("../");
+  const cleaned = rawPath.replace(/^(\.\/|\.\.\/)+/, "");
+
+  const slug = SLUG_BY_FILE.get(cleaned);
+  if (slug) return `/docs/${slug}${anchor}`;
+
+  return `${REPO}/${fromRepoRoot ? cleaned : `docs/${cleaned}`}${anchor}`;
+}
 
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = [];
@@ -20,7 +52,12 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
     if (match.index > last) nodes.push(text.slice(last, match.index));
     if (match[1] !== undefined) {
       nodes.push(
-        <code key={`${keyPrefix}-${i}`} className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em]">
+        // `break-words` matters: these docs quote long endpoint paths and identifiers as inline code,
+        // and an unbreakable token pushes the whole page wider than a phone screen.
+        <code
+          key={`${keyPrefix}-${i}`}
+          className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.85em] [overflow-wrap:anywhere]"
+        >
           {match[1]}
         </code>,
       );
@@ -29,7 +66,7 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
     } else if (match[3] !== undefined) {
       nodes.push(<em key={`${keyPrefix}-${i}`}>{match[3]}</em>);
     } else if (match[4] !== undefined) {
-      const href = match[5];
+      const href = resolveDocHref(match[5]);
       const external = /^https?:\/\//.test(href);
       nodes.push(
         <a
