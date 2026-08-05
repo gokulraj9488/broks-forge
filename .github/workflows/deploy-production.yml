@@ -26,7 +26,9 @@ jobs:
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Headroom for a cold build plus the health windows and, worst case, the rollback
+    # path (which waits for health a second time). A warm run finishes in a few minutes.
+    timeout-minutes: 30
     if: ${{ github.repository_owner == 'gokulraj9488' }}
     environment: production
     steps:
@@ -50,47 +52,119 @@ jobs:
             set -euo pipefail
             cd "$DEPLOY_PATH"
 
+            echo "==> Toolchain (logged so a plugin-version problem is self-diagnosing)"
+            docker --version
+            docker compose version
+            docker buildx version
+
             echo "==> Pulling latest main"
             git fetch origin main
             git reset --hard origin/main
+
+            # Tag the image that is live right now. Tagging rather than remembering the ID
+            # matters: a tagged image is not dangling, so it survives the `docker image
+            # prune` at the end and is still there to roll back to if the new build is bad.
+            echo "==> Recording the current image as a rollback point"
+            rollback_available=""
+            if docker image inspect broksforge-backend:prod >/dev/null 2>&1; then
+              docker tag broksforge-backend:prod broksforge-backend:rollback
+              rollback_available=yes
+              echo "    tagged broksforge-backend:rollback"
+            else
+              echo "    no image yet -- first deploy, nothing to roll back to"
+            fi
 
             echo "==> Pulling base images (postgres/redis/nginx/certbot) -- backend has no"
             echo "    registry image, only a local build, so its pull is expected to fail"
             echo "    here; it's built fresh in the next step regardless."
             docker compose -f docker-compose.prod.yml pull --ignore-pull-failures
 
-            echo "==> Building the backend image"
+            echo "==> Building the backend image (BuildKit via Compose -> Buildx bake)"
             docker compose -f docker-compose.prod.yml build backend
+
+            # Nginx resolves `upstream { server backend:8080; }` exactly once, at startup,
+            # and caches the container's IP. `up -d` gives a recreated backend a NEW IP
+            # while leaving the unchanged nginx container running -- so without this reload
+            # nginx keeps proxying to the dead container and every public request 502s.
+            #
+            # The `</dev/null` on every `compose exec` below is load-bearing, not tidiness.
+            # This whole script arrives on the remote shell's stdin (`bash -s`), and
+            # `compose exec` attaches stdin by default -- so without the redirect it reads
+            # the rest of the script as input for the container, bash then hits EOF and
+            # exits 0. The deployment would report success having silently skipped every
+            # remaining step, health checks included.
+            reload_nginx() {
+              docker compose -f docker-compose.prod.yml exec -T nginx nginx -s reload </dev/null 2>/dev/null \
+                || docker compose -f docker-compose.prod.yml restart nginx
+            }
+
+            # Poll rather than sleep-and-hope, so a slow JVM start is not mistaken for a
+            # failure. Only a backend that never comes up within the window is a failure.
+            backend_healthy() {
+              for _ in $(seq 1 36); do
+                if docker compose -f docker-compose.prod.yml exec -T backend \
+                     wget -qO- http://localhost:8080/actuator/health </dev/null 2>/dev/null \
+                     | grep -q '"status":"UP"'; then
+                  return 0
+                fi
+                sleep 5
+              done
+              return 1
+            }
+
+            # Retried for the same reason: a single curl can lose a race with the nginx
+            # reload, and a transient blip must not fail an otherwise good deployment.
+            public_healthy() {
+              for _ in $(seq 1 12); do
+                if curl -fsS --max-time 10 https://api.broksforge.gokul.quest/actuator/health 2>/dev/null \
+                     | grep -q '"status":"UP"'; then
+                  return 0
+                fi
+                sleep 5
+              done
+              return 1
+            }
 
             echo "==> Applying (starts anything new, recreates anything changed, leaves"
             echo "    unchanged containers untouched -- e.g. Postgres/Redis keep running)"
             docker compose -f docker-compose.prod.yml up -d
 
-            echo "==> Removing dangling images (freed by the rebuild above)"
-            docker image prune -f
+            echo "==> Reloading nginx so it re-resolves the backend's address"
+            reload_nginx
 
-            echo "==> Waiting for the backend health check"
-            healthy=0
-            for i in $(seq 1 30); do
-              if docker compose -f docker-compose.prod.yml exec -T backend \
-                   wget -qO- http://localhost:8080/actuator/health 2>/dev/null | grep -q '"status":"UP"'; then
-                healthy=1
-                break
-              fi
-              sleep 5
-            done
-            if [ "$healthy" -ne 1 ]; then
-              echo "Backend did not report healthy within 150s" >&2
+            echo "==> Waiting for the backend health check (up to 180s)"
+            if ! backend_healthy; then
+              echo "Backend did not report healthy within 180s" >&2
               docker compose -f docker-compose.prod.yml logs --tail=200 backend >&2
+              if [ -n "$rollback_available" ]; then
+                echo "==> Rolling back to the previous image" >&2
+                docker tag broksforge-backend:rollback broksforge-backend:prod
+                docker compose -f docker-compose.prod.yml up -d
+                reload_nginx
+                if backend_healthy; then
+                  echo "==> Rollback restored a healthy backend" >&2
+                else
+                  echo "==> Rollback did NOT restore health -- manual intervention required" >&2
+                fi
+              fi
               exit 1
             fi
             echo "==> Backend healthy"
 
-            echo "==> Verifying the public HTTPS endpoint"
-            if ! curl -fsS https://api.broksforge.gokul.quest/actuator/health | grep -q '"status":"UP"'; then
-              echo "Public health check via Nginx/HTTPS failed" >&2
+            echo "==> Verifying the public HTTPS endpoint through Nginx"
+            if ! public_healthy; then
+              echo "Backend is healthy in-container but the public endpoint is not answering;" >&2
+              echo "this points at Nginx/TLS rather than the application." >&2
+              docker compose -f docker-compose.prod.yml logs --tail=100 nginx >&2
               exit 1
             fi
+            echo "==> Public endpoint healthy"
+
+            # Last, not before the health gate: pruning earlier would delete the very image
+            # the rollback path depends on. The :rollback tag is kept on purpose.
+            echo "==> Removing dangling images (the rollback tag is retained)"
+            docker image prune -f
+
             echo "==> Deployment complete"
           REMOTE_SCRIPT
 
