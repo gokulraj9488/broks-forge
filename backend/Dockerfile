@@ -3,7 +3,7 @@
 # ===========================================================================
 
 # --------------------------- Build stage -----------------------------------
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3-eclipse-temurin-26 AS build
 WORKDIR /workspace
 
 # Platform V2 modules are local (not on Maven Central). Build and install them into the image's
