@@ -4,11 +4,11 @@ import { EngineeringBackground } from "./engineering-background";
 import { LandingNav } from "./landing-nav";
 import { Hero } from "./hero";
 import { ProblemSolution } from "./problem-solution";
+import { DeterministicReasoning } from "./deterministic-reasoning";
 import { FiveLayers } from "./five-layers";
 import { CapabilitySections } from "./capability-sections";
 import { EngineeringJourney } from "./engineering-journey";
-import { ScreenshotShowcase } from "./screenshot-showcase";
-import { ArchitectureDiagram } from "./architecture-diagram";
+import { ProductTour } from "./product-tour";
 import { Comparison } from "./comparison";
 import { WhyTeams } from "./why-teams";
 import { LandingFaq } from "./landing-faq";
@@ -18,10 +18,16 @@ import { LandingStructuredData } from "./structured-data";
 /**
  * The public landing page.
  *
- * The order is an argument, read top to bottom: state the category, show the problem it exists for,
- * show the solution, show the architecture that makes it possible, show each capability as the
- * artifact it produces, show the loop, show the product, be honest about the competitive landscape,
- * say who it is for, answer the obvious questions, then invite.
+ * The order is an argument, read top to bottom: state the category, show the problem it exists for
+ * and the solution, prove the reasoning can be trusted at all, show the architecture that makes it
+ * possible, show each capability as the artifact it produces, show the real product, show the loop
+ * it all serves, be honest about the competitive landscape, say who it is for, answer the obvious
+ * questions, then invite.
+ *
+ * "Prove the reasoning can be trusted" comes third on purpose. Everything after it — derived
+ * knowledge, assembled investigations, grounded answers — is worthless to a sceptical reader who
+ * still assumes there is a language model quietly making things up, so that objection is answered
+ * before the capabilities are claimed.
  *
  * The constitutional test for this page: a first-time visitor must infer "AI Engineering Operating
  * System" within thirty seconds, without documentation.
@@ -78,11 +84,11 @@ export function LandingPage() {
       <main className="flex-1">
         <Hero />
         <ProblemSolution />
+        <DeterministicReasoning />
         <FiveLayers />
         <CapabilitySections />
+        <ProductTour />
         <EngineeringJourney />
-        <ScreenshotShowcase />
-        <ArchitectureDiagram />
         <Comparison />
         <WhyTeams />
         <LandingFaq />

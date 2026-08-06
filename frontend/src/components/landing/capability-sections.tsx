@@ -243,6 +243,52 @@ export function CapabilitySections() {
           </div>
         </Panel>
       </Section>
+
+      {/* --------------------------------------------------------- Forge Graph */}
+      <Section
+        id="forge-graph"
+        eyebrow="Forge Graph"
+        title="The architecture diagram that cannot go stale."
+        body="Every architecture document is out of date the week after it is written, because keeping it
+              true is manual. The Forge Graph is not maintained — it is the relationships the system
+              actually recorded while you worked. Ask what depends on a dataset before you regenerate it
+              and the blast radius is a fact, not a recollection. Narrow the same map to one run and it
+              becomes the Execution Graph; narrow it to one failure and it becomes the Failure Graph."
+        href="/docs/forge-graph"
+        linkLabel="How the Forge Graph works"
+      >
+        <Panel label="Blast radius · Support Dataset v2">
+          <div className="rounded-lg border border-border/60 bg-background p-3">
+            <p className="text-xs font-medium text-foreground">
+              Changing this dataset touches 5 artifacts.
+            </p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Derived from recorded relationships, not a declared manifest.
+            </p>
+          </div>
+          <div className="mt-3 space-y-1.5">
+            {[
+              { d: 0, n: "Support Dataset v2", m: "the change", c: "text-foreground" },
+              { d: 1, n: "Checkout Quality", m: "evaluates it", c: "text-foreground/85" },
+              { d: 1, n: "Refund Agent", m: "measured by it", c: "text-foreground/85" },
+              { d: 2, n: "Support Prompt v3", m: "evidence would be invalidated", c: "text-amber-500" },
+              { d: 2, n: "2 knowledge objects", m: "would lose their basis", c: "text-amber-500" },
+            ].map((r) => (
+              <div
+                key={r.n}
+                className="flex items-center gap-2 text-xs"
+                style={{ paddingLeft: `${r.d * 14}px` }}
+              >
+                <span className="h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
+                <span className={cn("min-w-0 truncate font-medium", r.c)}>{r.n}</span>
+                <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+                  {r.m}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      </Section>
     </>
   );
 }

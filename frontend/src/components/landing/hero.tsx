@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight, Github } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -57,25 +57,17 @@ export function Hero() {
             before, and can we defend it?</span>
           </p>
 
+          {/* Two doors, not three. GitHub lives in the nav and in the closing call to action;
+              repeating it here only competes with the action that matters. */}
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button asChild size="lg" className="transition-transform active:scale-[0.97]">
               <Link href="/register">
-                Get Started
+                Get started
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="transition-transform active:scale-[0.97]">
-              <Link href="/docs/what-is-broks-forge">Read the docs</Link>
-            </Button>
-            <Button asChild size="lg" variant="ghost" className="transition-transform active:scale-[0.97]">
-              <Link
-                href="https://github.com/gokulraj9488/broks-forge"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Github className="h-4 w-4" />
-                GitHub
-              </Link>
+              <Link href="/docs/what-is-broks-forge">See how it works</Link>
             </Button>
           </div>
 
@@ -95,9 +87,24 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="relative"
-          aria-hidden="true"
         >
-          <div className="rounded-xl border border-border bg-card/80 p-5 shadow-lg backdrop-blur">
+          {/* The decorative rendering is hidden from assistive tech, but the narrative it carries is
+              not — it is the clearest explanation on the page, so it is restated as text. Vol III
+              L-92: the narrative IS the accessible product. */}
+          <p className="sr-only">
+            An example answer from Brok. Question: has this happened before? Answer, near-certain:
+            yes. Checkout Quality number one failed nineteen days ago against the same agent and
+            dataset, with an identical recorded cause, which makes this a recurrence rather than a
+            coincidence. This is derived, read from earlier evaluations sharing an artifact with this
+            one. Both failures recorded &ldquo;Connection refused&rdquo;. Engineering memory records
+            &ldquo;Moved the endpoint behind the internal gateway&rdquo;. Two downstream artifacts
+            are left without evidence.
+          </p>
+
+          <div
+            aria-hidden="true"
+            className="rounded-xl border border-border bg-card/80 p-5 shadow-lg backdrop-blur"
+          >
             <p className="text-xs text-muted-foreground">
               <span className="font-medium text-foreground">Ask Brok</span> · Has this happened
               before?

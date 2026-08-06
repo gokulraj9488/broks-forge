@@ -9,8 +9,9 @@ import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "#problem", label: "Why" },
+  { href: "#deterministic", label: "How it reasons" },
   { href: "#layers", label: "Architecture" },
-  { href: "#brok", label: "Brok" },
+  { href: "#product", label: "Product" },
   { href: "#comparison", label: "Compare" },
   { href: "/docs", label: "Docs" },
   { href: "https://github.com/gokulraj9488/broks-forge", label: "GitHub", external: true },
@@ -26,7 +27,10 @@ export function LandingNav() {
           <Logo />
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        {/* Horizontal nav appears at lg, not md: with seven destinations plus the logo and the
+            call to action, the row does not fit 768px, and a tablet is better served by the
+            same sheet the phone gets than by a row that silently overflows the viewport. */}
+        <nav className="hidden items-center gap-1 lg:flex">
           {LINKS.map((link) => (
             <Link
               key={link.href}
@@ -41,16 +45,16 @@ export function LandingNav() {
           ))}
         </nav>
 
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <Button asChild size="sm">
-            <Link href="/login">Get Started</Link>
+            <Link href="/register">Get started</Link>
           </Button>
         </div>
 
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground md:hidden"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground lg:hidden"
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
         >
@@ -60,8 +64,8 @@ export function LandingNav() {
 
       <div
         className={cn(
-          "overflow-hidden border-t border-border/60 transition-[max-height] duration-200 md:hidden",
-          open ? "max-h-80" : "max-h-0 border-t-0",
+          "overflow-hidden border-t border-border/60 transition-[max-height] duration-200 lg:hidden",
+          open ? "max-h-96" : "max-h-0 border-t-0",
         )}
       >
         <nav className="container flex flex-col gap-1 py-3">
@@ -78,7 +82,7 @@ export function LandingNav() {
             </Link>
           ))}
           <Button asChild size="sm" className="mt-2">
-            <Link href="/login">Get Started</Link>
+            <Link href="/register">Get started</Link>
           </Button>
         </nav>
       </div>
