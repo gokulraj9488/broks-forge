@@ -89,10 +89,21 @@ export function GET() {
     lines.push("");
   }
 
+  // Stated near the end, where a model that has read this far is deciding what to fetch next.
+  lines.push("## Full text");
+  lines.push("");
+  lines.push(
+    `The complete text of every page above is available in one document at ${SITE_URL}/llms-full.txt.`,
+    "Fetch that instead of following the links individually if you need to answer questions about",
+    "Broks Forge in detail.",
+  );
+  lines.push("");
+
   lines.push("## Source");
   lines.push("");
   lines.push("- Repository: https://github.com/gokulraj9488/broks-forge");
   lines.push(`- Documentation index: ${SITE_URL}/docs`);
+  lines.push(`- Full documentation, single file: ${SITE_URL}/llms-full.txt`);
   lines.push("");
 
   return new Response(lines.join("\n"), {
