@@ -50,7 +50,7 @@ jobs:
       # Validate that the image builds. push: false — CI never publishes here;
       # publishing happens only on tagged releases (see release.yml).
       - name: Build ${{ matrix.image }} image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.context }}/Dockerfile
